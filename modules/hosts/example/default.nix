@@ -4,6 +4,7 @@
   configurations.nixos.example.module = {
     imports = with config.flake.modules.nixos; [
       base
+      disk
       desktop
       alice
     ];

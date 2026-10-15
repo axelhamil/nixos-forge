@@ -10,20 +10,15 @@ Everything is developed and tested in VMs. Installing on real hardware is each f
 |---|---|
 | **1. Repo tooling**: dendritic flake, nixfmt + statix + deadnix, build check per host, boot test, CI matrix with KVM, PR package diff, weekly lock update merged on green CI, `develop` sync, release PRs with release-please, MIT license | `nix flake check` (`treefmt`, `<host>-toplevel`, `<host>-boots`), `ci-ok` required on `main` |
 | **2. Generic starter**: host registry `configurations.nixos.<name>` generating the config, build check and boot test, CI matrix per system and runner (`aarch64-linux` ready), neutral `example` host and `alice` user, locale in the host, `desktop` profile, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT | every registry entry gets `<name>-toplevel`, `<name>-boots` and a matrix entry on its system's runner (`nix eval --json .#ci.matrix`) |
+| **3. Disk**: disko layout, LUKS2 with TPM2 unlock enrolled after install (passphrase fallback), btrfs subvolumes `@root`, `@nix`, `@persist`, `@home` with zstd, `/` restored from a blank snapshot in the systemd initrd, impermanence list, immutable users, install guide, `/persist` declared per module | `<host>-disk`: installs on a blank disk, reboots, checks `/` is wiped while `/persist`, `/home` and `machine-id` survive |
 
 ## Next
-
-### 3. Disk
-
-disko layout, LUKS unlocked by TPM2 (passphrase fallback), btrfs subvolumes, impermanence of `/` with `/home` and `/persist` kept.
-
-Guardrail: VM test that reboots and checks `/` is wiped while declared state survives.
 
 ### 4. Boot
 
 Kernel choice, systemd initrd, Secure Boot with lanzaboote, optional Windows entry in the boot menu.
 
-Guardrail: VM test booting under OVMF with Secure Boot enforced.
+Guardrail: VM test booting under OVMF with Secure Boot enforced, and the disk unlocked by an emulated TPM (swtpm) with no key file.
 
 ### 5. Hardware
 
@@ -66,6 +61,6 @@ Guardrail: VM test reaching the graphical session.
 
 ### 11. Raspberry Pi
 
-`aarch64-linux` host on the `pi` profile through `nvmd/nixos-raspberrypi` (Pi 5 has no official nixpkgs support), SD image output, CI on `ubuntu-24.04-arm`. Check that `ubuntu-24.04-arm` exposes `/dev/kvm` for the boot test (otherwise it runs under slow TCG emulation), and extend the PR package diff to `aarch64-linux` hosts.
+`aarch64-linux` host on the `pi` profile through `nvmd/nixos-raspberrypi` (Pi 5 has no official nixpkgs support), SD image output, CI on `ubuntu-24.04-arm`. Check that `ubuntu-24.04-arm` exposes `/dev/kvm` for the boot test (otherwise it runs under slow TCG emulation), and extend the PR package diff to `aarch64-linux` hosts. The `disk` module assumes UEFI with systemd-boot (its install test passes the LUKS key through `boot.initrd.secrets`, which extlinux rejects): a Pi gets its own disk layout or none.
 
 Guardrail: SD image builds in CI.

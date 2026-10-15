@@ -8,19 +8,10 @@ Everything is developed and tested in VMs. Installing on real hardware is each f
 
 | Lot | Guardrail |
 |---|---|
-| **1. Repo tooling**: dendritic flake, nixfmt + statix + deadnix, build check per host, boot test, CI matrix with KVM, PR package diff, weekly lock update merged on green CI, `develop` sync, release PRs with release-please, MIT license | `nix flake check` (`treefmt`, `<host>-toplevel`, `desktop-boots`), `ci-ok` required on `main` |
+| **1. Repo tooling**: dendritic flake, nixfmt + statix + deadnix, build check per host, boot test, CI matrix with KVM, PR package diff, weekly lock update merged on green CI, `develop` sync, release PRs with release-please, MIT license | `nix flake check` (`treefmt`, `<host>-toplevel`, `<host>-boots`), `ci-ok` required on `main` |
+| **2. Generic starter**: host registry `configurations.nixos.<name>` generating the config, build check and boot test, CI matrix per system and runner (`aarch64-linux` ready), neutral `example` host and `alice` user, locale in the host, `desktop` profile, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT | every registry entry gets `<name>-toplevel`, `<name>-boots` and a matrix entry on its system's runner (`nix eval --json .#ci.matrix`) |
 
 ## Next
-
-### 2. Generic starter
-
-- Rename the example host to `example`; `desktop` and `server` become profiles
-- Host registry (`configurations.nixos.<name>`): declaring a host generates its `nixosConfigurations` entry, build check and boot test
-- CI matrix carries system and runner, ready for `aarch64-linux`
-- Starter modules expose options with neutral defaults; personal values (locale, keyboard, time zone) move to hosts and users
-- CONTRIBUTING, SECURITY, CODE_OF_CONDUCT
-
-Guardrail: every declared host gets a build check and a boot test without extra code.
 
 ### 3. Disk
 
@@ -75,6 +66,6 @@ Guardrail: VM test reaching the graphical session.
 
 ### 11. Raspberry Pi
 
-`aarch64-linux` host on the `pi` profile through `nvmd/nixos-raspberrypi` (Pi 5 has no official nixpkgs support), SD image output, CI on `ubuntu-24.04-arm`.
+`aarch64-linux` host on the `pi` profile through `nvmd/nixos-raspberrypi` (Pi 5 has no official nixpkgs support), SD image output, CI on `ubuntu-24.04-arm`. Check that `ubuntu-24.04-arm` exposes `/dev/kvm` for the boot test (otherwise it runs under slow TCG emulation), and extend the PR package diff to `aarch64-linux` hosts.
 
 Guardrail: SD image builds in CI.

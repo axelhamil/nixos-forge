@@ -15,7 +15,7 @@ A NixOS flake meant to be forked (the kickstart.nvim model): a readable starting
 | Format and lint (nixfmt, statix, deadnix) | `nix fmt` |
 | All checks: lint, host builds, boot tests | `nix flake check -L` |
 | One check | `nix build -L .#checks.x86_64-linux.<name>` |
-| Checks the CI matrix runs | `nix eval --json .#ci.checks` |
+| Checks the CI matrix runs, with system and runner | `nix eval --json .#ci.matrix` |
 | Build the VM | `nix build .#nixosConfigurations.<host>.config.system.build.vm` |
 | Boot the VM headless (blocks until killed) | `QEMU_KERNEL_PARAMS=console=ttyS0 ./result/bin/run-<host>-vm -nographic` |
 | Package diff against a revision | `nix run .#closure-diff -- <rev>` |
@@ -28,15 +28,17 @@ A flake only sees files tracked by git: `git add` new files (staging is enough) 
 The flake is built with flake-parts, and `flake.nix` hands the whole `modules/` tree to `import-tree`. Consequences:
 
 - **Every `.nix` file under `modules/` is a flake-parts module**, imported automatically. There is no import list: adding a file adds the feature, deleting it removes it. A path segment starting with `_` is ignored by import-tree.
-- **NixOS and home-manager config is published, not imported.** A file contributes to `flake.modules.nixos.<name>` or `flake.modules.homeManager.<name>`. Several files may write to the same name (`base` is assembled by `system/nix`, `system/locale`, `system/home-manager`); the module system merges them.
-- **A host assembles named modules.** `modules/hosts/<host>/default.nix` defines `flake.nixosConfigurations.<host>` from `config.flake.modules.nixos` and sets `nixpkgs.hostPlatform` in that list, not inside a shared module: NixOS tests (`runNixOSTest`) impose their own read-only `pkgs` and fail on any `nixpkgs.*` option in the modules they import.
+- **NixOS and home-manager config is published, not imported.** A file contributes to `flake.modules.nixos.<name>` or `flake.modules.homeManager.<name>`. Several files may write to the same name (`base` is assembled by `system/nix` and `system/home-manager`); the module system merges them.
+- **A host is declared in the registry.** `modules/flake/hosts` defines `configurations.nixos.<name>` with `system` (one of the flake `systems`, `x86_64-linux` by default), `module` (a NixOS module that imports named modules from `config.flake.modules.nixos`) and `testScript` (lines appended to the boot test). Several files may write to the same host `module` (`default.nix`, `hardware.nix`); they merge. The registry sets `nixpkgs.hostPlatform` itself: never set it in a module. Other `nixpkgs.*` options (`nixpkgs.config.allowUnfree`, overlays) are fine in a host `module`; the boot test runs with `node.pkgsReadOnly = false` so it honors them. A host name may only contain letters, digits, `-` and `_` (it becomes a check name and a CI job name); the registry rejects anything else.
 - **A user wires home-manager.** `modules/users/<user>` defines both the NixOS account (`flake.modules.nixos.<user>`) and its home config (`flake.modules.homeManager.<user>`), connected through `home-manager.users.<user>.imports`.
-- **Checks are derived, not listed.** `modules/flake/checks` creates `<host>-toplevel` for every `nixosConfigurations` entry of the current system; boot tests live next to their host (`modules/hosts/<host>/test.nix`). `flake.ci.checks` (in `modules/flake/ci`) feeds the CI matrix, so new checks reach CI without touching YAML.
+- **Checks are generated, not listed.** Every registry entry gets `checks.<system>.<name>-toplevel` and `checks.<system>.<name>-boots`, a NixOS test that waits for `multi-user.target` and every `home-manager-<user>.service`. `flake.ci.matrix` (in `modules/flake/ci`) lists every check with its system and runner (`ubuntu-24.04`, `ubuntu-24.04-arm`), so new hosts reach CI without touching YAML.
 
-Layers under `modules/`, one folder per tool, never a loose `.nix` file at layer level:
+Layers under `modules/`, one folder per tool, never a loose `.nix` file at layer level (`helpers/` excepted):
 
-- `flake/`: flake wiring (systems, formatter, checks, CI scripts)
+- `flake/`: flake wiring (systems, formatter, host registry and its checks, CI scripts)
+- `helpers/`: functions shared by flake-parts modules, declared once in `config.helpers` (`helpers/default.nix`) and added one file per topic; read them with `inherit (config.helpers) <name>;`
 - `system/`: OS base shared by every host
+- `profiles/`: roles a host imports (`desktop`)
 - `users/`, `hosts/`: owned by the fork; upstream keeps them minimal so forks merge upstream without conflicts
 - `desktop/`, `apps/`: planned
 

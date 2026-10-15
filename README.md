@@ -9,9 +9,9 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 ## What you get
 
 - **Dendritic layout**: built on [flake-parts](https://flake.parts) and [import-tree](https://github.com/vic/import-tree). Every `.nix` file under `modules/` is a flake-parts module, loaded automatically. Adding a feature means adding a file, no import list to maintain.
-- **Every host built and booted in CI**: each host in `nixosConfigurations` gets a build check, and `desktop` boots in a NixOS VM test (systemd, home-manager, user account).
+- **Every host built and booted in CI**: declare a host in `configurations.nixos.<name>` and it gets its `nixosConfigurations` entry, a build check and a NixOS VM boot test (systemd, every home-manager user), run on a CI runner of its system (`x86_64-linux` or `aarch64-linux`).
 - **Weekly lock updates, merged automatically**: every Monday a PR updates `flake.lock` and merges itself once CI is green.
-- **Package diff on every PR**: a comment lists the packages added, removed or upgraded per host (via [nvd](https://git.sr.ht/~khumba/nvd)).
+- **Package diff on every PR**: a comment lists the packages added, removed or upgraded per `x86_64-linux` host (via [nvd](https://git.sr.ht/~khumba/nvd)).
 - **Lint and format in the check**: nixfmt, statix and deadnix run through `nix fmt` and `nix flake check`.
 
 ## Requirements
@@ -23,15 +23,15 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 
 1. Fork the repo on GitHub, then clone your fork.
 
-2. Rename the example user and host. Both are hard coded today, so this is a manual find and replace:
+2. Rename the example user `alice` and the example host `example`. Both are hard coded, so this is a manual find and replace:
 
    ```sh
-   git mv modules/users/axel modules/users/<you>
-   git mv modules/hosts/desktop modules/hosts/<host>
-   grep -rn -e axel -e desktop modules
+   git mv modules/users/alice modules/users/<you>
+   git mv modules/hosts/example modules/hosts/<host>
+   grep -rn -e alice -e example modules
    ```
 
-   Replace every match the `grep` prints (user name, module names, `networking.hostName`, the test name and its `home-manager-axel.service`). Also adjust `modules/system/locale` (French locale and keyboard by default) and `modules/hosts/<host>/hardware.nix` (disk labels, CPU microcode) to your machine. Keep new files tracked with `git add`: a flake only sees files known to git.
+   Replace every match the `grep` prints: `alice` is the user (account, module name, home-manager), `example` is the host (`configurations.nixos.<host>`, `networking.hostName`). Then set your time zone, locale and keyboard in `modules/hosts/<host>/default.nix` (neutral `UTC`, `en_US.UTF-8` and `us` by default), and adjust `modules/hosts/<host>/hardware.nix` (disk labels, CPU microcode) to your machine. Keep new files tracked with `git add`: a flake only sees files known to git.
 
 3. Install the pre-push hook, then check, build and run:
 
@@ -49,25 +49,30 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 
 ## Layout
 
-`modules/` is split into layers, with one folder per tool (`default.nix`, plus other modules, scripts or assets as needed):
+`modules/` is split into layers, with one folder per tool (`default.nix`, plus other modules, scripts or assets as needed). `helpers/` is the exception: one file per topic.
+
 
 ```text
 modules/
-├── flake/     flake wiring: flake-parts, formatter, checks, CI scripts
-├── system/    OS base shared by every host: nix, locale, home-manager
+├── flake/     flake wiring: flake-parts, formatter, host registry, CI scripts
+├── helpers/   functions shared by flake-parts modules (`config.helpers`)
+├── system/    OS base shared by every host: nix, home-manager
+├── profiles/  roles a host picks: desktop
 ├── users/     accounts and their home-manager config
-├── hosts/     one folder per machine: the modules it assembles, hardware, VM test
+├── hosts/     one folder per machine: its registry entry and hardware
 ├── desktop/   (planned) graphical session
 └── apps/      (planned) terminal, shell, editor and other tools
 ```
 
-Modules publish themselves under `flake.modules.nixos.<name>` or `flake.modules.homeManager.<name>`, and a host picks the ones it wants in `modules/hosts/<host>/default.nix`.
+Modules publish themselves under `flake.modules.nixos.<name>` or `flake.modules.homeManager.<name>`. A host is declared in `modules/hosts/<host>/default.nix` with `configurations.nixos.<host>`: its `system` (`x86_64-linux` by default), its `module`, which imports the named modules it wants, and an optional `testScript` appended to its boot test.
+
+A function that two modules need goes to `modules/helpers/<topic>.nix` as `helpers.<name> = ...;`, and is read with `inherit (config.helpers) <name>;`. `helpers.hostsOn system` (the hosts of one platform) is the first one.
 
 ## Status and roadmap
 
-Working today: a minimal system (systemd-boot, NetworkManager, latest kernel, one user with home-manager) that builds and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand, and only `x86_64-linux` is covered.
+Working today: a minimal system (systemd-boot, NetworkManager, latest kernel, one user with home-manager) that builds and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
 
-Next lots (generic starter, disk with LUKS and impermanence, Secure Boot, hardware, performance profiles, services, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Next lots (disk with LUKS and impermanence, Secure Boot, hardware, performance profiles, services, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
 
 ## Releases
 

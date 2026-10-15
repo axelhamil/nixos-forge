@@ -1,16 +1,39 @@
 { lib, config, ... }:
 
+let
+  runners = {
+    x86_64-linux = "ubuntu-24.04";
+    aarch64-linux = "ubuntu-24.04-arm";
+  };
+
+  inherit (config.helpers) hostsOn;
+
+  buildChecksOn = system: lib.remove "treefmt" (lib.attrNames config.flake.checks.${system});
+
+  jobsOn =
+    system:
+    map (check: {
+      inherit check system;
+      runner = runners.${system};
+    }) (buildChecksOn system);
+
+  hostNamesOn = system: lib.attrNames (hostsOn system);
+in
 {
-  flake.ci.checks = lib.filter (name: name != "treefmt") (
-    lib.attrNames config.flake.checks.x86_64-linux
-  );
+  flake.ci = {
+    matrix = lib.concatMap jobsOn config.systems;
+    hosts = lib.genAttrs config.systems hostNamesOn;
+  };
 
   perSystem =
     { pkgs, ... }:
     {
       packages.closure-diff = pkgs.writeShellApplication {
         name = "closure-diff";
-        runtimeInputs = [ pkgs.nvd ];
+        runtimeInputs = [
+          pkgs.git
+          pkgs.nvd
+        ];
         text = builtins.readFile ./closure-diff.sh;
       };
 

@@ -4,7 +4,7 @@ What every host gets to manage Nix itself, and the opt-in modules for developmen
 
 ## Every host
 
-**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`. `nh clean all` runs weekly (caught up at the next boot if the machine was off) and keeps every generation younger than 14 days plus the last 5, across system, home-manager and user profiles. It also drops `result` links untouched for 14 days, but keeps the latest dev shell of every direnv project, so an old project opens without rebuilding. Channels are off: `nixpkgs` in `nix shell nixpkgs#hello` and in `NIX_PATH` is the revision the system was built from. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. Point it at your clone once in your host so it needs no argument:
+**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`. `nh clean all` runs weekly (caught up at the next boot if the machine was off) and keeps every generation younger than 14 days plus the last 5, across system, home-manager and user profiles. It also drops `result` links untouched for 14 days, but keeps the latest dev shell of every direnv project, so an old project opens without rebuilding. Channels are off: `nixpkgs` in `nix shell nixpkgs#hello` and in `NIX_PATH` is the revision the system was built from. Nix keeps user profiles in `~/.local/state/nix` instead of `~/.nix-profile` and `~/.nix-defexpr` (`use-xdg-base-directories`). `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. Point it at your clone once in your host so it needs no argument:
 
 ```nix
 programs.nh.flake = "/home/<you>/nixos";

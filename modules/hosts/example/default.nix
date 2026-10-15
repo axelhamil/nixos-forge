@@ -6,6 +6,9 @@
       base
       disk
       secure-boot
+      firmware
+      audio
+      bluetooth
       desktop
       alice
     ];

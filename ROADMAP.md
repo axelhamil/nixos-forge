@@ -14,14 +14,9 @@ Everything is developed and tested in VMs. Installing on real hardware is each f
 | **2. Generic starter**: host registry `configurations.nixos.<name>` generating the config, build check and boot test, CI matrix per system and runner (`aarch64-linux` ready), neutral `example` host and `alice` user, locale in the host, `desktop` profile, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT | every registry entry gets `<name>-toplevel`, `<name>-boots` and a matrix entry on its system's runner (`nix eval --json .#ci.matrix`) |
 | **3. Disk**: disko layout, LUKS2 with TPM2 unlock enrolled after install (passphrase fallback), btrfs subvolumes `@root`, `@nix`, `@persist`, `@home` with zstd, `/` restored from a blank snapshot in the systemd initrd, impermanence list, immutable users, install guide, `/persist` declared per module | `<host>-disk`: installs on a blank disk, reboots, checks `/` is wiped while `/persist`, `/home` and `machine-id` survive |
 | **4. Boot**: opt-in `secure-boot` module with lanzaboote, keys generated on the machine and enrolled from setup mode (Microsoft keys kept), TPM2 unlock bound to PCR 7 and to PCR 15 at zero (volume key measured by the initrd) once Secure Boot is enforced | `<host>-disk` on an `x86_64-linux` `secure-boot` host: boots the installed disk under OVMF in setup mode with swtpm, checks Secure Boot is enforced and the disk unlocks with the TPM alone, passphrase removed |
+| **5. Hardware**: opt-in `firmware` (redistributable firmware, fwupd signed by lanzaboote), `audio` (PipeWire), `bluetooth`, `nvidia` (open kernel module), `amd-gpu`, `intel-gpu` modules, nixos-hardware input, unfree packages allowed by name (`allowUnfreePackages`) instead of a global `allowUnfree` | `<host>-nvidia` on every `x86_64-linux` host without NVIDIA: the host with the `nvidia` module evaluates and the NVIDIA open kernel module builds against its kernel, so a lock update that breaks it never merges |
 
 ## Next
-
-### 5. Hardware
-
-Firmware and microcode, PipeWire, Bluetooth, nixos-hardware profiles. Opt-in GPU modules: NVIDIA (open kernel module), AMD, Intel.
-
-Guardrail: host builds per hardware profile, and the NVIDIA kernel module builds against the kernel each profile ships.
 
 ### 6. Performance profiles
 

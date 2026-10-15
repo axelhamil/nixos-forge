@@ -21,6 +21,13 @@ in
       };
     };
 
+  helpers.baseCheck =
+    module: testScripts:
+    config.helpers.vmCheck "system-${module}" {
+      nodes.machine.imports = [ nixos.base ];
+      inherit testScripts;
+    };
+
   helpers.profileCheck =
     profile: testScripts:
     config.helpers.vmCheck "profile-${profile}" {

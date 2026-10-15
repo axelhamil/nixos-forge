@@ -17,6 +17,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 - **Hardware modules, opt-in**: firmware and fwupd, PipeWire, Bluetooth, NVIDIA (open kernel module), AMD and Intel GPUs, plus [nixos-hardware](https://github.com/NixOS/nixos-hardware) profiles. CI builds the NVIDIA module against every host's kernel, so a weekly update that would break it never merges.
 - **Performance profiles you can measure**: `desktop`, `laptop` and `server` profiles (kernel, sched-ext scheduler, power daemon, zram, oomd), each with a VM test, and `nix run .#bench` to compare schedulers, kernels or settings on your own machine. See [docs/performance.md](docs/performance.md).
 - **Services without a cloud**: systemd-resolved with no hidden fallback DNS, hourly btrbk snapshots of `/home` and `/persist`, opt-in SSH (keys only, post-quantum key exchange) and opt-in secrets with [sops-nix](https://github.com/Mic92/sops-nix) and a per-machine post-quantum age key. Each one has a VM test. See [docs/services.md](docs/services.md).
+- **Dev base**: [nh](https://github.com/nix-community/nh) to switch with a package diff and clean old generations, offline `nix-locate` and `, <command>` with [nix-index-database](https://github.com/nix-community/nix-index-database), and opt-in rootless Docker, libvirt with an emulated TPM, nix-ld and direnv. nh, nix-index, Docker and libvirt each have a VM test. See [docs/dev.md](docs/dev.md).
 - **Lint and format in the check**: nixfmt, statix and deadnix run through `nix fmt` and `nix flake check`.
 
 ## Requirements
@@ -61,9 +62,10 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 modules/
 ├── flake/     flake wiring: flake-parts, formatter, host registry, dev shell (git hooks, sops, age), CI and user scripts (closure-diff, bench)
 ├── helpers/   functions shared by flake-parts modules (`config.helpers`)
-├── system/    OS base shared by every host: nix, home-manager, memory (zram), resolved, disk (with btrbk snapshots), impermanence; opt-in secure-boot, ssh, secrets
+├── system/    OS base shared by every host: nix (nh, nix-index), home-manager, memory (zram), resolved, disk (with btrbk snapshots), impermanence; opt-in secure-boot, ssh, secrets
 ├── hardware/  modules a host picks for its machine: firmware, audio, bluetooth, GPUs
 ├── profiles/  roles a host picks: desktop, laptop, server
+├── dev/       development modules a host picks: docker (rootless), libvirt, nix-ld, direnv
 ├── users/     accounts and their home-manager config
 ├── hosts/     one folder per machine: its registry entry and hardware
 ├── desktop/   (planned) graphical session
@@ -76,9 +78,9 @@ A function that two modules need goes to `modules/helpers/<topic>.nix` as `helpe
 
 ## Status and roadmap
 
-Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot, NetworkManager, systemd-resolved, hourly btrbk snapshots, opt-in SSH and sops-nix secrets, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
+Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot, NetworkManager, systemd-resolved, hourly btrbk snapshots, opt-in SSH and sops-nix secrets, nh and nix-index, opt-in rootless Docker and libvirt, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
 
-Next lots (dev base, shell and tools, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Next lots (shell and tools, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
 
 ## Releases
 

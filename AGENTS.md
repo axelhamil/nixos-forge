@@ -19,6 +19,7 @@ A NixOS flake meant to be forked (the kickstart.nvim model): a readable starting
 | Build the VM | `nix build .#nixosConfigurations.<host>.config.system.build.vm` |
 | Boot the VM headless (blocks until killed) | `QEMU_KERNEL_PARAMS=console=ttyS0 ./result/bin/run-<host>-vm -nographic` |
 | Package diff against a revision | `nix run .#closure-diff -- <rev>` |
+| Benchmark this machine, compare two runs | `nix run .#bench -- run <label>`, `nix run .#bench -- compare <a.json> <b.json>` |
 | Lint workflows | `nix run nixpkgs#actionlint` |
 
 A flake only sees files tracked by git: `git add` new files (staging is enough) before any `nix` command, or they are silently missing.
@@ -35,11 +36,11 @@ The flake is built with flake-parts, and `flake.nix` hands the whole `modules/` 
 
 Layers under `modules/`, one folder per tool, never a loose `.nix` file at layer level (`helpers/` excepted):
 
-- `flake/`: flake wiring (systems, formatter, host registry and its checks, CI scripts)
+- `flake/`: flake wiring (systems, formatter, host registry and its checks, CI and user scripts: `closure-diff`, `bench`)
 - `helpers/`: functions shared by flake-parts modules, declared once in `config.helpers` (`helpers/default.nix`) and added one file per topic; read them with `inherit (config.helpers) <name>;`
 - `system/`: OS base shared by every host; `system/disk` is the disko layout (LUKS, btrfs subvolumes) and the initrd rollback of `/`; it assumes UEFI with systemd-boot (ESP on `/boot`, boot entry editor off); `system/impermanence` adds `environment.persistence."/persist"` to `base`, off by default, and `disk` turns it on; `system/secure-boot` is opt-in and swaps systemd-boot for lanzaboote (keys in `/var/lib/sbctl`, enrolled automatically from setup mode); its install-test hook only applies when the host also imports `disk` (`options ? disko`, under `config` to avoid infinite recursion)
 - `hardware/`: opt-in modules a host imports for its machine (`firmware`, `audio`, `bluetooth`, `nvidia`, `amd-gpu`, `intel-gpu`); machine-specific profiles come from the `nixos-hardware` input, imported in the host's `hardware.nix`
-- `profiles/`: roles a host imports (`desktop`)
+- `profiles/`: roles a host imports (`desktop`, `laptop` which extends `desktop`, `server`); each has a `profile-<name>` VM test (`check.nix` is one line calling `helpers.profileCheck`, assertions in `test.py`) asserting its settings are active; `desktop` carries a `key` so importing it twice (`laptop` plus `desktop`) loads it once; details and the bench in `docs/performance.md`
 - `users/`, `hosts/`: owned by the fork; upstream keeps them minimal so forks merge upstream without conflicts
 - `desktop/`, `apps/`: planned
 

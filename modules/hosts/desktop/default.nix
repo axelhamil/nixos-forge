@@ -6,11 +6,11 @@
       base
       axel
       desktop
+      { nixpkgs.hostPlatform = "x86_64-linux"; }
     ];
   };
 
   flake.modules.nixos.desktop = { pkgs, ... }: {
-    nixpkgs.hostPlatform = "x86_64-linux";
     networking.hostName = "desktop";
     networking.networkmanager.enable = true;
 

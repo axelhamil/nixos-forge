@@ -1,0 +1,33 @@
+name: update-flake-lock
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - id: bot
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+      - id: update
+        uses: DeterminateSystems/update-flake-lock@v29
+        with:
+          base: main
+          branch: chore/update-flake-lock
+          commit-msg: "chore: update flake inputs"
+          pr-title: "chore: update flake inputs"
+          token: ${{ steps.bot.outputs.token }}
+      - if: steps.update.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+        run: gh pr merge ${{ steps.update.outputs.pull-request-number }} --auto --squash --delete-branch

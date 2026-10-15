@@ -1,5 +1,5 @@
 {
-  flake.modules.nixos.desktop = {
+  configurations.nixos.example.module = {
     fileSystems."/" = {
       device = "/dev/disk/by-label/nixos";
       fsType = "btrfs";

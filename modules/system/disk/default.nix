@@ -2,21 +2,14 @@
 
 {
   flake.modules.nixos.disk =
-    {
-      lib,
-      config,
-      pkgs,
-      ...
-    }:
+    { lib, config, ... }:
     let
       btrfsOptions = [
         "compress=zstd"
         "noatime"
       ];
 
-      luksName = "cryptroot";
       passphraseFile = "/tmp/secret.key";
-      testPassphrase = pkgs.writeText "test-passphrase.key" "secretsecret";
 
       subvolume = mountpoint: {
         inherit mountpoint;
@@ -54,11 +47,14 @@
               size = "100%";
               content = {
                 type = "luks";
-                name = luksName;
+                name = "cryptroot";
                 passwordFile = passphraseFile;
                 settings = {
                   allowDiscards = true;
-                  crypttabExtraOpts = [ "tpm2-device=auto" ];
+                  crypttabExtraOpts = [
+                    "tpm2-device=auto"
+                    "tpm2-measure-pcr=yes"
+                  ];
                 };
 
                 content = {
@@ -85,11 +81,8 @@
         boot.loader.systemd-boot.editor = false;
 
         disko.tests = {
-          extraConfig.boot.initrd = {
-            secrets.${passphraseFile} = testPassphrase;
-            luks.devices.${luksName}.keyFile = passphraseFile;
-          };
-
+          efi = true;
+          bootCommands = builtins.readFile ./unlock-disk.py;
           extraChecks = builtins.readFile ./wipe-test.py;
         };
 

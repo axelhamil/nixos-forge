@@ -6,7 +6,7 @@ How the GitHub Actions workflows work, and what to configure on your fork so the
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `check` | every PR, push to `main` and `develop` | Lints the flake and checks `flake.lock` health, then runs one job per flake check (host builds, VM boot tests, and for hosts importing `disk` an install test on a blank disk that reboots and checks `/` is wiped), each capped at 60 minutes on a runner of the host's system: `ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`. The `ci-ok` job sums up the result. |
+| `check` | every PR, push to `main` and `develop` | Lints the flake and checks `flake.lock` health, then runs one job per flake check (host builds, VM boot tests, and for hosts importing `disk` an install test on a blank disk that reboots and checks `/` is wiped, then for `x86_64-linux` hosts importing `secure-boot` boots it under OVMF with an emulated TPM and checks the disk unlocks with the TPM alone), each capped at 60 minutes on a runner of the host's system: `ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`. The `ci-ok` job sums up the result. |
 | `diff` | every PR | Builds each `x86_64-linux` host on the PR and on its base, then posts the package diff ([nvd](https://git.sr.ht/~khumba/nvd)) as a PR comment and in the job summary. |
 | `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR that updates `flake.lock` against `main` and enables auto-merge on it. |
 | `sync-develop` | push to `main` | Merges `main` into `develop`. |

@@ -5,6 +5,7 @@
     imports = with config.flake.modules.nixos; [
       base
       disk
+      secure-boot
       desktop
       alice
     ];

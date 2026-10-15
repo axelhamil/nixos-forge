@@ -3,7 +3,11 @@
     fileSystems."/" = {
       device = "/dev/disk/by-label/nixos";
       fsType = "btrfs";
-      options = [ "subvol=@" "compress=zstd" "noatime" ];
+      options = [
+        "subvol=@"
+        "compress=zstd"
+        "noatime"
+      ];
     };
 
     fileSystems."/boot" = {

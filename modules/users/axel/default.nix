@@ -7,7 +7,10 @@ in
   flake.modules.nixos.axel = { pkgs, ... }: {
     users.users.axel = {
       isNormalUser = true;
-      extraGroups = [ "wheel" "networkmanager" ];
+      extraGroups = [
+        "wheel"
+        "networkmanager"
+      ];
       shell = pkgs.zsh;
     };
 

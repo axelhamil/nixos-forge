@@ -8,12 +8,16 @@
       trusted-users = [ "@wheel" ];
     };
 
+    nix.channel.enable = false;
+
     nix.optimise.automatic = true;
 
-    nix.gc = {
-      automatic = true;
-      dates = "weekly";
-      options = "--delete-older-than 14d";
+    programs.nh = {
+      enable = true;
+      clean = {
+        enable = true;
+        extraArgs = "--keep-since 14d --keep 5 --keep-one";
+      };
     };
   };
 }

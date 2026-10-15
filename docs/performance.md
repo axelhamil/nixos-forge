@@ -12,7 +12,7 @@ Each profile only ships settings backed by a source or a measurement. CI checks 
 | Out of memory | systemd-oomd on root and user slices, `nix-daemon` spared | same | kernel default |
 | `/tmp` | tmpfs | tmpfs | on disk |
 
-Every host also gets zram swap (zstd), a weekly `nix.gc` keeping 14 days, store optimisation on a timer, and, with `disk`, a monthly btrfs scrub.
+Every host also gets zram swap (zstd), a weekly `nh clean` keeping 14 days and the last 5 generations ([dev.md](dev.md)), store optimisation on a timer, and, with `disk`, a monthly btrfs scrub.
 
 systemd-oomd kills a cgroup of a slice whose memory pressure stays above 80% (the NixOS default), picking the one under the most pressure. It does not kill on swap usage: Fedora did and Ubuntu dropped it as too eager. `nix-daemon` is marked `ManagedOOMPreference=avoid`, so a big build is not the first victim. `/tmp` on tmpfs does not hold Nix builds: Nix builds in `/nix/var/nix/builds`.
 

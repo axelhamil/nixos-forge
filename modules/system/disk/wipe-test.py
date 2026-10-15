@@ -5,6 +5,7 @@ machine.succeed("touch /root-marker /persist/persist-marker /home/home-marker")
 machine.shutdown()
 
 machine.start()
+unlock_disk(machine)
 machine.wait_for_unit("multi-user.target")
 
 machine.fail("test -e /root-marker")

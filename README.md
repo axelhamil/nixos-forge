@@ -13,6 +13,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 - **Weekly lock updates, merged automatically**: every Monday a PR updates `flake.lock` and merges itself once CI is green.
 - **Package diff on every PR**: a comment lists the packages added, removed or upgraded per `x86_64-linux` host (via [nvd](https://git.sr.ht/~khumba/nvd)).
 - **Encrypted disk that forgets**: [disko](https://github.com/nix-community/disko) layout with LUKS (TPM2 unlock, passphrase fallback) and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), `/home` and declared state in `/persist` kept. A CI test installs it, reboots and proves it.
+- **Secure Boot, opt-in**: [lanzaboote](https://github.com/nix-community/lanzaboote) with keys generated on the machine and enrolled automatically, then TPM2 unlock bound to the Secure Boot state and to the unlocked volume (PCRs 7 and 15). A CI test boots the installed disk under OVMF with an emulated TPM and proves the disk opens without the passphrase.
 - **Lint and format in the check**: nixfmt, statix and deadnix run through `nix fmt` and `nix flake check`.
 
 ## Requirements
@@ -57,7 +58,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 modules/
 ├── flake/     flake wiring: flake-parts, formatter, host registry, CI scripts
 ├── helpers/   functions shared by flake-parts modules (`config.helpers`)
-├── system/    OS base shared by every host: nix, home-manager, disk, impermanence
+├── system/    OS base shared by every host: nix, home-manager, disk, impermanence, secure-boot (opt-in)
 ├── profiles/  roles a host picks: desktop
 ├── users/     accounts and their home-manager config
 ├── hosts/     one folder per machine: its registry entry and hardware
@@ -71,9 +72,9 @@ A function that two modules need goes to `modules/helpers/<topic>.nix` as `helpe
 
 ## Status and roadmap
 
-Working today: a minimal system (systemd-boot, LUKS and btrfs with `/` wiped at boot, NetworkManager, latest kernel, one user with home-manager) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
+Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot, NetworkManager, latest kernel, one user with home-manager) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
 
-Next lots (Secure Boot, hardware, performance profiles, services, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Next lots (hardware, performance profiles, services, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
 
 ## Releases
 

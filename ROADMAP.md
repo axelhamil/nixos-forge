@@ -15,21 +15,9 @@ Everything is developed and tested in VMs. Installing on real hardware is each f
 | **3. Disk**: disko layout, LUKS2 with TPM2 unlock enrolled after install (passphrase fallback), btrfs subvolumes `@root`, `@nix`, `@persist`, `@home` with zstd, `/` restored from a blank snapshot in the systemd initrd, impermanence list, immutable users, install guide, `/persist` declared per module | `<host>-disk`: installs on a blank disk, reboots, checks `/` is wiped while `/persist`, `/home` and `machine-id` survive |
 | **4. Boot**: opt-in `secure-boot` module with lanzaboote, keys generated on the machine and enrolled from setup mode (Microsoft keys kept), TPM2 unlock bound to PCR 7 and to PCR 15 at zero (volume key measured by the initrd) once Secure Boot is enforced | `<host>-disk` on an `x86_64-linux` `secure-boot` host: boots the installed disk under OVMF in setup mode with swtpm, checks Secure Boot is enforced and the disk unlocks with the TPM alone, passphrase removed |
 | **5. Hardware**: opt-in `firmware` (redistributable firmware, fwupd signed by lanzaboote), `audio` (PipeWire), `bluetooth`, `nvidia` (open kernel module), `amd-gpu`, `intel-gpu` modules, nixos-hardware input, unfree packages allowed by name (`allowUnfreePackages`) instead of a global `allowUnfree` | `<host>-nvidia` on every `x86_64-linux` host without NVIDIA: the host with the `nvidia` module evaluates and the NVIDIA open kernel module builds against its kernel, so a lock update that breaks it never merges |
+| **6. Performance profiles**: `desktop` (latest kernel, sched-ext `scx_lavd`, power-profiles-daemon, systemd-oomd, tmpfs `/tmp`), `laptop` (`scx_lavd --autopower`), `server` (LTS kernel, tuned); zram with zstd, weekly `nix.gc`, store optimisation timer, monthly btrfs scrub; `nix run .#bench` (schbench packaged in the flake, perf, hackbench, stress-ng, fio) to measure on real hardware (CachyOS kernel, thermald and zram sysctls wait for a measurement) | `profile-desktop`, `profile-laptop`, `profile-server`: VM tests asserting the active scheduler, power service, zram, tmpfs `/tmp` and oomd per profile |
 
 ## Next
-
-### 6. Performance profiles
-
-`desktop`, `laptop`, `server` and `pi` profiles, one power manager per profile, only settings backed by a measured gain:
-
-- Kernel: latest on desktop and laptop, stable on servers; CachyOS kernel (`xddxdd/nix-cachyos-kernel`) evaluated against latest before adoption
-- sched-ext (`services.scx`): `scx_lavd` or `scx_bpfland` on desktop, benchmarked on the machine; off on servers and Pi
-- Power: power-profiles-daemon on desktop and laptop, thermald on Intel laptops, tuned on servers
-- Memory and IO: zram with zstd (never with zswap), tmpfs `/tmp` on desktop, btrfs `compress=zstd` and `noatime`, monthly scrub
-- Nix: parallel builds, automatic garbage collection, Pi builds offloaded to a remote builder
-- Excluded: `mitigations=off`, `-march=native` on nixpkgs
-
-Guardrail: VM test asserting the active scheduler, governor and zram per profile.
 
 ### 7. Services
 
@@ -39,7 +27,7 @@ Guardrail: boot test checks the services are active and a secret decrypts.
 
 ### 8. Dev base
 
-nh, nix-index-database, Nix garbage collection. Opt-in: Docker, libvirt. Each module declares its own state in `/persist` (`/var/lib/docker`, `/var/lib/libvirt`).
+nh (its `clean` replaces `nix.gc`), nix-index-database. Opt-in: Docker, libvirt. Each module declares its own state in `/persist` (`/var/lib/docker`, `/var/lib/libvirt`).
 
 ### 9. Shell and tools
 
@@ -53,6 +41,6 @@ Guardrail: VM test reaching the graphical session.
 
 ### 11. Raspberry Pi
 
-`aarch64-linux` host on the `pi` profile through `nvmd/nixos-raspberrypi` (Pi 5 has no official nixpkgs support), SD image output, CI on `ubuntu-24.04-arm`. Check that `ubuntu-24.04-arm` exposes `/dev/kvm` for the boot test (otherwise it runs under slow TCG emulation), and extend the PR package diff to `aarch64-linux` hosts. The `disk` module assumes UEFI with systemd-boot: a Pi gets its own disk layout or none.
+A `pi` profile (stable kernel, no sched-ext, builds offloaded to a remote builder with `nix.buildMachines`) and an `aarch64-linux` host on it through `nvmd/nixos-raspberrypi` (Pi 5 has no official nixpkgs support), SD image output, CI on `ubuntu-24.04-arm`. Check that `ubuntu-24.04-arm` exposes `/dev/kvm` for the boot test (otherwise it runs under slow TCG emulation), and extend the PR package diff to `aarch64-linux` hosts. The `disk` module assumes UEFI with systemd-boot: a Pi gets its own disk layout or none.
 
 Guardrail: SD image builds in CI.

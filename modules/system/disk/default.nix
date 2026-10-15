@@ -80,6 +80,11 @@
 
         boot.loader.systemd-boot.editor = false;
 
+        services.btrfs.autoScrub = {
+          enable = true;
+          fileSystems = [ "/" ];
+        };
+
         disko.tests = {
           efi = true;
           bootCommands = builtins.readFile ./unlock-disk.py;

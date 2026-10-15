@@ -2,7 +2,12 @@
 
 {
   flake.modules.nixos.secure-boot =
-    { lib, pkgs, ... }:
+    {
+      lib,
+      pkgs,
+      config,
+      ...
+    }:
     {
       imports = [ inputs.lanzaboote.nixosModules.lanzaboote ];
 
@@ -13,6 +18,10 @@
         pkiBundle = "/var/lib/sbctl";
         autoGenerateKeys.enable = true;
         autoEnrollKeys.enable = true;
+      };
+
+      systemd.services.fwupd-efi = lib.mkIf config.services.fwupd.enable {
+        after = [ "generate-sb-keys.service" ];
       };
 
       environment.systemPackages = [ pkgs.sbctl ];

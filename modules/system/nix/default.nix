@@ -6,6 +6,7 @@
         "flakes"
       ];
       trusted-users = [ "@wheel" ];
+      use-xdg-base-directories = true;
     };
 
     nix.channel.enable = false;

@@ -16,6 +16,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 - **Secure Boot, opt-in**: [lanzaboote](https://github.com/nix-community/lanzaboote) with keys generated on the machine and enrolled automatically, then TPM2 unlock bound to the Secure Boot state and to the unlocked volume (PCRs 7 and 15). A CI test boots the installed disk under OVMF with an emulated TPM and proves the disk opens without the passphrase.
 - **Hardware modules, opt-in**: firmware and fwupd, PipeWire, Bluetooth, NVIDIA (open kernel module), AMD and Intel GPUs, plus [nixos-hardware](https://github.com/NixOS/nixos-hardware) profiles. CI builds the NVIDIA module against every host's kernel, so a weekly update that would break it never merges.
 - **Performance profiles you can measure**: `desktop`, `laptop` and `server` profiles (kernel, sched-ext scheduler, power daemon, zram, oomd), each with a VM test, and `nix run .#bench` to compare schedulers, kernels or settings on your own machine. See [docs/performance.md](docs/performance.md).
+- **Services without a cloud**: systemd-resolved with no hidden fallback DNS, hourly btrbk snapshots of `/home` and `/persist`, opt-in SSH (keys only, post-quantum key exchange) and opt-in secrets with [sops-nix](https://github.com/Mic92/sops-nix) and a per-machine post-quantum age key. Each one has a VM test. See [docs/services.md](docs/services.md).
 - **Lint and format in the check**: nixfmt, statix and deadnix run through `nix fmt` and `nix flake check`.
 
 ## Requirements
@@ -58,9 +59,9 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 
 ```text
 modules/
-├── flake/     flake wiring: flake-parts, formatter, host registry, CI and user scripts (closure-diff, bench)
+├── flake/     flake wiring: flake-parts, formatter, host registry, dev shell (git hooks, sops, age), CI and user scripts (closure-diff, bench)
 ├── helpers/   functions shared by flake-parts modules (`config.helpers`)
-├── system/    OS base shared by every host: nix, home-manager, memory (zram), disk, impermanence, secure-boot (opt-in)
+├── system/    OS base shared by every host: nix, home-manager, memory (zram), resolved, disk (with btrbk snapshots), impermanence; opt-in secure-boot, ssh, secrets
 ├── hardware/  modules a host picks for its machine: firmware, audio, bluetooth, GPUs
 ├── profiles/  roles a host picks: desktop, laptop, server
 ├── users/     accounts and their home-manager config
@@ -75,9 +76,9 @@ A function that two modules need goes to `modules/helpers/<topic>.nix` as `helpe
 
 ## Status and roadmap
 
-Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot, NetworkManager, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
+Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot, NetworkManager, systemd-resolved, hourly btrbk snapshots, opt-in SSH and sops-nix secrets, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
 
-Next lots (services, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Next lots (dev base, shell and tools, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
 
 ## Releases
 

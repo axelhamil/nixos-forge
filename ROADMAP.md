@@ -16,14 +16,9 @@ Everything is developed and tested in VMs. Installing on real hardware is each f
 | **4. Boot**: opt-in `secure-boot` module with lanzaboote, keys generated on the machine and enrolled from setup mode (Microsoft keys kept), TPM2 unlock bound to PCR 7 and to PCR 15 at zero (volume key measured by the initrd) once Secure Boot is enforced | `<host>-disk` on an `x86_64-linux` `secure-boot` host: boots the installed disk under OVMF in setup mode with swtpm, checks Secure Boot is enforced and the disk unlocks with the TPM alone, passphrase removed |
 | **5. Hardware**: opt-in `firmware` (redistributable firmware, fwupd signed by lanzaboote), `audio` (PipeWire), `bluetooth`, `nvidia` (open kernel module), `amd-gpu`, `intel-gpu` modules, nixos-hardware input, unfree packages allowed by name (`allowUnfreePackages`) instead of a global `allowUnfree` | `<host>-nvidia` on every `x86_64-linux` host without NVIDIA: the host with the `nvidia` module evaluates and the NVIDIA open kernel module builds against its kernel, so a lock update that breaks it never merges |
 | **6. Performance profiles**: `desktop` (latest kernel, sched-ext `scx_lavd`, power-profiles-daemon, systemd-oomd, tmpfs `/tmp`), `laptop` (`scx_lavd --autopower`), `server` (LTS kernel, tuned); zram with zstd, weekly `nix.gc`, store optimisation timer, monthly btrfs scrub; `nix run .#bench` (schbench packaged in the flake, perf, hackbench, stress-ng, fio) to measure on real hardware (CachyOS kernel, thermald and zram sysctls wait for a measurement) | `profile-desktop`, `profile-laptop`, `profile-server`: VM tests asserting the active scheduler, power service, zram, tmpfs `/tmp` and oomd per profile |
+| **7. Services**: systemd-resolved in every host (no compiled-in fallback DNS, LLMNR off), btrbk snapshots of `@home` and `@persist` into a new `@snapshots` subvolume (hourly, 2 days, 14 daily, 4 weekly), opt-in `ssh` (public keys only, no root, single ED25519 host key in `/persist`, post-quantum key exchange, finite-field Diffie-Hellman refused), opt-in `secrets` (sops-nix with a per-machine post-quantum age key in `/persist`), `sops` and `age` in `nix develop`; no service depends on a third-party cloud | `system-resolved`, `system-ssh` (key login from a second VM, password and root refused, `mlkem768x25519-sha256` negotiated), `system-secrets` (a fixture decrypts to `/run/secrets`); `<host>-disk` takes a snapshot and checks it sits in its own subvolume, outside the wiped `@root` |
 
 ## Next
-
-### 7. Services
-
-resolved, SSH, secrets with sops-nix, btrfs snapshots. Opt-in: Tailscale.
-
-Guardrail: boot test checks the services are active and a secret decrypts.
 
 ### 8. Dev base
 

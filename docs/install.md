@@ -17,8 +17,9 @@ btrfs subvolumes, all mounted with `compress=zstd` and `noatime`:
 | `@nix` | `/nix` | yes |
 | `@persist` | `/persist` | yes |
 | `@home` | `/home` | yes |
+| `@snapshots` | `/.snapshots` | yes: hourly snapshots of `@home` and `@persist` ([services.md](services.md#snapshots-btrbk)) |
 
-Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home` and `/persist` is gone unless it is declared in `environment.persistence."/persist"`: logs, `/var/lib/nixos`, `/var/lib/systemd` and `machine-id` (`modules/system/impermanence`), NetworkManager state (`modules/profiles/desktop`). Declare what your own modules need next to them, in the same option.
+Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home`, `/persist` and `/.snapshots` is gone unless it is declared in `environment.persistence."/persist"`: logs, `/var/lib/nixos`, `/var/lib/systemd` and `machine-id` (`modules/system/impermanence`), NetworkManager state (`modules/profiles/desktop`). Declare what your own modules need next to them, in the same option.
 
 Users are immutable (`users.mutableUsers = false`): passwords come from files under `/persist/passwords/`, never from `passwd`.
 
@@ -53,6 +54,14 @@ From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk.devic
    mkpasswd -m yescrypt | sudo install -m 600 /dev/stdin /mnt/persist/passwords/<you>
    ```
 
+   On a host that imports `secrets`, create its post-quantum age key now (`age-keygen` 1.3 or later: run `nix --experimental-features 'nix-command flakes' develop ~/nixos` first to get the version your flake pins), then follow [services.md](services.md#secrets-secrets-opt-in) to encrypt the host's secrets for the public key it prints before installing:
+
+   ```sh
+   sudo install -d -m 700 /mnt/persist/var/lib/sops-nix
+   age-keygen -pq | sudo install -m 600 /dev/stdin /mnt/persist/var/lib/sops-nix/key.txt
+   sudo age-keygen -y /mnt/persist/var/lib/sops-nix/key.txt > ~/age.pub
+   ```
+
 4. Install, then reboot and type the passphrase:
 
    ```sh
@@ -80,6 +89,6 @@ From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk.devic
 
 ## Tested in CI
 
-`<host>-disk` installs the host on a blank virtual disk with this exact layout, boots it, writes a file in `/`, `/persist` and `/home`, reboots, and checks that only the one in `/` is gone and that `machine-id` is unchanged.
+`<host>-disk` installs the host on a blank virtual disk with this exact layout, boots it, writes a file in `/`, `/persist` and `/home`, reboots, and checks that only the one in `/` is gone and that `machine-id` is unchanged. It then takes a btrbk snapshot of `/home` and `/persist` and checks it lands in the `@snapshots` subvolume ([services.md](services.md#snapshots-btrbk)).
 
 For an `x86_64-linux` host with `secure-boot`, the same check then boots the installed disk under OVMF in setup mode with an emulated TPM (swtpm): the keys are enrolled, Secure Boot is enforced, the disk is enrolled on PCRs 7 and 15, the passphrase is removed, and the next boot unlocks the disk with the TPM alone and extends PCR 15.

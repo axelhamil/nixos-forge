@@ -67,6 +67,10 @@
                     "@nix" = subvolume "/nix";
                     "@persist" = subvolume "/persist";
                     "@home" = subvolume "/home";
+                    "@snapshots" = {
+                      mountpoint = "/.snapshots";
+                      mountOptions = btrfsOptions ++ [ "nofail" ];
+                    };
                   };
                 };
               };
@@ -91,7 +95,10 @@
           extraChecks = builtins.readFile ./wipe-test.py;
         };
 
-        virtualisation.vmVariant.disko.enableConfig = false;
+        virtualisation.vmVariant = {
+          disko.enableConfig = false;
+          services.btrfs.autoScrub.enable = lib.mkForce false;
+        };
       };
     };
 }

@@ -1,5 +1,5 @@
 {
-  description = "Axel's NixOS setup";
+  description = "A NixOS starter flake to fork and make your own";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

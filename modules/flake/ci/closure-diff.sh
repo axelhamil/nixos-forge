@@ -1,4 +1,4 @@
-base_rev=$1
+base_rev=$(git rev-parse "$1")
 base_flake="git+file://$PWD?rev=$base_rev"
 
 has_host() {
@@ -7,7 +7,9 @@ has_host() {
 
 echo "### Closure diff"
 
-for host in $(nix eval --raw .#nixosConfigurations --apply 'hosts: builtins.concatStringsSep " " (builtins.attrNames hosts)'); do
+system=$(nix eval --impure --raw --expr builtins.currentSystem)
+
+for host in $(nix eval --raw ".#ci.hosts.$system" --apply 'builtins.concatStringsSep " "'); do
   toplevel="nixosConfigurations.$host.config.system.build.toplevel"
   after=$(nix build --no-link --print-out-paths ".#$toplevel")
 

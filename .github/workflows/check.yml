@@ -38,6 +38,7 @@ jobs:
     if: needs.matrix.outputs.checks != '[]'
     name: build (${{ matrix.check }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:

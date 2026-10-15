@@ -12,6 +12,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 - **Every host built and booted in CI**: declare a host in `configurations.nixos.<name>` and it gets its `nixosConfigurations` entry, a build check and a NixOS VM boot test (systemd, every home-manager user), run on a CI runner of its system (`x86_64-linux` or `aarch64-linux`).
 - **Weekly lock updates, merged automatically**: every Monday a PR updates `flake.lock` and merges itself once CI is green.
 - **Package diff on every PR**: a comment lists the packages added, removed or upgraded per `x86_64-linux` host (via [nvd](https://git.sr.ht/~khumba/nvd)).
+- **Encrypted disk that forgets**: [disko](https://github.com/nix-community/disko) layout with LUKS (TPM2 unlock, passphrase fallback) and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), `/home` and declared state in `/persist` kept. A CI test installs it, reboots and proves it.
 - **Lint and format in the check**: nixfmt, statix and deadnix run through `nix fmt` and `nix flake check`.
 
 ## Requirements
@@ -31,7 +32,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
    grep -rn -e alice -e example modules
    ```
 
-   Replace every match the `grep` prints: `alice` is the user (account, module name, home-manager), `example` is the host (`configurations.nixos.<host>`, `networking.hostName`). Then set your time zone, locale and keyboard in `modules/hosts/<host>/default.nix` (neutral `UTC`, `en_US.UTF-8` and `us` by default), and adjust `modules/hosts/<host>/hardware.nix` (disk labels, CPU microcode) to your machine. Keep new files tracked with `git add`: a flake only sees files known to git.
+   Replace every match the `grep` prints: `alice` is the user (account, module name, home-manager), `example` is the host (`configurations.nixos.<host>`, `networking.hostName`). Then set your time zone, locale and keyboard in `modules/hosts/<host>/default.nix` (neutral `UTC`, `en_US.UTF-8` and `us` by default), and adjust `modules/hosts/<host>/hardware.nix` (`disk.device`, CPU microcode) to your machine. Keep new files tracked with `git add`: a flake only sees files known to git.
 
 3. Install the pre-push hook, then check, build and run:
 
@@ -43,7 +44,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
    ./result/bin/run-<host>-vm
    ```
 
-   `nix develop` installs a pre-push hook that runs in seconds: treefmt, `nix flake check --no-build` (every host evaluates) and actionlint. Builds and boot tests stay in CI. `nix flake check` ends with `all checks passed!`. The VM opens a window; log in with your user and the password `test` (set for the VM only). Nothing touches a physical disk.
+   `nix develop` installs a pre-push hook that runs in seconds: treefmt, `nix flake check --no-build` (every host evaluates) and actionlint. Builds and boot tests stay in CI. `nix flake check` ends with `all checks passed!`. The VM opens a window; log in with your user and the password `test` (set for the VM only). Nothing touches a physical disk. To install on a real machine, follow [docs/install.md](docs/install.md).
 
 4. To get the CI, auto updates and package diffs on your fork, follow [docs/ci.md](docs/ci.md). GitHub disables workflows on forks until you enable them in the Actions tab.
 
@@ -56,7 +57,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 modules/
 ├── flake/     flake wiring: flake-parts, formatter, host registry, CI scripts
 ├── helpers/   functions shared by flake-parts modules (`config.helpers`)
-├── system/    OS base shared by every host: nix, home-manager
+├── system/    OS base shared by every host: nix, home-manager, disk, impermanence
 ├── profiles/  roles a host picks: desktop
 ├── users/     accounts and their home-manager config
 ├── hosts/     one folder per machine: its registry entry and hardware
@@ -70,9 +71,9 @@ A function that two modules need goes to `modules/helpers/<topic>.nix` as `helpe
 
 ## Status and roadmap
 
-Working today: a minimal system (systemd-boot, NetworkManager, latest kernel, one user with home-manager) that builds and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
+Working today: a minimal system (systemd-boot, LUKS and btrfs with `/` wiped at boot, NetworkManager, latest kernel, one user with home-manager) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
 
-Next lots (disk with LUKS and impermanence, Secure Boot, hardware, performance profiles, services, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Next lots (Secure Boot, hardware, performance profiles, services, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
 
 ## Releases
 

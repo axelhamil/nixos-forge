@@ -10,6 +10,7 @@ A NixOS flake meant to be forked (the kickstart.nvim model): a readable starting
 
 | Goal | Command |
 |---|---|
+| Make a fresh fork yours: write its host, remove the examples (`--help` for the flags) | `nix run .#init` |
 | Install the pre-push hook (once per clone), get `sops` and `age` | `nix develop` |
 | Run the pre-push hook by hand | `nix develop -c pre-commit run --hook-stage pre-push --all-files` |
 | Format and lint (nixfmt, statix, deadnix) | `nix fmt` |
@@ -38,7 +39,7 @@ The flake is built with flake-parts, and `flake.nix` hands the whole `modules/` 
 - **Checks are generated, not listed.** Every host gets `<name>-toplevel` and `<name>-boots` (a NixOS test waiting for `multi-user.target` and every `home-manager-<user>.service`), or `<name>-sd-image` for a host with an SD image. A host with `disk` gets `<name>-disk` (disko's install test: format, install, reboot, then `modules/system/disk/wipe-test.py` and `modules/system/snapshots/snapshot-test.py`; Secure Boot and TPM2 under OVMF when it also imports `secure-boot`), and `<name>-wipe-home` when it lacks `wipe-home`. Hosts in `installer.testedHosts` get `<name>-installer`. Module tests go through `helpers.profileCheck`, `helpers.baseCheck`, `helpers.appCheck` or `helpers.vmCheck` (`x86_64-linux` only). `flake.ci.matrix` lists every check with its runner, and `ci-plan` (`modules/flake/ci/ci-plan.sh`) drops what the binary cache holds and, in a PR, any check that builds a host kernel.
 - **Helpers** live in `config.helpers` (`modules/helpers/`, one file per topic); read them with `inherit (config.helpers) <name>;`. Home and desktop values go through `helpers.mkDefaults` so a user overrides them without `mkForce`; lists meant to be extended stay plain.
 
-Layers under `modules/`, one folder per tool, never a loose `.nix` file at layer level (`helpers/` excepted): `flake/` (wiring, registry, checks, installer, dev shell, CI scripts), `helpers/`, `system/` (base with `update`, and opt-in `disk`, `impermanence`, `wipe-home`, `snapshots`, `secure-boot`, `ssh`, `secrets`, `auto-upgrade`), `hardware/`, `profiles/` (`desktop`, `laptop`, `server`, `pi`), `dev/`, `home/`, `apps/`, `desktop/`, `users/` and `hosts/`. `users/` and `hosts/` belong to the fork: upstream keeps them minimal (`example`, `example-server`, `example-pi`) so forks merge upstream without conflicts.
+Layers under `modules/`, one folder per tool, never a loose `.nix` file at layer level (`helpers/` excepted): `flake/` (wiring, registry, checks, installer, `init`, dev shell, CI scripts), `helpers/`, `system/` (base with `update`, and opt-in `disk`, `impermanence`, `wipe-home`, `snapshots`, `secure-boot`, `ssh`, `secrets`, `auto-upgrade`), `hardware/`, `profiles/` (`desktop`, `laptop`, `server`, `pi`), `dev/`, `home/`, `apps/`, `desktop/`, `users/` and `hosts/`. `users/` and `hosts/` belong to the fork: upstream keeps them minimal (`example`, `example-server`, `example-pi`) so forks merge upstream without conflicts. `nix run .#init` (`modules/flake/init/init.sh`) writes a fork's first host from `modules/hosts/example/default.nix` and removes the examples; it toggles the `"name" # description` lines of the `features`, `hardware` and `apps` lists and rewrites the plain fields by their line, so keep that layout; the `init` check runs it on a copy of the flake.
 
 Starter-owned modules stay generic: no user name, host name, path or personal value in them. Personal values belong in `hosts/` and `users/`, or behind an option with a neutral default.
 
@@ -64,7 +65,7 @@ Workflows in `.github/workflows/` only chain one-line calls. Any logic goes into
 
 ## Conventions
 
-- **No comments** in `.nix` and `.sh` files: names carry the intent. Tool directives stay.
+- **No comments** in `.nix` and `.sh` files: names carry the intent. Tool directives stay. One exception: `modules/hosts/example/default.nix` is commented, read top to bottom by a forker. Every registry field has one or two lines, and every profile, feature, hardware module and app the starter ships has one line, enabled or commented out; a new one is added there too.
 - Code, docs, commits and README in English. No em dash or en dash anywhere.
 - Conventional Commits (`feat`, `fix`, `refactor`, `docs`, `chore`, `ci`), subject describing the observable effect, lowercase, no trailing period, at most 72 characters; prose body explaining why when not trivial. release-please opens the release PR on `main`: never set a version, edit `.release-please-manifest.json`, `version.txt` or `CHANGELOG.md`, or create a tag by hand. The project stays in `0.x` with every release marked as a pre-release until the maintainer decides on `1.0.0`.
 - Branches `feat/`, `fix/`, `refactor/`, `chore/`, `docs/` from `develop`; PR into `develop`, then `develop` into `main` with a merge commit, never squashed. `main` only moves through PRs.

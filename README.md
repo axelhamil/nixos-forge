@@ -11,7 +11,7 @@
 
 </div>
 
-In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a readable starting point, not a framework. Every piece is a module you turn on by name, read in one file and drop by deleting it. The `example` host turns on every feature that needs neither a secret nor specific hardware, `example-server` shows `wipe-home` and `example-pi` a Raspberry Pi, so you see the whole starter; your fork keeps what it wants.
+In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a readable starting point, not a framework. Every piece is a module you turn on by name, read in one file and drop by deleting it. The commented `example` host lists every profile, feature, hardware module and app, one line each to uncomment, `example-server` shows `wipe-home` and `example-pi` a Raspberry Pi, so you see the whole starter; your fork keeps what it wants.
 
 ## A machine is one file
 
@@ -59,7 +59,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests and the VM.
 
 1. **Fork and clone** the repo.
-2. **Make the example yours** in [`modules/hosts/example/default.nix`](modules/hosts/example/default.nix): rename the folder and `example` to your host name, `alice` to your login, set your `hardware`, and drop the `features` and `apps` you do not want. Delete `example-server` and `example-pi` if you do not need them, and `git add` new files: a flake only sees what git tracks.
+2. **Make it yours** with `nix run .#init`: it asks for your host name, profile, login, name, email, time zone, keyboard, locale and features, writes `modules/hosts/<host>/default.nix` from the commented [example host](modules/hosts/example/default.nix), removes the examples you do not keep and stages the result (`--help` lists a flag for every answer, `--yes` asks nothing). To do it by hand, copy the example host to `modules/hosts/<host>`, rename `example` and `alice`, uncomment what you want, and `git add` it: a flake only sees what git tracks.
 3. **Check it and boot it** in a VM:
 
    ```sh

@@ -49,7 +49,7 @@ Add `secrets` to the features of a host to decrypt [sops](https://github.com/get
 Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipient: the encrypted files live in a git repository that may be public, and a classic X25519 recipient would let someone who stores them today decrypt them once quantum computers can. A file is only as strong as its weakest recipient. Each post-quantum recipient adds about 1.5 KB to every file: prefer one key per machine and per person over many.
 
 1. Create your own key on your workstation, once: `mkdir -p ~/.config/sops/age && age-keygen -pq -o ~/.config/sops/age/keys.txt`.
-2. Create the machine key during the install, before `nixos-install` (step 3 of [install.md](install.md#steps)). A post-quantum public key is about 2,000 characters, too long to copy by hand: set a password for the installer's user with `passwd` (the installer runs sshd), then fetch the `~/age.pub` that step wrote from your workstation with `scp nixos@<installer-ip>:age.pub .`.
+2. Create the machine key during the install, before running `disko-install` ([install.md](install.md#by-hand-with-disko-install)). A post-quantum public key is about 2,000 characters, too long to copy by hand: set a password for the installer's user with `passwd` (the installer runs sshd), then fetch the `~/age.pub` that step wrote from your workstation with `scp nixos@<installer-ip>:age.pub .`.
 3. On your workstation, add both public keys to `.sops.yaml`:
 
    ```yaml
@@ -69,7 +69,7 @@ Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipi
    sops.secrets.wifi-password = { };
    ```
 
-5. Commit, pull in the installer's `~/nixos`, then run `nixos-install`. A machine whose key is missing from a file boots without that file's secrets.
+5. Commit, pull in the installer's `~/nixos`, then run `disko-install` with `--extra-files ~/key.txt /persist/var/lib/sops-nix/key.txt` so the machine finds its key at the first boot. A machine whose key is missing from a file boots without that file's secrets.
 
 The value is at `/run/secrets/wifi-password` (root only by default; `owner`, `mode` and `restartUnits` per secret). User passwords can move there too, instead of `/persist/passwords`: `sops.secrets.<you>-password.neededForUsers = true;` and `users.users.<you>.hashedPasswordFile = config.sops.secrets.<you>-password.path;`.
 

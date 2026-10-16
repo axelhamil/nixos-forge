@@ -1,7 +1,7 @@
 { lib, config, ... }:
 
 let
-  inherit (config.helpers) hostsOn;
+  inherit (config.helpers) hostsOn hasDisk;
 in
 {
   perSystem =
@@ -48,7 +48,7 @@ in
               };
             }
         )
-        // lib.optionalAttrs (nixos.system.build ? installTest) {
+        // lib.optionalAttrs (hasDisk name) {
           "${name}-disk" = nixos.system.build.installTest;
         }
       ) (hostsOn system);

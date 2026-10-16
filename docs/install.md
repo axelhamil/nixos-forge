@@ -1,6 +1,16 @@
 # Install on a machine
 
-The starter is developed and tested in VMs. This page is the path for your fork when you install it on real hardware. **disko wipes the whole disk set in `disk.device`**: read every step before running it.
+The starter is developed and tested in VMs. This page is the path for your fork when you install it on real hardware. A host that lists `disk` in `features` gets the encrypted layout below, and **the install erases the whole disk it is given**: read every step before running one.
+
+The registry never names that disk: it is chosen at install time. Three ways to install:
+
+| Path | When | Picks the disk with |
+|---|---|---|
+| [Installer ISO](#installer-iso) | the main path: a USB stick, nothing to type but answers | a list on screen |
+| [nixos-anywhere](#remote-install-with-nixos-anywhere) | a machine reachable over SSH | `disk.device` in the host |
+| [disko-install](#by-hand-with-disko-install) | by hand, from any NixOS ISO with your fork cloned | `--disk main <device>` |
+
+`disk.device` defaults to `/dev/null/no-disk-chosen`, a path that can never exist: a command run without a device fails instead of erasing a disk. The installed system mounts its partitions by label (`/dev/disk/by-partlabel/disk-main-ESP`, `disk-main-luks`), so the device only matters during the install and the same build fits any disk.
 
 ## What the disk looks like
 
@@ -27,11 +37,62 @@ Users are immutable (`users.mutableUsers = false`): passwords come from files un
 
 Hosts that import `secure-boot` (the `example` host does) boot through [lanzaboote](https://github.com/nix-community/lanzaboote): the starter generates its own Secure Boot keys and enrolls them in the firmware, alongside Microsoft's (GPU option ROMs and dual boot need them). Enrollment only works while the firmware is in **setup mode**, with its keys cleared: do it before every install, since a reinstall generates new keys.
 
-In the firmware settings, find the Secure Boot page and choose the option that clears or deletes the keys (often "Reset to Setup Mode" or "Clear Secure Boot keys"). Secure Boot is not enforced in setup mode, so the installer ISO still boots. Hosts without `secure-boot` skip this and boot plain systemd-boot.
+In the firmware settings, find the Secure Boot page and choose the option that clears or deletes the keys (often "Reset to Setup Mode" or "Clear Secure Boot keys"). Secure Boot is not enforced in setup mode, so an installer ISO still boots. Hosts without `secure-boot` skip this and boot plain systemd-boot.
 
-## Steps
+## Installer ISO
 
-From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk` set in `modules/hosts/<host>/default.nix`. Prefer a stable name from `ls -l /dev/disk/by-id/` over `/dev/nvme0n1`: on a machine with several disks, kernel names can swap between boots.
+Every host with `disk` gets an ISO that installs it, entirely offline: it carries the host's system already built and its disko script, and evaluates nothing on the machine.
+
+```sh
+nix build .#installer-<host>
+sudo dd if=result/iso/<host>-installer.iso of=/dev/<usb stick> bs=4M status=progress conv=fsync
+```
+
+Rebuild it after changing the host: the ISO installs the system as it was when you built it. Releases of the starter publish no image, on purpose: the starter is a config to fork, and an ISO holds one host with its users and keys, so each fork builds the ISO of its own host and hands it to whoever installs it.
+
+Boot the stick in UEFI mode. An assistant starts on the first console:
+
+1. It lists the disks with their size and model, leaving out the stick it runs from, and asks which one to erase. It refuses when another disk already carries this layout's partition labels, since the install could format that one instead: unplug it or erase its partitions first.
+2. It asks for the disk passphrase twice, then the password of each user of the host twice (hashed with yescrypt into `/persist/passwords/<user>`).
+3. It shows the host, the disk with its model and the users, and asks you to type the disk's name to confirm. Nothing is erased before that.
+4. It partitions with the host's disko layout, installs the prebuilt system, saves a hardware report in `/persist/facter.json` and offers to reboot. Type the passphrase at boot, then log in.
+
+If you quit it, `install-host` starts it again. Without any question, for scripts and the CI test:
+
+```sh
+install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file alice=./alice-password --yes --no-reboot
+```
+
+`--yes` asks nothing: it skips the confirmation, fails before erasing anything when a disk, passphrase or password is missing or empty, and reboots at the end unless `--no-reboot` is set. Without `--yes`, a value left out is asked for.
+
+The hardware report comes from [nixos-facter](https://github.com/nix-community/nixos-facter). The ISO cannot use it, since its system was built before the machine was seen, but your next build can: copy it into the host folder, `git add` it and point the host at it, so NixOS loads the kernel modules and firmware that machine needs.
+
+```nix
+module.hardware.facter.reportPath = ./facter.json;
+```
+
+The prebuilt system boots on common hardware (SATA, NVMe and USB disks are in the default initrd); a machine that needs more, such as a disk controller outside that list, boots after a rebuild with its report. A host that imports `secrets` needs its age key before the first boot: use [disko-install](#by-hand-with-disko-install) for it, or create the key on the installed machine and rebuild ([services.md](services.md#secrets-secrets-opt-in)).
+
+## Remote install with nixos-anywhere
+
+[nixos-anywhere](https://github.com/nix-community/nixos-anywhere) installs over SSH on a machine booted on any Linux with root access, building on your machine. It has no flag for the device, so set it in the host first, with a stable name from `ls -l /dev/disk/by-id/` on the target (kernel names like `/dev/nvme0n1` can swap on a machine with several disks):
+
+```nix
+module.disk.device = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNJ0X123456A";
+```
+
+Then prepare the passphrase and the user password locally, and install:
+
+```sh
+read -rsp 'Passphrase: ' passphrase && echo && printf '%s' "$passphrase" > /tmp/secret.key
+install -d -m 700 extra/persist/passwords
+mkpasswd -m yescrypt | install -m 600 /dev/stdin extra/persist/passwords/<you>
+nix run github:nix-community/nixos-anywhere -- --flake .#<host> --disk-encryption-keys /tmp/secret.key /tmp/secret.key --extra-files extra root@<address>
+```
+
+## By hand with disko-install
+
+From any NixOS installer ISO, with your fork cloned in `~/nixos`:
 
 1. Write the LUKS passphrase where disko reads it (no trailing newline):
 
@@ -41,34 +102,32 @@ From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk` set 
    [ "$passphrase" = "$again" ] && printf '%s' "$passphrase" > /tmp/secret.key
    ```
 
-2. Partition, encrypt, format and mount on `/mnt`:
+2. Hash your user's password. Without this file the account has no password and you cannot log in:
 
    ```sh
-   sudo nix --experimental-features 'nix-command flakes' run github:nix-community/disko/latest -- --mode destroy,format,mount --flake ~/nixos#<host>
-   ```
-
-3. Set your user's password. Without this file the account has no password and you cannot log in:
-
-   ```sh
-   sudo install -d -m 700 /mnt/persist/passwords
-   mkpasswd -m yescrypt | sudo install -m 600 /dev/stdin /mnt/persist/passwords/<you>
+   mkpasswd -m yescrypt | install -m 600 /dev/stdin ~/password
    ```
 
    On a host that imports `secrets`, create its post-quantum age key now (`age-keygen` 1.3 or later: run `nix --experimental-features 'nix-command flakes' develop ~/nixos` first to get the version your flake pins), then follow [services.md](services.md#secrets-secrets-opt-in) to encrypt the host's secrets for the public key it prints before installing:
 
    ```sh
-   sudo install -d -m 700 /mnt/persist/var/lib/sops-nix
-   age-keygen -pq | sudo install -m 600 /dev/stdin /mnt/persist/var/lib/sops-nix/key.txt
-   sudo age-keygen -y /mnt/persist/var/lib/sops-nix/key.txt > ~/age.pub
+   age-keygen -pq | install -m 600 /dev/stdin ~/key.txt
+   age-keygen -y ~/key.txt > ~/age.pub
    ```
 
-4. Install, then reboot and type the passphrase:
+3. Partition, encrypt, format and install on the disk you name, then reboot and type the passphrase:
 
    ```sh
-   sudo nixos-install --flake ~/nixos#<host> --no-root-passwd
+   sudo nix --experimental-features 'nix-command flakes' run github:nix-community/disko/latest#disko-install -- \
+     --flake ~/nixos#<host> --disk main /dev/disk/by-id/<disk> --write-efi-boot-entries \
+     --extra-files ~/password /persist/passwords/<you>
    ```
 
-5. On the first boot, the system generates its Secure Boot keys in `/var/lib/sbctl` (kept in `/persist`) and signs the boot files. Reboot once more: systemd-boot enrolls the keys and restarts the machine, now with Secure Boot enforced. Check it:
+   With `secrets`, add `--extra-files ~/key.txt /persist/var/lib/sops-nix/key.txt`.
+
+## After the first boot
+
+1. On the first boot, the system generates its Secure Boot keys in `/var/lib/sbctl` (kept in `/persist`) and signs the boot files. Reboot once more: systemd-boot enrolls the keys and restarts the machine, now with Secure Boot enforced. Check it:
 
    ```sh
    bootctl status | grep 'Secure Boot'
@@ -79,7 +138,7 @@ From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk` set 
 
    If the machine later refuses to boot with a Secure Boot violation (a firmware update restored the factory keys), reset the firmware to setup mode: systemd-boot enrolls the keys from `/boot/loader/keys/auto` again.
 
-6. The TPM now unlocks the disk. On a host with `secure-boot`, the `tpm2-enroll` service does it at the first boot where Secure Boot is enforced (the boot after the keys are enrolled): you type the passphrase once more, and the next boots open the disk without it. The passphrase stays as a fallback. Check it:
+2. The TPM now unlocks the disk. On a host with `secure-boot`, the `tpm2-enroll` service does it at the first boot where Secure Boot is enforced (the boot after the keys are enrolled): you type the passphrase once more, and the next boots open the disk without it. The passphrase stays as a fallback. Check it:
 
    ```sh
    journalctl -b -u tpm2-enroll
@@ -112,3 +171,5 @@ From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk` set 
 `<host>-disk` installs the host on a blank virtual disk with this exact layout, boots it, writes a file in `/`, `/persist` and `/home`, reboots, and checks that only the one in `/` is gone and that `machine-id` is unchanged. It then takes a btrbk snapshot of `/home` and `/persist` and checks it lands in the `@snapshots` subvolume ([services.md](services.md#snapshots-btrbk)).
 
 For an `x86_64-linux` host with `secure-boot`, the same check then boots the installed disk under OVMF in setup mode with an emulated TPM (swtpm): the keys are enrolled, Secure Boot is enforced, the `tpm2-enroll` service enrolls the disk on PCRs 7 and 15 and leaves only the passphrase and TPM2 keyslots, and the next boot unlocks the disk with the TPM alone, nobody typing the passphrase, extends PCR 15 and drops the volume key in the initrd.
+
+`<host>-installer`, for the hosts listed in `installer.testedHosts` (`example-server` upstream), builds the installer ISO with the test driver added, boots it under OVMF next to a blank disk, checks the assistant starts on the first console and lists that disk but not the ISO, runs it without questions, then boots the installed disk, types the passphrase, checks the yescrypt hashes and the hardware report in `/persist`, and logs in on the console with the password given at install.

@@ -1,17 +1,12 @@
 { lib, config, ... }:
 
 let
-  inherit (config.helpers) hostsOn;
+  inherit (config.helpers) hostsOn hasDisk;
   inherit (config.flake.modules.nixos) wipe-home;
 
   hostConfig = name: config.flake.nixosConfigurations.${name};
 
-  installsKeepingHome =
-    name:
-    let
-      nixos = (hostConfig name).config;
-    in
-    nixos.system.build ? installTest && !nixos.impermanence.wipeHome;
+  installsKeepingHome = name: hasDisk name && !(hostConfig name).config.impermanence.wipeHome;
 in
 {
   perSystem =

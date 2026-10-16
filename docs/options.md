@@ -32,40 +32,11 @@ list of string
 
 
 
-## disk
-
-
-
-Disk the ` disk ` layout installs on (LUKS, btrfs, ` / ` wiped at boot), erased at install\. Prefer a ` /dev/disk/by-id/ ` name: kernel names like ` /dev/nvme0n1 ` can swap on a machine with several disks\. ` null ` for a machine without it, such as a Raspberry Pi\.
-
-
-
-*Type:*
-null or string
-
-
-
-*Default:*
-
-```nix
-null
-```
-
-
-
-*Example:*
-
-```nix
-"/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNJ0X123456A"
-```
-
-
-
 ## features
 
 
 
-NixOS modules the machine turns on, by name: anything a file under ` modules/ ` publishes as ` flake.modules.nixos.<name> ` (` secure-boot `, ` wipe-home `, ` hyprland `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\.
+NixOS modules the machine turns on, by name: anything a file under ` modules/ ` publishes as ` flake.modules.nixos.<name> ` (` disk `, ` secure-boot `, ` wipe-home `, ` hyprland `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\. ` disk ` is the encrypted btrfs layout with ` / ` wiped at boot; the disk it erases is chosen at install (installer ISO, ` disko-install --disk main `, or ` disk.device ` in ` module `), never in the registry\.
 
 
 
@@ -86,6 +57,7 @@ list of string
 
 ```nix
 [
+  "disk"
   "secure-boot"
   "hyprland"
   "docker"

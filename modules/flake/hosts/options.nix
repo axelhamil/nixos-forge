@@ -178,11 +178,12 @@ let
           type = types.listOf types.str;
           default = [ ];
           example = [
+            "disk"
             "secure-boot"
             "hyprland"
             "docker"
           ];
-          description = "NixOS modules the machine turns on, by name: anything a file under `modules/` publishes as `flake.modules.nixos.<name>` (`secure-boot`, `wipe-home`, `hyprland`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...).";
+          description = "NixOS modules the machine turns on, by name: anything a file under `modules/` publishes as `flake.modules.nixos.<name>` (`disk`, `secure-boot`, `wipe-home`, `hyprland`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...). `disk` is the encrypted btrfs layout with `/` wiped at boot; the disk it erases is chosen at install (installer ISO, `disko-install --disk main`, or `disk.device` in `module`), never in the registry.";
         };
 
         apps = mkOption {
@@ -199,13 +200,6 @@ let
           type = types.attrsOf (types.submodule userOptions);
           default = { };
           description = "Accounts of the machine, by login name. Each one gets home-manager with the `home` modules it lists.";
-        };
-
-        disk = mkOption {
-          type = types.nullOr types.str;
-          default = null;
-          example = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNJ0X123456A";
-          description = "Disk the `disk` layout installs on (LUKS, btrfs, `/` wiped at boot), erased at install. Prefer a `/dev/disk/by-id/` name: kernel names like `/dev/nvme0n1` can swap on a machine with several disks. `null` for a machine without it, such as a Raspberry Pi.";
         };
 
         hardware = mkOption {
@@ -258,10 +252,6 @@ let
           imports = [
             nixos.base
           ]
-          ++ lib.optional (host.disk != null) {
-            imports = [ nixos.disk ];
-            disk.device = host.disk;
-          }
           ++ lib.optional (host.profile != null) (pick name "profile" nixos host.profile)
           ++ map (pick name "feature" nixos) host.features
           ++ map (hardwareModule name) host.hardware

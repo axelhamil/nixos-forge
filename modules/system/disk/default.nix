@@ -9,8 +9,6 @@
         "noatime"
       ];
 
-      passphraseFile = "/tmp/secret.key";
-
       subvolume = mountpoint: {
         inherit mountpoint;
         mountOptions = btrfsOptions;
@@ -21,7 +19,33 @@
 
       options.disk.device = lib.mkOption {
         type = lib.types.str;
-        description = "Whole disk that disko wipes and formats at install.";
+        default = "/dev/null/no-disk-chosen";
+        example = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNJ0X123456A";
+        description = "Whole disk that disko wipes and formats at install. The installed system mounts its partitions by label, so this only matters to the install; the installer ISO and `disko-install --disk main` set it there. The default can never exist, so a forgotten device erases nothing.";
+      };
+
+      options.disk.passphraseFile = lib.mkOption {
+        type = lib.types.str;
+        default = "/tmp/secret.key";
+        readOnly = true;
+        description = "File disko reads the LUKS passphrase from at install, without a trailing newline.";
+      };
+
+      options.disk.unlockTestScript = lib.mkOption {
+        type = lib.types.lines;
+        readOnly = true;
+        default = ''
+          unlock_prompt = ${
+            builtins.toJSON (
+              if config.boot.plymouth.enable then
+                "Please enter passphrase for disk"
+              else
+                "password query on /dev/tty1"
+            )
+          }
+        ''
+        + builtins.readFile ./unlock-disk.py;
+        description = "Python defining `unlock_disk(machine)` and `test_passphrase` for a test that boots the installed disk and types the passphrase at the prompt this host shows.";
       };
 
       config = {
@@ -48,7 +72,7 @@
               content = {
                 type = "luks";
                 name = "cryptroot";
-                passwordFile = passphraseFile;
+                passwordFile = config.disk.passphraseFile;
                 settings = {
                   allowDiscards = true;
                   crypttabExtraOpts = [
@@ -96,16 +120,9 @@
         disko.tests = {
           efi = true;
           bootCommands = ''
-            unlock_prompt = ${
-              builtins.toJSON (
-                if config.boot.plymouth.enable then
-                  "Please enter passphrase for disk"
-                else
-                  "password query on /dev/tty1"
-              )
-            }
-          ''
-          + builtins.readFile ./unlock-disk.py;
+            ${config.disk.unlockTestScript}
+            unlock_disk(machine)
+          '';
           extraChecks = lib.mkMerge [
             (builtins.readFile ./wipe-test.py)
             (lib.mkIf (!config.impermanence.wipeHome) (

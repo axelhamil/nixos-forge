@@ -40,6 +40,7 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 | `<host>-wipe-home` | hosts with `disk` but not `wipe-home` | the install test with `wipe-home` added |
 | `<host>-installer` | hosts in `installer.testedHosts` | the installer ISO installs without questions and the installed disk boots |
 | `profile-*`, `system-*`, `dev-*`, `home-*`, `desktop-*`, `app-*` | modules with a `check.nix` | the module's own VM test |
+| `facter` | always, on `x86_64-linux` | a host with the registry field `facter` set to nixpkgs' sample report turns on nixpkgs' facter module |
 | `options-doc` | always | `docs/options.md` matches the registry options |
 
 ## Running the CI scripts locally

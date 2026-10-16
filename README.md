@@ -86,6 +86,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | `apps` | an app of `modules/apps/<name>` with its config, else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
 | `hardware` | a starter module (`nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
 | `users.<name>` | `fullName`, `email`, `admin`, `sshKeys`, its own `apps`, and `home`, the home-manager modules (`shell` by default) |
+| `facter` | the hardware report the installer saves in `/persist/facter.json`, copied next to the host file: `./facter.json` |
 | `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
 | `module` | anything else, as plain NixOS config |
 

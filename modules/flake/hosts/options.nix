@@ -212,6 +212,13 @@ let
           description = "Hardware of the machine, by name: a module of the starter (`nvidia`, `amd-gpu`, `intel-gpu`, `raspberry-pi-4`, `raspberry-pi-5`, ...) or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile (`common-pc-ssd`, `framework-13-7040-amd`, ...).";
         };
 
+        facter = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          example = lib.literalExpression "./facter.json";
+          description = "Hardware report of the machine from nixos-facter, which the installer ISO saves in `/persist/facter.json`. Copy it next to the host file: nixpkgs' facter module then turns on the kernel modules, graphics, network and virtualisation support that machine needs.";
+        };
+
         flake = mkOption {
           type = types.nullOr types.str;
           default = null;
@@ -267,6 +274,7 @@ let
 
           networking.hostName = name;
           update.flake = host.flake;
+          hardware.facter.reportPath = lib.mkIf (host.facter != null) host.facter;
           time.timeZone = lib.mkDefault host.timeZone;
           i18n.defaultLocale = lib.mkDefault host.locale;
           services.xserver.xkb.layout = lib.mkDefault host.keyboard;

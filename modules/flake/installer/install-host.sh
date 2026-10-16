@@ -231,13 +231,20 @@ for user in "${USERS[@]}"; do
 done
 
 say "Recording the hardware report in /persist/facter.json"
-nixos-facter -o /mnt/persist/facter.json || echo "No hardware report: nixos-facter failed, the install goes on." >&2
+report_saved=true
+nixos-facter -o /mnt/persist/facter.json || {
+  report_saved=false
+  echo "No hardware report: nixos-facter failed, the install goes on." >&2
+}
 
 say "Installing $HOST_NAME"
 nixos-install --system "$SYSTEM" --no-root-passwd --no-channel-copy
 release_target
 
 say "$HOST_NAME is installed on $disk."
+if [ "$report_saved" = true ]; then
+  echo "Its hardware report is in /persist/facter.json: copy it next to the host file, git add it and add facter = ./facter.json; to the host." >&2
+fi
 if [ "$reboot_after" != true ]; then
   exit 0
 fi

@@ -22,3 +22,4 @@ Each lot builds and boots on its own before the next starts, and keeps a guardra
 | **13. Fast CI**: only checks missing from the binary cache are built, no kernel built in a PR | `ci-plan` |
 | **14. Installer ISO**: `nix build .#installer-<host>` for every host with `disk`, `install-host` assistant on tty1 | `example-server-installer` |
 | **15. Updates**: host `flake` field, `update` command, opt-in weekly `auto-upgrade`, weekly `sync-upstream` PR in forks, merged by hand | `system-update` |
+| **16. Hardware report**: host `facter` field reading the installer's nixos-facter report | `facter` |

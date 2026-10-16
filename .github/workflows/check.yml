@@ -58,6 +58,7 @@ jobs:
           name: ${{ vars.CACHIX_CACHE }}
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - uses: nix-community/cache-nix-action@v7
+        id: cache
         if: matrix.cache
         with:
           primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'modules/hardware/**') }}
@@ -67,7 +68,10 @@ jobs:
           purge-prefixes: nix-${{ matrix.system }}-
           purge-created: 0
           purge-primary-key: never
-      - run: nix build -L .#checks.${{ matrix.system }}.${{ matrix.check }}
+      - if: ${{ !matrix.cache || github.event_name == 'push' || steps.cache.outputs.hit-primary-key == 'true' }}
+        run: nix build -L .#checks.${{ matrix.system }}.${{ matrix.check }}
+      - if: ${{ matrix.cache && github.event_name != 'push' && steps.cache.outputs.hit-primary-key != 'true' }}
+        run: nix eval --raw .#checks.${{ matrix.system }}.${{ matrix.check }}.drvPath
 
   ci-ok:
     if: always()

@@ -14,6 +14,7 @@ in
           homeManagerUnits = lib.filter (lib.hasPrefix "home-manager-") (
             lib.attrNames nixos.systemd.services
           );
+          hasSdImage = nixos.system.build ? sdImage;
           waitForUnit = unit: "machine.wait_for_unit(${builtins.toJSON unit})";
 
           withoutDisko =
@@ -23,18 +24,23 @@ in
               config = lib.optionalAttrs (options ? disko) { disko.enableConfig = false; };
             };
         in
-        {
-          "${name}-toplevel" = nixos.system.build.toplevel;
+        (
+          if hasSdImage then
+            { "${name}-sd-image" = nixos.system.build.sdImage; }
+          else
+            {
+              "${name}-toplevel" = nixos.system.build.toplevel;
 
-          "${name}-boots" = pkgs.testers.runNixOSTest {
-            name = "${name}-boots";
-            node.pkgsReadOnly = false;
-            nodes.machine = withoutDisko;
-            testScript = lib.concatLines (
-              [ (waitForUnit "multi-user.target") ] ++ map waitForUnit homeManagerUnits ++ [ host.testScript ]
-            );
-          };
-        }
+              "${name}-boots" = pkgs.testers.runNixOSTest {
+                name = "${name}-boots";
+                node.pkgsReadOnly = false;
+                nodes.machine = withoutDisko;
+                testScript = lib.concatLines (
+                  [ (waitForUnit "multi-user.target") ] ++ map waitForUnit homeManagerUnits ++ [ host.testScript ]
+                );
+              };
+            }
+        )
         // lib.optionalAttrs (nixos.system.build ? installTest) {
           "${name}-disk" = nixos.system.build.installTest;
         }

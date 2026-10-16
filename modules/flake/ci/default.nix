@@ -10,16 +10,20 @@ let
 
   buildChecksOn = system: lib.remove "treefmt" (lib.attrNames config.flake.checks.${system});
 
-  compilesKernel = lib.hasSuffix "-sd-image";
-
   jobsOn =
     system:
     map (check: {
       inherit check system;
       runner = runners.${system};
-      timeout = if compilesKernel check then 240 else 60;
-      cache = compilesKernel check;
     }) (buildChecksOn system);
+
+  kernelsOn =
+    system:
+    lib.unique (
+      lib.mapAttrsToList (
+        name: _: config.flake.nixosConfigurations.${name}.config.boot.kernelPackages.kernel.drvPath
+      ) (hostsOn system)
+    );
 
   hostNamesOn = system: lib.attrNames (hostsOn system);
 
@@ -29,10 +33,10 @@ in
   flake.ci = {
     matrix = lib.concatMap jobsOn config.systems;
     hosts = lib.genAttrs config.systems hostNamesOn;
+    kernels = lib.genAttrs config.systems kernelsOn;
     closureMatrix = map (system: {
       inherit system;
       runner = runners.${system};
-      cache = lib.any compilesKernel (buildChecksOn system);
     }) systemsWithHosts;
   };
 
@@ -46,6 +50,16 @@ in
           pkgs.nvd
         ];
         text = builtins.readFile ./closure-diff.sh;
+      };
+
+      packages.ci-plan = pkgs.writeShellApplication {
+        name = "ci-plan";
+        runtimeInputs = [
+          pkgs.nix-eval-jobs
+          pkgs.jq
+          pkgs.coreutils
+        ];
+        text = builtins.readFile ./ci-plan.sh;
       };
 
       packages.sync-develop = pkgs.writeShellApplication {

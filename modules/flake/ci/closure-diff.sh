@@ -11,7 +11,7 @@ echo "### Closure diff ($system)"
 
 if [ "${2:-}" = --no-build ]; then
   echo
-  echo "Not built: no kernel is cached yet for this \`flake.lock\` and \`modules/hardware\`, and PRs never compile one. A push to \`develop\` builds and caches it."
+  echo "Not built: it needs a kernel that is not in the binary cache yet, and PRs never compile one. The push to \`develop\` after the merge builds and caches it."
   exit 0
 fi
 

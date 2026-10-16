@@ -26,7 +26,14 @@ in
         in
         (
           if hasSdImage then
-            { "${name}-sd-image" = nixos.system.build.sdImage; }
+            {
+              "${name}-sd-image" = pkgs.runCommand "${name}-sd-image" { } ''
+                for image in ${nixos.system.build.sdImage}/sd-image/*.img*; do
+                  test -s "$image"
+                  echo "$(basename "$image") $(stat -c %s "$image")" >> $out
+                done
+              '';
+            }
           else
             {
               "${name}-toplevel" = nixos.system.build.toplevel;

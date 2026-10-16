@@ -64,7 +64,7 @@ jobs:
           name: ${{ vars.CACHIX_CACHE }}
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           useDaemon: false
-          pushFilter: (-source$|-nixos-image-|\.img$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
+          pushFilter: (-source$|-nixos-image-|\.img$|\.iso$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
       - run: nix build -L .#checks.${{ matrix.system }}.${{ matrix.check }}
 
   closure:
@@ -89,7 +89,7 @@ jobs:
           name: ${{ vars.CACHIX_CACHE }}
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           useDaemon: false
-          pushFilter: (-source$|-nixos-image-|\.img$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
+          pushFilter: (-source$|-nixos-image-|\.img$|\.iso$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
       - run: nix run .#closure-diff -- ${{ github.event.pull_request.base.sha }} ${{ !matrix.build && '--no-build' || '' }} > closure-${{ matrix.system }}.md
       - uses: actions/upload-artifact@v7
         with:

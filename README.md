@@ -20,11 +20,10 @@ In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a
 {
   configurations.nixos.my-laptop = {
     stateVersion = "26.05";
-    disk = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNJ0X123456A";
     hardware = [ "framework-13-7040-amd" ];
 
     profile = "laptop";
-    features = [ "secure-boot" "plymouth" "hyprland" "docker" ];
+    features = [ "disk" "secure-boot" "plymouth" "hyprland" "docker" ];
     apps = [ "firefox" ];
 
     timeZone = "Europe/Paris";
@@ -38,11 +37,11 @@ In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a
 }
 ```
 
-That is the whole host: it gets a `nixosConfigurations` entry, a build check and a VM boot test, with no import list to keep. Every field is in [docs/options.md](docs/options.md), and `module` takes any other NixOS setting.
+That is the whole host: it gets a `nixosConfigurations` entry, a build check, a VM boot test and, with `disk`, an installer ISO (`nix build .#installer-my-laptop`), with no import list to keep. The disk it erases is picked at install, never written in the host. Every field is in [docs/options.md](docs/options.md), and `module` takes any other NixOS setting.
 
 ## What you get
 
-**A disk that forgets, and opens on its own.** [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), only declared state kept in `/persist`, hourly btrbk snapshots, and an opt-in empty `/home` at every boot (`wipe-home`). With `secure-boot`, [lanzaboote](https://github.com/nix-community/lanzaboote) enrolls its own keys, then the first boot with Secure Boot enforced enrolls the TPM2 on its own: the disk opens with no passphrase, bound to the Secure Boot state, the passphrase kept as a fallback. [docs/install.md](docs/install.md)
+**A disk that forgets, and opens on its own.** [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), only declared state kept in `/persist`, hourly btrbk snapshots, and an opt-in empty `/home` at every boot (`wipe-home`). With `secure-boot`, [lanzaboote](https://github.com/nix-community/lanzaboote) enrolls its own keys, then the first boot with Secure Boot enforced enrolls the TPM2 on its own: the disk opens with no passphrase, bound to the Secure Boot state, the passphrase kept as a fallback. `nix build .#installer-<host>` makes an ISO that installs the host offline: pick a disk, type a passphrase and the passwords, reboot. [docs/install.md](docs/install.md)
 
 **A shell worth logging into.** zsh with autosuggestions, highlighting and a shared history, the starship prompt, git with its own developers' defaults and delta, neovim left for your config, and fzf, zoxide, eza, bat, ripgrep, fd, btop, all through home-manager in the XDG layout. Bring your dotfiles as a mirror of your home or as [stow](https://www.gnu.org/software/stow/) packages. [docs/home.md](docs/home.md)
 
@@ -54,7 +53,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check and
 
 **Services and dev tools without a cloud.** systemd-resolved with no hidden fallback DNS, SSH with keys only and post-quantum key exchange, secrets with [sops-nix](https://github.com/Mic92/sops-nix), [nh](https://github.com/nix-community/nh) to switch with a package diff, offline `nix-locate` and `, <command>`, rootless Docker, libvirt with an emulated TPM, nix-ld and direnv. [docs/services.md](docs/services.md), [docs/dev.md](docs/dev.md)
 
-**Proved in CI, kept up to date.** Every x86_64 host builds and boots in a VM, Raspberry Pi hosts build their SD image, the modules with behavior have their own VM tests, and the install test formats a blank disk, reboots, checks what was wiped and unlocks it with an emulated TPM under Secure Boot. Each PR gets a package diff comment, `flake.lock` updates itself every Monday and merges once green, and a binary cache means CI only builds what changed. [docs/ci.md](docs/ci.md)
+**Proved in CI, kept up to date.** Every x86_64 host builds and boots in a VM, Raspberry Pi hosts build their SD image, the modules with behavior have their own VM tests, the install test formats a blank disk, reboots, checks what was wiped and unlocks it with an emulated TPM under Secure Boot, and the installer ISO is booted and run on a blank disk. Each PR gets a package diff comment, `flake.lock` updates itself every Monday and merges once green, and a binary cache means CI only builds what changed. [docs/ci.md](docs/ci.md)
 
 ## Quick start
 
@@ -73,15 +72,18 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
    ```
 
    Log in with your user and the password `test`, set for the VM only. Nothing touches a physical disk.
-4. **Install** on a real machine with [docs/install.md](docs/install.md), and turn on the CI of your fork with [docs/ci.md](docs/ci.md).
+4. **Install** on a real machine: build the installer ISO, write it to a USB stick and boot it; the assistant asks for the disk, the passphrase and the passwords. Other paths (nixos-anywhere, disko-install) are in [docs/install.md](docs/install.md). Turn on the CI of your fork with [docs/ci.md](docs/ci.md).
+
+   ```sh
+   nix build .#installer-<host>   # result/iso/<host>-installer.iso
+   ```
 
 ## Make it yours
 
 | Field | What it takes |
 |---|---|
 | `profile` | the role: `desktop`, `laptop`, `server` or `pi` |
-| `disk` | the disk the encrypted layout installs on, erased at install |
-| `features` | any NixOS module by name: `secure-boot`, `wipe-home`, `plymouth`, `hyprland`, `docker`, `libvirt`, `nix-ld`, `direnv`, `ssh`, `secrets`, yours |
+| `features` | any NixOS module by name: `disk` (the encrypted layout, on the disk picked at install), `secure-boot`, `wipe-home`, `plymouth`, `hyprland`, `docker`, `libvirt`, `nix-ld`, `direnv`, `ssh`, `secrets`, yours |
 | `apps` | an app of `modules/apps/<name>` with its config, else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
 | `hardware` | a starter module (`nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
 | `users.<name>` | `fullName`, `email`, `admin`, `sshKeys`, its own `apps`, and `home`, the home-manager modules (`shell` by default) |
@@ -109,7 +111,8 @@ Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) modul
 
 ```text
 modules/
-├── flake/     flake wiring: host registry and its checks, formatter, dev shell, CI scripts, bench
+├── flake/     flake wiring: host registry and its checks, installer ISO, formatter, dev shell,
+│              CI scripts, bench
 ├── helpers/   functions shared by modules (config.helpers)
 ├── system/    the OS base: nix, home-manager, resolved; opt-in disk (with btrbk snapshots),
 │              wipe-home, secure-boot, ssh, secrets

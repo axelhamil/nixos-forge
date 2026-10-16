@@ -1,7 +1,6 @@
 {
   configurations.nixos.example = {
     stateVersion = "26.05";
-    disk = "/dev/nvme0n1";
     hardware = [
       "common-pc-ssd"
       "common-cpu-intel-cpu-only"
@@ -9,6 +8,7 @@
 
     profile = "desktop";
     features = [
+      "disk"
       "secure-boot"
       "plymouth"
       "hyprland"

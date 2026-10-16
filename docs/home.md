@@ -38,11 +38,9 @@ To pick tools one by one, list them instead of `shell`: `zsh`, `starship`, `git`
 - **neovim** as `$EDITOR` (`vi` and `vim` too), with the compiler, tree-sitter, ripgrep and fd that most configurations expect. The starter does not manage its configuration: put your own in `~/.config/nvim`, [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) or [LazyVim](https://www.lazyvim.org) for instance. Language servers that a plugin downloads (Mason) need the `nix-ld` module ([dev.md](dev.md)).
 - **cli**: fzf (`Ctrl-R` history, `Ctrl-T` files and `Alt-C` directories, listed by fd so `.gitignore` is respected), zoxide (`z <part of a path>`), eza with git status (`ll`, `la`, `lt`; `ls` stays `ls`, whose flags eza does not all accept), bat, ripgrep, fd, btop and jq.
 
-Files follow the XDG layout: zsh lives in `~/.config/zsh`, its history in `~/.local/state/zsh`, Nix profiles in `~/.local/state/nix`. The only file the shell leaves in your home is `~/.zshenv`, which tells zsh where its configuration is. On a home that predates it, move `~/.zsh_history` to `~/.local/state/zsh/history` to keep your history; old `~/.nix-profile` and `~/.nix-defexpr` links are stale and can go.
+Files follow the XDG layout: zsh lives in `~/.config/zsh`, its history in `~/.local/state/zsh`, Nix profiles in `~/.local/state/nix`. The only file the shell leaves in your home is `~/.zshenv`, which tells zsh where its configuration is.
 
-The terminal emulator and its font come with the desktop.
-
-`home-shell` logs in a user with the bundle and checks zsh is the login shell, `compinit` runs once, starship loads, git uses `zdiff3` and delta, neovim is the editor and starts without a managed configuration, and every CLI tool is on the path while `ls` is left alone, and that nothing lands outside the XDG directories.
+The terminal emulator and its font come with the desktop ([desktop.md](desktop.md)).
 
 ## Bring your dotfiles
 
@@ -72,68 +70,4 @@ What to expect:
 - A file both in your dotfiles and written by a starter module stops the switch before anything changes, and names the option to turn off: `programs.git.enable = false` to keep your own git config, `programs.starship.enable = false` for `starship.toml`. Your `~/.config/nvim` works as is, since the starter does not manage it.
 - zsh reads `~/.config/zsh`, so a stowed `~/.zshrc` is ignored until you set `programs.zsh.enable = false`. zsh stays your login shell; call `compinit` in your own `.zshrc`, since the system one is off.
 
-`home-stow` links both layouts and checks that a second run changes nothing, a removed file or dropped package loses its links, a foreign file is left alone and a conflict with home-manager stops the switch.
-
-## Start `/home` empty at every boot
-
-A host with a `disk` that adds `wipe-home` to its features forgets `/home` like `/`: every boot starts from an empty home, and only the paths someone declared come back. Clutter cannot pile up, and what your machine needs is written down in your config.
-
-```nix
-features = [ "wipe-home" ];
-```
-
-At every boot, the initrd moves the previous `@home` to `/.snapshots/home-wiped.<UTC date>`, read-only, and creates an empty one. A wiped home stays there for 7 days, then a later boot deletes it (the 2 most recent always stay): a file you forgot to declare can still be copied back. The dates come from the hardware clock, which every UEFI machine has. btrbk stops snapshotting `/home` and keeps snapshotting `/persist`, where declared paths live ([services.md](services.md#snapshots-btrbk)). home-manager links its files again at every boot, so your config, shell and tools are there as usual.
-
-Declared paths live in `/persist/home/<you>` and are bind-mounted into your home at boot. The starter's own modules declare their state, only when `wipe-home` is on: zsh history (`~/.local/state/zsh`), zoxide (`~/.local/share/zoxide`), neovim plugins and undo history (`~/.local/share/nvim`, `~/.local/state/nvim`), the direnv allow list (`~/.local/share/direnv`), rootless Docker (`~/.local/share/docker`), the `stow` clone (`~/dotfiles`) and its state, the audio volumes and devices (`~/.local/state/wireplumber`, with `audio`), and the last run of user timers (`~/.local/share/systemd/timers`, so a weekly job missed while the machine was off still catches up). Declare yours in your user's home config, relative to your home:
-
-```nix
-flake.modules.homeManager.<you> = {
-  home.persistence."/persist" = {
-    directories = [
-      "projects"
-      "Documents"
-      { directory = ".ssh"; mode = "0700"; }
-      { directory = ".gnupg"; mode = "0700"; }
-      ".local/share/nix"
-    ];
-    files = [ ".config/monitors.xml" ];
-  };
-};
-```
-
-Prefer directories to files: an application that saves by writing a new file and renaming it over the old one fails on a persisted file (it is a bind mount, which a rename cannot replace). `mode` only applies when the directory is first created in `/persist`. Without `wipe-home` these lines do nothing, so the same user works on hosts that keep their home.
-
-### List what your home needs to keep
-
-On the machine you are moving from, see where your files are and which ones changed recently; caches and anything your config rebuilds can go:
-
-```sh
-du -xh --max-depth=2 ~ 2>/dev/null | sort -h | tail -40
-find ~ -xdev -type f -mtime -30 -not -path '*/.cache/*' -printf '%P\n' | cut -d/ -f1-2 | sort | uniq -c | sort -rn | head -50
-```
-
-Usual candidates: your projects and documents, `~/.ssh` and `~/.gnupg`, browser profiles (`~/.mozilla`, `~/.config/chromium`), password stores and keyrings (`~/.local/share/keyrings`), application sessions under `~/.config` and `~/.local/share`, and `~/.local/share/nix` for the flake settings you trusted. Packages installed with `nix profile add` are lost at reboot: list them in your home config instead. `~/.cache` starts empty, so the first launch of some tools is slower, and so is the first `nh os switch` after a boot, which rebuilds Nix's evaluation cache.
-
-Once `wipe-home` is on, the last boot's snapshot shows what was wiped and is not declared yet:
-
-```sh
-ls /.snapshots
-find /.snapshots/home-wiped.<date>/<you> -xdev -type f -printf '%P\n' | cut -d/ -f1-2 | sort | uniq -c | sort -rn
-```
-
-### Turn it on for an existing home
-
-Declare your paths first, then apply the change at the next boot rather than live, so the empty persisted directories are not mounted over your current files: `nh os boot` (or `nixos-rebuild boot`), then reboot. Your old home is now in `/.snapshots/home-wiped.<date>`. Log in on a console, before a browser or another app writes fresh state, and copy each declared path back within 7 days, the starter's own included; it lands in `/persist`:
-
-```sh
-systemctl --user stop docker
-old=/.snapshots/home-wiped.<date>/$USER
-for path in projects dotfiles .local/state/zsh .local/share/zoxide .local/share/direnv .local/share/docker; do
-  [ -e "$old/$path" ] && cp -a --reflink=auto "$old/$path/." ~/"$path/"
-done
-sudo systemctl restart home-manager-$USER
-```
-
-Restarting home-manager links your dotfiles, which `stow` found missing at boot. Never create `/persist/home/<you>` by hand as root: impermanence copies its owner onto your home directory.
-
-`<host>-wipe-home` installs the host with `wipe-home`, reboots, and checks the home starts empty while a declared path survives ([ci.md](ci.md)).
+To start `/home` empty at every boot and keep only declared paths, see [wipe-home.md](wipe-home.md).

@@ -1,29 +1,25 @@
 # Contributing
 
-Thanks for helping improve the starter. Architecture, conventions and pitfalls are in [AGENTS.md](AGENTS.md); read it before a non-trivial change.
+Thanks for helping improve the starter. Architecture, conventions and pitfalls are in [AGENTS.md](AGENTS.md); read it before a non-trivial change. To try the starter first, follow the [README](README.md).
 
 ## Setup
 
-```sh
-git clone https://github.com/axelhamil/nixos-starter.git
-cd nixos-starter
-nix develop
-```
+Clone the repo and run `nix develop` once: it installs a pre-push hook (treefmt, `nix flake check --no-build`, actionlint) that runs in seconds. You need Nix with flakes, and KVM to run the boot tests.
 
-`nix develop` installs a pre-push hook (treefmt, `nix flake check --no-build`, actionlint) that runs in seconds. Requires Nix with flakes, and KVM to run the boot tests.
+## Before a PR
 
-## Commands
-
-| Command | What it does |
+| Command | When |
 |---|---|
-| `nix fmt` | Format and lint (nixfmt, statix, deadnix) |
-| `nix flake check -L` | Lint, build every host, boot every host in a VM test |
-| `nix build .#nixosConfigurations.example.config.system.build.vm` | Build the example VM |
-| `./result/bin/run-example-vm` | Run it (user `alice`, password `test`) |
+| `nix fmt` | always |
+| `nix flake check -L` | always: lint, host builds, boot tests |
+| `nix run .#options-doc` | after touching `modules/flake/hosts/options.nix`, to regenerate `docs/options.md` |
+| `nix run nixpkgs#actionlint` | after touching `.github/workflows/` |
+
+New files must be `git add`ed before any `nix` command, or the flake does not see them.
 
 ## Commit messages
 
-[Conventional Commits](https://www.conventionalcommits.org/) drive releases through release-please. While in `0.x`, `feat` and breaking changes bump the minor, `fix` the patch, and `chore`, `ci`, `docs` and `refactor` do not release.
+[Conventional Commits](https://www.conventionalcommits.org/) drive releases through release-please. While in `0.x`, `feat` and breaking changes bump the minor, `fix` the patch, and `chore`, `ci`, `docs` and `refactor` do not release. Never set a version, edit `CHANGELOG.md` or create a tag by hand.
 
 ```text
 feat: add a server profile
@@ -33,5 +29,5 @@ fix: keep the boot test working without home-manager users
 ## Pull requests
 
 1. Branch from `develop` (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/` plus a slug).
-2. Run `nix fmt` and `nix flake check -L`.
+2. Run the commands above.
 3. Open the PR against `develop`. CI builds and boots every host and posts the package diff.

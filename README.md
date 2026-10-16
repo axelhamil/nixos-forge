@@ -41,19 +41,17 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 
 ## What you get
 
-**A disk that forgets, and opens on its own.** [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), only declared state kept in `/persist`, hourly btrbk snapshots, and an opt-in empty `/home` at every boot (`wipe-home`). With `secure-boot`, [lanzaboote](https://github.com/nix-community/lanzaboote) enrolls its own keys, then the first boot with Secure Boot enforced enrolls the TPM2 on its own: the disk opens with no passphrase, bound to the Secure Boot state, the passphrase kept as a fallback. `nix build .#installer-<host>` makes an ISO that installs the host offline: pick a disk, type a passphrase and the passwords, reboot. [docs/install.md](docs/install.md)
-
-**A shell worth logging into.** zsh with autosuggestions, highlighting and a shared history, the starship prompt, git with its own developers' defaults and delta, neovim left for your config, and fzf, zoxide, eza, bat, ripgrep, fd, btop, all through home-manager in the XDG layout. Bring your dotfiles as a mirror of your home or as [stow](https://www.gnu.org/software/stow/) packages. [docs/home.md](docs/home.md)
-
-**A desktop to start from.** A Plymouth splash, greetd with tuigreet, and [Hyprland](https://hypr.land) started by UWSM with waybar, fuzzel, kitty, mako, hyprlock, hypridle and cliphist, JetBrainsMono Nerd Font as monospace, each tool with its own look so your theme starts from a clean slate. Firefox ships with telemetry and sponsored content off. [docs/desktop.md](docs/desktop.md)
-
-**Fast by default.** `desktop`, `laptop`, `server` and `pi` profiles tune the kernel, the sched-ext scheduler, power, zram and systemd-oomd, and `nix run .#bench` measures the difference on your own machine. [docs/performance.md](docs/performance.md)
-
-**Runs on your hardware.** Firmware and fwupd, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, every [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile by name, and Raspberry Pi 4 and 5 with an SD card image. [docs/raspberry-pi.md](docs/raspberry-pi.md)
-
-**Services and dev tools without a cloud.** systemd-resolved with no hidden fallback DNS, SSH with keys only and post-quantum key exchange, secrets with [sops-nix](https://github.com/Mic92/sops-nix), [nh](https://github.com/nix-community/nh) to switch with a package diff, offline `nix-locate` and `, <command>`, rootless Docker, libvirt with an emulated TPM, nix-ld and direnv. [docs/services.md](docs/services.md), [docs/dev.md](docs/dev.md)
-
-**Proved in CI, kept up to date.** Every x86_64 host builds and boots in a VM, Raspberry Pi hosts build their SD image, the modules with behavior have their own VM tests, the install test formats a blank disk, reboots, checks what was wiped and unlocks it with an emulated TPM under Secure Boot, and the installer ISO is booted and run on a blank disk. Each PR gets a package diff comment, `flake.lock` updates itself every Monday and merges once green, and a binary cache means CI only builds what changed. [docs/ci.md](docs/ci.md)
+| | |
+|---|---|
+| **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot. [install](docs/install.md), [wipe-home](docs/wipe-home.md) |
+| **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback. [install](docs/install.md) |
+| **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
+| **Shell** | zsh, starship, git with delta, neovim, fzf, zoxide, eza, bat, ripgrep, fd, btop through home-manager in the XDG layout; your dotfiles with [stow](https://www.gnu.org/software/stow/). [home](docs/home.md) |
+| **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land) with waybar, fuzzel, kitty, mako, hyprlock and hypridle, Firefox with telemetry off. [desktop](docs/desktop.md) |
+| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd), `nix run .#bench` to measure. [performance](docs/performance.md) |
+| **Hardware** | firmware, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
+| **Services and dev** | systemd-resolved, key-only SSH, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
+| **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, `flake.lock` updates itself weekly, only what the cache lacks is built. [ci](docs/ci.md) |
 
 ## Quick start
 
@@ -128,7 +126,7 @@ modules/
 
 ## Releases
 
-Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x`, every release is marked as a pre-release, and `1.0.0` will be the first stable one, a deliberate decision: read the [release notes](https://github.com/axelhamil/nixos-starter/releases) before merging upstream into your fork. Shipped lots and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x` and every release is a pre-release, so read the [release notes](https://github.com/axelhamil/nixos-starter/releases) before merging upstream into your fork. Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

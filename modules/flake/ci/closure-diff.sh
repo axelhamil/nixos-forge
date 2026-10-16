@@ -5,9 +5,15 @@ has_host() {
   [ "$(nix eval --json "$1#nixosConfigurations" --apply "hosts: hosts ? \"$2\"")" = true ]
 }
 
-echo "### Closure diff"
-
 system=$(nix eval --impure --raw --expr builtins.currentSystem)
+
+echo "### Closure diff ($system)"
+
+if [ "${2:-}" = --no-build ]; then
+  echo
+  echo "Not built: no kernel is cached yet for this \`flake.lock\` and \`modules/hardware\`, and PRs never compile one. A push to \`develop\` builds and caches it."
+  exit 0
+fi
 
 for host in $(nix eval --raw ".#ci.hosts.$system" --apply 'builtins.concatStringsSep " "'); do
   toplevel="nixosConfigurations.$host.config.system.build.toplevel"

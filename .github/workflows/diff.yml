@@ -9,11 +9,27 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
-  closure:
+  matrix:
     runs-on: ubuntu-latest
+    outputs:
+      systems: ${{ steps.systems.outputs.systems }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - id: systems
+        run: echo "systems=$(nix eval --json .#ci.closureMatrix)" >> "$GITHUB_OUTPUT"
+
+  closure:
+    needs: matrix
+    if: needs.matrix.outputs.systems != '[]'
+    name: closure (${{ matrix.system }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.matrix.outputs.systems) }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -24,8 +40,33 @@ jobs:
         with:
           name: ${{ vars.CACHIX_CACHE }}
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - run: nix run .#closure-diff -- ${{ github.event.pull_request.base.sha }} | tee diff.md >> "$GITHUB_STEP_SUMMARY"
+          pushFilter: (-source$|-nixos-image-|\.img$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
+      - uses: nix-community/cache-nix-action@v7
+        id: cache
+        if: matrix.cache
+        with:
+          primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'modules/hardware/**') }}
+          restore-prefixes-first-match: nix-${{ matrix.system }}-
+          save: false
+      - run: nix run .#closure-diff -- ${{ github.event.pull_request.base.sha }} ${{ matrix.cache && steps.cache.outputs.hit-primary-key != 'true' && '--no-build' || '' }} > closure-${{ matrix.system }}.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: closure-${{ matrix.system }}
+          path: closure-${{ matrix.system }}.md
+
+  comment:
+    needs: closure
+    if: ${{ !cancelled() && needs.closure.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: closure-*
+          merge-multiple: true
+      - run: cat closure-*.md 2>/dev/null | tee diff.md >> "$GITHUB_STEP_SUMMARY"
       - if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr comment ${{ github.event.pull_request.number }} --body-file diff.md --edit-last --create-if-none
+        run: gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file diff.md --edit-last --create-if-none

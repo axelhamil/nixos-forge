@@ -10,19 +10,30 @@ let
 
   buildChecksOn = system: lib.remove "treefmt" (lib.attrNames config.flake.checks.${system});
 
+  compilesKernel = lib.hasSuffix "-sd-image";
+
   jobsOn =
     system:
     map (check: {
       inherit check system;
       runner = runners.${system};
+      timeout = if compilesKernel check then 240 else 60;
+      cache = compilesKernel check;
     }) (buildChecksOn system);
 
   hostNamesOn = system: lib.attrNames (hostsOn system);
+
+  systemsWithHosts = lib.filter (system: hostsOn system != { }) config.systems;
 in
 {
   flake.ci = {
     matrix = lib.concatMap jobsOn config.systems;
     hosts = lib.genAttrs config.systems hostNamesOn;
+    closureMatrix = map (system: {
+      inherit system;
+      runner = runners.${system};
+      cache = lib.any compilesKernel (buildChecksOn system);
+    }) systemsWithHosts;
   };
 
   perSystem =

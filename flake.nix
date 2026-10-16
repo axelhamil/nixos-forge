@@ -47,6 +47,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
+
     impermanence = {
       url = "github:nix-community/impermanence";
       inputs.nixpkgs.follows = "nixpkgs";

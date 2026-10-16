@@ -10,11 +10,14 @@ let
 
   buildChecksOn = system: lib.remove "treefmt" (lib.attrNames config.flake.checks.${system});
 
+  timeoutOf = check: if lib.hasSuffix "-sd-image" check then 240 else 60;
+
   jobsOn =
     system:
     map (check: {
       inherit check system;
       runner = runners.${system};
+      timeout = timeoutOf check;
     }) (buildChecksOn system);
 
   hostNamesOn = system: lib.attrNames (hostsOn system);

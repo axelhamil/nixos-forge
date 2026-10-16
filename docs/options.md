@@ -32,6 +32,35 @@ list of string
 
 
 
+## facter
+
+
+
+Hardware report of the machine from nixos-facter, which the installer ISO saves in ` /persist/facter.json `\. Copy it next to the host file: nixpkgs’ facter module then turns on the kernel modules, graphics, network and virtualisation support that machine needs\.
+
+
+
+*Type:*
+null or absolute path
+
+
+
+*Default:*
+
+```nix
+null
+```
+
+
+
+*Example:*
+
+```nix
+./facter.json
+```
+
+
+
 ## features
 
 

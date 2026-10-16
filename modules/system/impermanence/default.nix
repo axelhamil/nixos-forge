@@ -3,6 +3,14 @@
 {
   flake.modules.nixos.base =
     { lib, config, ... }:
+    let
+      dhcpcd =
+        config.networking.dhcpcd.enable
+        && (
+          config.networking.useDHCP
+          || lib.any (interface: interface.useDHCP == true) (lib.attrValues config.networking.interfaces)
+        );
+    in
     {
       imports = [ inputs.impermanence.nixosModules.impermanence ];
 
@@ -37,7 +45,12 @@
           "/var/log"
           "/var/lib/nixos"
           "/var/lib/systemd"
-        ];
+        ]
+        ++ lib.optional dhcpcd {
+          directory = "/var/lib/dhcpcd";
+          user = "dhcpcd";
+          group = "dhcpcd";
+        };
 
         files = [ "/etc/machine-id" ];
       };

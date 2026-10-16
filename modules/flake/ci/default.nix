@@ -10,14 +10,15 @@ let
 
   buildChecksOn = system: lib.remove "treefmt" (lib.attrNames config.flake.checks.${system});
 
-  timeoutOf = check: if lib.hasSuffix "-sd-image" check then 240 else 60;
+  compilesKernel = lib.hasSuffix "-sd-image";
 
   jobsOn =
     system:
     map (check: {
       inherit check system;
       runner = runners.${system};
-      timeout = timeoutOf check;
+      timeout = if compilesKernel check then 240 else 60;
+      cache = compilesKernel check;
     }) (buildChecksOn system);
 
   hostNamesOn = system: lib.attrNames (hostsOn system);
@@ -31,6 +32,7 @@ in
     closureMatrix = map (system: {
       inherit system;
       runner = runners.${system};
+      cache = lib.any compilesKernel (buildChecksOn system);
     }) systemsWithHosts;
   };
 

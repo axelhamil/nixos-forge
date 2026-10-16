@@ -25,6 +25,13 @@ in
 
       services.power-profiles-daemon.enable = true;
 
+      services.printing.enable = true;
+
+      services.avahi = {
+        enable = true;
+        nssmdns4 = true;
+      };
+
       systemd.oomd = {
         enableRootSlice = true;
         enableUserSlices = true;
@@ -38,6 +45,7 @@ in
         "/etc/NetworkManager/system-connections"
         "/var/lib/NetworkManager"
         "/var/lib/power-profiles-daemon"
+        "/var/lib/cups"
       ];
     };
 }

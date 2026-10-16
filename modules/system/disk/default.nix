@@ -82,7 +82,11 @@
         environment.persistence."/persist".enable = true;
         users.mutableUsers = false;
 
-        boot.loader.systemd-boot.editor = false;
+        boot.loader.systemd-boot = {
+          enable = lib.mkDefault true;
+          editor = false;
+        };
+        boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
 
         services.btrfs.autoScrub = {
           enable = true;

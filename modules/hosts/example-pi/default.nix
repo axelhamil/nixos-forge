@@ -1,25 +1,16 @@
-{ config, ... }:
-
 {
   configurations.nixos.example-pi = {
     system = "aarch64-linux";
+    stateVersion = "26.05";
 
-    module = {
-      imports = with config.flake.modules.nixos; [
-        base
-        raspberry-pi-5
-        pi
-        ssh
-        alice
-      ];
+    hardware = [ "raspberry-pi-5" ];
 
-      networking.hostName = "example-pi";
+    profile = "pi";
+    features = [ "ssh" ];
 
-      time.timeZone = "UTC";
-      i18n.defaultLocale = "en_US.UTF-8";
-      console.keyMap = "us";
-
-      system.stateVersion = "26.05";
+    users.alice = {
+      fullName = "Alice Example";
+      sshKeys = [ ];
     };
   };
 }

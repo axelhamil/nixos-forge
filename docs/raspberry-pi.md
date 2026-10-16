@@ -4,10 +4,10 @@ A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modul
 
 ## Use it
 
-[`modules/hosts/example-pi/default.nix`](../modules/hosts/example-pi/default.nix) is the example: `system = "aarch64-linux"` and the imports `base`, `raspberry-pi-5` (or `raspberry-pi-4`), `pi`, `ssh` and your user. Rename the host and the user as for any host, and give your user an SSH key: a Pi starts headless, and SSH refuses passwords.
+[`modules/hosts/example-pi/default.nix`](../modules/hosts/example-pi/default.nix) is the example: `system = "aarch64-linux"`, `profile = "pi"`, the features `raspberry-pi-5` (or `raspberry-pi-4`) and `ssh`, and a user. Rename the host and the user as for any host, and give your user an SSH key: a Pi starts headless, and SSH refuses passwords.
 
 ```nix
-users.users.<you>.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... you@laptop" ];
+users.<you>.sshKeys = [ "ssh-ed25519 AAAA... you@laptop" ];
 ```
 
 A fork without a Pi deletes `modules/hosts/example-pi` and the `nixos-raspberrypi` input: every evaluation of a Pi host fetches nixos-raspberrypi's own nixpkgs, which its library is built on.
@@ -17,7 +17,7 @@ A fork without a Pi deletes `modules/hosts/example-pi` and the `nixos-raspberryp
 - **Board modules** `raspberry-pi-4` and `raspberry-pi-5`: the nixos-raspberrypi board module and the SD card layout (firmware partition on `/boot/firmware`, ext4 root grown to the card at first boot, `noatime`), plus `rpi-eeprom-update` for the bootloader EEPROM. The Pi 5 boots its kernel straight from the firmware with one boot entry per generation, the Pi 4 through U-Boot. The kernel and firmware are built from this flake's nixpkgs with nixos-raspberrypi's overlays, so they follow the weekly lock update like the rest of the system. ZFS is left out: it does not build against the vendor kernel.
 - **`pi` profile**: the `server` profile, builds sent to the remote builders you list (`nix.distributedBuilds` turns on with `nix.buildMachines`, and builders fetch from caches themselves), `sudo` without a password for `wheel` (the only way in is an SSH key, and the Pi has no password store), a 15 s hardware watchdog that reboots a hung Pi, the journal capped at 100 MB, and no NixOS manual to build.
 
-The Pi does not import `disk`: no LUKS, btrfs or wiped `/` on an SD card. `ssh`, `secrets`, `audio` and the home modules work as on any host.
+The Pi has no `disk`: no LUKS, btrfs or wiped `/` on an SD card. `ssh`, `secrets`, `audio` and the home modules work as on any host.
 
 ## Build and flash the image
 

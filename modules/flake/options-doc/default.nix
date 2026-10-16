@@ -1,0 +1,54 @@
+{ lib, options, ... }:
+
+let
+  hostOptions = options.configurations.nixos.type.getSubOptions [ ];
+in
+{
+  perSystem =
+    {
+      pkgs,
+      system,
+      ...
+    }:
+    let
+      header = pkgs.writeText "options-header.md" ''
+        # Host options
+
+        Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.nix`. Generated from [`modules/flake/hosts/options.nix`](../modules/flake/hosts/options.nix) by `nix run .#options-doc`: do not edit by hand.
+
+      '';
+
+      body =
+        (pkgs.nixosOptionsDoc {
+          options = hostOptions;
+          transformOptions =
+            option:
+            option
+            // {
+              name = lib.removePrefix "<name>." option.name;
+              declarations = [ ];
+            };
+        }).optionsCommonMark;
+
+      reference = pkgs.runCommand "options.md" { } "cat ${header} ${body} > $out";
+    in
+    {
+      packages.options-doc = pkgs.writeShellApplication {
+        name = "options-doc";
+        runtimeInputs = [ pkgs.coreutils ];
+        text = ''
+          install -m 644 ${reference} docs/options.md
+        '';
+      };
+
+      checks = lib.optionalAttrs (system == "x86_64-linux") {
+        options-doc = pkgs.runCommand "options-doc" { } ''
+          if ! diff -u ${../../../docs/options.md} ${reference}; then
+            echo "docs/options.md is stale: run nix run .#options-doc" >&2
+            exit 1
+          fi
+          touch $out
+        '';
+      };
+    };
+}

@@ -1,8 +1,19 @@
+{ config, ... }:
+
+let
+  inherit (config.flake.modules) nixos;
+in
 {
   flake.modules.nixos.desktop =
     { lib, pkgs, ... }:
     {
       key = "nixos-starter/profiles/desktop";
+
+      imports = with nixos; [
+        firmware
+        audio
+        bluetooth
+      ];
 
       networking.networkmanager.enable = true;
       boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;

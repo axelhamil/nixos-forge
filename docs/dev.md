@@ -18,7 +18,7 @@ programs.nh.flake = "/home/<you>/nixos";
 
 ## `docker` (opt-in)
 
-Rootless Docker: the daemon runs as your user, so a container escape gets your rights, not root's (members of the classic `docker` group are root-equivalent). `DOCKER_HOST` points the CLI at it, so `docker` and `docker compose` work as usual, with data in `~/.local/share/docker` (kept with `/home`). The daemon only starts for members of `users` (the default group of every normal user), not for system accounts.
+Rootless Docker: the daemon runs as your user, so a container escape gets your rights, not root's (members of the classic `docker` group are root-equivalent). `DOCKER_HOST` points the CLI at it, so `docker` and `docker compose` work as usual, with data in `~/.local/share/docker` (kept with `/home`, or in `/persist/home/<you>` on a host with `wipe-home`). The daemon only starts for members of `users` (the default group of every normal user), not for system accounts.
 
 - **containerd image store** with its `overlayfs` snapshotter, even on btrfs and on a data directory created by an older Docker: multi-platform images and attestations work, and nothing falls back to the legacy btrfs graph driver.
 - **`local` log driver**: container logs rotate instead of growing forever.
@@ -31,7 +31,7 @@ The daemon lives in your user session: it stops when you log out, and containers
 users.users.<you>.linger = true;
 ```
 
-btrbk snapshots `/home` every hour, images and volumes included: a prune frees no space until those snapshots expire. To keep Docker out of the snapshots, make its directory a subvolume before the first start: `btrfs subvolume create ~/.local/share/docker`.
+btrbk snapshots `/home` every hour, images and volumes included: a prune frees no space until those snapshots expire. To keep Docker out of the snapshots, make its directory a subvolume before the first start: `btrfs subvolume create ~/.local/share/docker`. On a host with `wipe-home`, the data sits in `/persist`, which btrbk snapshots the same way.
 
 Rootless limits: ports below 1024 need `net.ipv4.ip_unprivileged_port_start`, `--network host` is the user namespace's network, not the machine's, and containers see connections as coming from the host, not from the client's address.
 

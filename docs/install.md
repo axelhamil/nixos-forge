@@ -16,7 +16,7 @@ btrfs subvolumes, all mounted with `compress=zstd` and `noatime`:
 | `@root` | `/` | no: restored from `@root-blank` at every boot |
 | `@nix` | `/nix` | yes |
 | `@persist` | `/persist` | yes |
-| `@home` | `/home` | yes |
+| `@home` | `/home` | yes, unless the host imports `wipe-home`: then emptied at every boot, the previous one kept 7 days in `/.snapshots` ([home.md](home.md#start-home-empty-at-every-boot)) |
 | `@snapshots` | `/.snapshots` | yes: hourly snapshots of `@home` and `@persist` ([services.md](services.md#snapshots-btrbk)) |
 
 Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home`, `/persist` and `/.snapshots` is gone unless it is declared in `environment.persistence."/persist"`: logs, `/var/lib/nixos`, `/var/lib/systemd` and `machine-id` (`modules/system/impermanence`), NetworkManager state (`modules/profiles/desktop`). Declare what your own modules need next to them, in the same option.

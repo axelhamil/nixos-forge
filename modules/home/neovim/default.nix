@@ -1,11 +1,11 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) mkDefaults;
+  inherit (config.helpers) mkDefaults relativeToHome;
 in
 {
   flake.modules.homeManager.neovim =
-    { pkgs, ... }:
+    { config, pkgs, ... }:
     {
       programs.neovim =
         mkDefaults {
@@ -23,5 +23,10 @@ in
             fd
           ];
         };
+
+      home.persistence."/persist".directories = map (relativeToHome config) [
+        "${config.xdg.dataHome}/nvim"
+        "${config.xdg.stateHome}/nvim"
+      ];
     };
 }

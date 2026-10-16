@@ -1,7 +1,7 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) mkDefaults;
+  inherit (config.helpers) mkDefaults relativeToHome;
 in
 {
   flake.modules.nixos.zsh.programs.zsh = {
@@ -25,5 +25,7 @@ in
           path = "${config.xdg.stateHome}/zsh/history";
         };
       };
+
+      home.persistence."/persist".directories = [ (relativeToHome config "${config.xdg.stateHome}/zsh") ];
     };
 }

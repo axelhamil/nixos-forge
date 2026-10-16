@@ -92,7 +92,12 @@
         disko.tests = {
           efi = true;
           bootCommands = builtins.readFile ./unlock-disk.py;
-          extraChecks = builtins.readFile ./wipe-test.py;
+          extraChecks = lib.mkMerge [
+            (builtins.readFile ./wipe-test.py)
+            (lib.mkIf (!config.impermanence.wipeHome) (
+              lib.mkOrder 1100 (builtins.readFile ./keep-home-test.py)
+            ))
+          ];
         };
 
         virtualisation.vmVariant = {

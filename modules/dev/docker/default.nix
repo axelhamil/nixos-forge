@@ -1,7 +1,14 @@
+{ config, ... }:
+
+let
+  inherit (config.helpers) persistInEveryHome;
+in
 {
   flake.modules.nixos.docker =
     { config, ... }:
     {
+      imports = [ (persistInEveryHome (home: "${home.xdg.dataHome}/docker")) ];
+
       virtualisation.docker.rootless = {
         enable = true;
         setSocketVariable = true;

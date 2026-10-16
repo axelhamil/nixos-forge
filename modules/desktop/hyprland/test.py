@@ -44,9 +44,13 @@ hyprctl("dispatch 'hl.dsp.dpms({ action = \"on\" })'")
 
 machine.send_key("meta_l-l")
 machine.wait_until_succeeds("pgrep -u tester -x hyprlock", timeout=30)
-machine.sleep(2)
-machine.send_chars("test\n")
-machine.wait_until_fails("pgrep -u tester -x hyprlock", timeout=30)
+
+for _ in range(20):
+    machine.send_chars("test\n")
+    if machine.execute("timeout 3 sh -c 'while pgrep -u tester -x hyprlock; do sleep 0.5; done'")[0] == 0:
+        break
+else:
+    raise AssertionError("hyprlock did not unlock with the password")
 
 machine.send_key("meta_l-ret")
 machine.wait_until_succeeds(f"{hyprctl_command('-j clients')} | grep -q com.mitchellh.ghostty", timeout=60)

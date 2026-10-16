@@ -1,6 +1,9 @@
 {
   flake.modules.nixos.disk =
-    { lib, ... }:
+    { lib, config, ... }:
+    let
+      homeSnapshotted = !config.impermanence.wipeHome;
+    in
     {
       services.btrbk.instances.snapshots = {
         onCalendar = "hourly";
@@ -13,16 +16,19 @@
           volume."/" = {
             snapshot_dir = ".snapshots";
             subvolume = {
-              home = { };
               persist = { };
-            };
+            }
+            // lib.optionalAttrs homeSnapshotted { home = { }; };
           };
         };
       };
 
       systemd.services.btrbk-snapshots.unitConfig.RequiresMountsFor = "/.snapshots";
 
-      disko.tests.extraChecks = lib.mkOrder 1200 (builtins.readFile ./snapshot-test.py);
+      disko.tests.extraChecks = lib.mkOrder 1200 ''
+        home_snapshotted = ${if homeSnapshotted then "True" else "False"}
+        ${builtins.readFile ./snapshot-test.py}
+      '';
 
       virtualisation.vmVariant.services.btrbk.instances = lib.mkForce { };
     };

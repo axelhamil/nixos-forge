@@ -12,7 +12,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 - **Every host built and booted in CI**: declare a host in `configurations.nixos.<name>` and it gets its `nixosConfigurations` entry, a build check and a NixOS VM boot test (systemd, every home-manager user), run on a CI runner of its system (`x86_64-linux` or `aarch64-linux`).
 - **Weekly lock updates, merged automatically**: every Monday a PR updates `flake.lock` and merges itself once CI is green.
 - **Package diff on every PR**: a comment lists the packages added, removed or upgraded per `x86_64-linux` host (via [nvd](https://git.sr.ht/~khumba/nvd)).
-- **Encrypted disk that forgets**: [disko](https://github.com/nix-community/disko) layout with LUKS (TPM2 unlock, passphrase fallback) and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), `/home` and declared state in `/persist` kept. A CI test installs it, reboots and proves it.
+- **Encrypted disk that forgets**: [disko](https://github.com/nix-community/disko) layout with LUKS (TPM2 unlock, passphrase fallback) and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), `/home` and declared state in `/persist` kept, or `/home` wiped too with opt-in `wipe-home`, keeping only the paths each module and user declares. A CI test installs it, reboots and proves it.
 - **Secure Boot, opt-in**: [lanzaboote](https://github.com/nix-community/lanzaboote) with keys generated on the machine and enrolled automatically, then TPM2 unlock bound to the Secure Boot state and to the unlocked volume (PCRs 7 and 15). A CI test boots the installed disk under OVMF with an emulated TPM and proves the disk opens without the passphrase.
 - **Hardware modules, opt-in**: firmware and fwupd, PipeWire, Bluetooth, NVIDIA (open kernel module), AMD and Intel GPUs, plus [nixos-hardware](https://github.com/NixOS/nixos-hardware) profiles. CI builds the NVIDIA module against every host's kernel, so a weekly update that would break it never merges.
 - **Performance profiles you can measure**: `desktop`, `laptop` and `server` profiles (kernel, sched-ext scheduler, power daemon, zram, oomd), each with a VM test, and `nix run .#bench` to compare schedulers, kernels or settings on your own machine. See [docs/performance.md](docs/performance.md).
@@ -63,7 +63,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 modules/
 ├── flake/     flake wiring: flake-parts, formatter, host registry, dev shell (git hooks, sops, age), CI and user scripts (closure-diff, bench)
 ├── helpers/   functions shared by flake-parts modules (`config.helpers`)
-├── system/    OS base shared by every host: nix (nh, nix-index), home-manager, memory (zram), resolved, disk (with btrbk snapshots), impermanence; opt-in secure-boot, ssh, secrets
+├── system/    OS base shared by every host: nix (nh, nix-index), home-manager, memory (zram), resolved, disk (with btrbk snapshots), impermanence; opt-in wipe-home, secure-boot, ssh, secrets
 ├── hardware/  modules a host picks for its machine: firmware, audio, bluetooth, GPUs
 ├── profiles/  roles a host picks: desktop, laptop, server
 ├── dev/       development modules a host picks: docker (rootless), libvirt, nix-ld, direnv
@@ -79,9 +79,9 @@ A function that two modules need goes to `modules/helpers/<topic>.nix` as `helpe
 
 ## Status and roadmap
 
-Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot, NetworkManager, systemd-resolved, hourly btrbk snapshots, opt-in SSH and sops-nix secrets, nh and nix-index, opt-in rootless Docker and libvirt, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager and a ready zsh, git and neovim) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
+Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot and `/home` too on hosts that import `wipe-home`, NetworkManager, systemd-resolved, hourly btrbk snapshots, opt-in SSH and sops-nix secrets, nh and nix-index, opt-in rootless Docker and libvirt, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager and a ready zsh, git and neovim) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
 
-Next lots (`/home` wiped at boot, desktop, Raspberry Pi) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Next lots (desktop, Raspberry Pi, a single file for newcomers) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
 
 ## Releases
 

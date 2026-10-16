@@ -88,6 +88,8 @@ ls /.snapshots
 cp -a /.snapshots/home.20261015T1400/<you>/notes.md ~/notes.md
 ```
 
+On a host with `wipe-home`, btrbk snapshots `/persist` only: a declared home path is in `/.snapshots/persist.<date>/home/<you>/`, and the rest of each wiped home in `/.snapshots/home-wiped.<date>` for 7 days ([home.md](home.md#start-home-empty-at-every-boot)).
+
 Snapshots of `/persist` keep what it held for up to 4 weeks, passwords and the age key included: after rotating a leaked secret, delete the older snapshots too (`sudo btrfs subvolume delete /.snapshots/persist.<date>`).
 
 A machine installed before `@snapshots` existed creates it once, before switching: `sudo mount -o subvol=/ /dev/mapper/cryptroot /mnt && sudo btrfs subvolume create /mnt/@snapshots && sudo umount /mnt`. Until then the mount is skipped (`nofail`), the machine boots, and `btrbk-snapshots.service` fails visibly (`systemctl --failed`) instead of snapshotting into the wiped `/`.

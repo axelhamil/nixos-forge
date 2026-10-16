@@ -1,3 +1,8 @@
+{ config, ... }:
+
+let
+  inherit (config.helpers) relativeToHome;
+in
 {
   flake.modules.homeManager.stow =
     {
@@ -50,6 +55,11 @@
 
       config = {
         home.packages = [ pkgs.stow ];
+
+        home.persistence."/persist".directories = map (relativeToHome config) (
+          [ "${config.xdg.stateHome}/stow" ]
+          ++ lib.optional (lib.hasPrefix "${config.home.homeDirectory}/" cfg.directory) cfg.directory
+        );
 
         home.activation = {
           stowPrune = lib.hm.dag.entryBefore [ "stowCheck" ] ''

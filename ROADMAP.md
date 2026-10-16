@@ -10,8 +10,8 @@ Each lot builds and boots on its own before the next starts, and keeps a guardra
 | **2. Host registry**: `configurations.nixos.<name>` generates the config, its checks and its CI entry | `<host>-toplevel`, `<host>-boots` |
 | **3. Disk**: disko layout, LUKS2, btrfs subvolumes, `/` rolled back at every boot, state declared in `/persist` | `<host>-disk` |
 | **4. Boot**: opt-in `secure-boot` with lanzaboote, TPM2 unlock enrolled on its own (PCR 7 and 15), passphrase kept | `<host>-disk` on a `secure-boot` host |
-| **5. Hardware**: `firmware`, `audio`, `bluetooth`, `nvidia`, `amd-gpu`, `intel-gpu`, nixos-hardware profiles, unfree packages allowed by name | `<host>-nvidia` |
-| **6. Performance profiles**: `desktop`, `laptop`, `server` (kernel, sched-ext, power, zram, oomd), `nix run .#bench` | `profile-desktop`, `profile-laptop`, `profile-server` |
+| **5. Hardware**: `firmware`, `audio`, `bluetooth`, `nvidia`, `amd-gpu`, `intel-gpu`, nixos-hardware profiles, unfree packages allowed by name | `<host>-toplevel` of hosts importing them |
+| **6. Performance profiles**: `desktop`, `laptop`, `server` (kernel, sched-ext, power, zram, oomd) | `profile-desktop`, `profile-laptop`, `profile-server` |
 | **7. Services**: systemd-resolved, btrbk snapshots, opt-in `ssh` and `secrets` (sops-nix) | `system-resolved`, `system-ssh`, `system-secrets`, `<host>-disk` |
 | **8. Dev base**: `nh clean`, nix-index with comma, opt-in rootless `docker`, `libvirt`, `nix-ld`, `direnv` | `system-nix`, `system-nix-index`, `dev-docker`, `dev-libvirt` |
 | **9a. Shell**: home-manager `home/` layer (zsh, starship, git, neovim, CLI tools), XDG layout, opt-in `stow` | `home-shell`, `home-stow` |

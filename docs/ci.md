@@ -38,7 +38,6 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 | `<host>-sd-image` | Raspberry Pi hosts, in place of the two above | the SD card image builds |
 | `<host>-disk` | hosts with `disk` | install on a blank disk, reboot, `/` wiped, btrbk snapshot taken; Secure Boot and TPM2 unlock on `x86_64-linux` hosts with `secure-boot` |
 | `<host>-wipe-home` | hosts with `disk` but not `wipe-home` | the install test with `wipe-home` added |
-| `<host>-nvidia` | `x86_64-linux` hosts without `nvidia` | the host with `nvidia` evaluates and its NVIDIA open kernel module builds |
 | `<host>-installer` | hosts in `installer.testedHosts` | the installer ISO installs without questions and the installed disk boots |
 | `profile-*`, `system-*`, `dev-*`, `home-*`, `desktop-*`, `app-*` | modules with a `check.nix` | the module's own VM test |
 | `options-doc` | always | `docs/options.md` matches the registry options |

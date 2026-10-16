@@ -48,7 +48,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 | **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
 | **Shell** | zsh, starship, git with delta, neovim, fzf, zoxide, eza, bat, ripgrep, fd, btop through home-manager in the XDG layout; your dotfiles with [stow](https://www.gnu.org/software/stow/). [home](docs/home.md) |
 | **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land) with waybar, fuzzel, kitty, mako, hyprlock and hypridle, Firefox with telemetry off. [desktop](docs/desktop.md) |
-| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd), `nix run .#bench` to measure. [performance](docs/performance.md) |
+| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd). [performance](docs/performance.md) |
 | **Hardware** | firmware, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
 | **Services and dev** | systemd-resolved, key-only SSH, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
 | **Updates** | every Monday your fork gets a PR with fresh inputs, merged once CI is green, and one with the starter's latest release for you to review; machines pull your fork with `update`, or weekly on their own with `auto-upgrade`. [updates](docs/updates.md) |
@@ -112,7 +112,7 @@ Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) modul
 ```text
 modules/
 ├── flake/     flake wiring: host registry and its checks, installer ISO, formatter, dev shell,
-│              CI scripts, bench
+│              CI scripts
 ├── helpers/   functions shared by modules (config.helpers)
 ├── system/    the OS base: nix, home-manager, resolved; opt-in disk (with btrbk snapshots),
 │              wipe-home, secure-boot, ssh, secrets

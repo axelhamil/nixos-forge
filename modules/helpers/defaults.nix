@@ -1,5 +1,5 @@
 { lib, ... }:
 
 {
-  helpers.mkDefaults = lib.mapAttrsRecursive (_: lib.mkDefault);
+  helpers.mkDefaults = lib.mapAttrsRecursiveCond (attrs: !lib.isDerivation attrs) (_: lib.mkDefault);
 }

@@ -4,11 +4,7 @@ What every host gets to manage Nix, and the opt-in modules for development machi
 
 ## Every host
 
-**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`: `nh clean all` runs weekly and keeps every generation younger than 14 days plus the last 5. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. Point it at your clone once in your host so it needs no argument:
-
-```nix
-programs.nh.flake = "/home/<you>/nixos";
-```
+**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`: `nh clean all` runs weekly and keeps every generation younger than 14 days plus the last 5. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. The host's `flake` field points it at your fork and gives the `update` command ([updates.md](updates.md)).
 
 Channels are off: `nixpkgs` in `nix shell nixpkgs#hello` and in `NIX_PATH` is the revision the system was built from. User profiles live in `~/.local/state/nix` (`use-xdg-base-directories`).
 

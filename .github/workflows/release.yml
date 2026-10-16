@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   release:
+    if: github.repository == 'axelhamil/nixos-starter'
     runs-on: ubuntu-latest
     steps:
       - id: bot

@@ -51,6 +51,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 | **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd), `nix run .#bench` to measure. [performance](docs/performance.md) |
 | **Hardware** | firmware, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
 | **Services and dev** | systemd-resolved, key-only SSH, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
+| **Updates** | every Monday your fork gets a PR with fresh inputs, merged once CI is green, and one with the starter's latest release for you to review; machines pull your fork with `update`, or weekly on their own with `auto-upgrade`. [updates](docs/updates.md) |
 | **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, `flake.lock` updates itself weekly, only what the cache lacks is built. [ci](docs/ci.md) |
 
 ## Quick start
@@ -85,6 +86,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | `apps` | an app of `modules/apps/<name>` with its config, else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
 | `hardware` | a starter module (`nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
 | `users.<name>` | `fullName`, `email`, `admin`, `sshKeys`, its own `apps`, and `home`, the home-manager modules (`shell` by default) |
+| `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
 | `module` | anything else, as plain NixOS config |
 
 An unknown name stops the evaluation with the list of known ones.
@@ -126,7 +128,7 @@ modules/
 
 ## Releases
 
-Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x` and every release is a pre-release, so read the [release notes](https://github.com/axelhamil/nixos-starter/releases) before merging upstream into your fork. Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
+Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x` and every release is a pre-release, and your fork receives each one as a PR to review every Monday ([docs/updates.md](docs/updates.md)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

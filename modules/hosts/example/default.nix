@@ -19,6 +19,7 @@
       "ssh"
     ];
     apps = [ "firefox" ];
+    flake = "/home/alice/nixos";
 
     users.alice = {
       fullName = "Alice Example";

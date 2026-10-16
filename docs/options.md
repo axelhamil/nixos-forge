@@ -66,6 +66,35 @@ list of string
 
 
 
+## flake
+
+
+
+Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:alice/nixos `, which the ` auto-upgrade ` feature needs\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+
+```nix
+null
+```
+
+
+
+*Example:*
+
+```nix
+"/home/alice/nixos"
+```
+
+
+
 ## hardware
 
 

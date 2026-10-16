@@ -212,6 +212,13 @@ let
           description = "Hardware of the machine, by name: a module of the starter (`nvidia`, `amd-gpu`, `intel-gpu`, `raspberry-pi-4`, `raspberry-pi-5`, ...) or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile (`common-pc-ssd`, `framework-13-7040-amd`, ...).";
         };
 
+        flake = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = "/home/alice/nixos";
+          description = "Where the machine updates from: a git checkout on the machine, which the `update` command pulls then switches to, or a flake reference such as `github:alice/nixos`, which the `auto-upgrade` feature needs.";
+        };
+
         timeZone = mkOption {
           type = types.str;
           default = "UTC";
@@ -259,6 +266,7 @@ let
           ++ lib.mapAttrsToList (userModule name host.system) host.users;
 
           networking.hostName = name;
+          update.flake = host.flake;
           time.timeZone = lib.mkDefault host.timeZone;
           i18n.defaultLocale = lib.mkDefault host.locale;
           services.xserver.xkb.layout = lib.mkDefault host.keyboard;

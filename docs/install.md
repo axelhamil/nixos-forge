@@ -65,7 +65,13 @@ install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file 
 
 `--yes` asks nothing: it skips the confirmation, fails before erasing anything when a disk, passphrase or password is missing or empty, and reboots at the end unless `--no-reboot` is set. Without `--yes`, a value left out is asked for.
 
-The hardware report comes from [nixos-facter](https://github.com/nix-community/nixos-facter) and is kept in `/persist/facter.json` for reference: the starter does not read it. The prebuilt system boots on common hardware (SATA, NVMe and USB disks are in the default initrd); a machine that needs more, such as an unusual disk controller, needs the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`) and a new ISO. A host that imports `secrets` needs its age key before the first boot: use [disko-install](#by-hand-with-disko-install) for it, or create the key on the installed machine and rebuild ([services.md](services.md#secrets-secrets-opt-in)).
+The hardware report comes from [nixos-facter](https://github.com/nix-community/nixos-facter) and is kept in `/persist/facter.json`. Copy it next to your host file, `git add` it and point nixpkgs' facter module at it: it then turns on the initrd kernel modules, graphics, network, Bluetooth and virtualisation support that machine needs.
+
+```nix
+module.hardware.facter.reportPath = ./facter.json;
+```
+
+The prebuilt system boots on common hardware (SATA, NVMe and USB disks are in the default initrd); a machine that needs more, such as an unusual disk controller, needs the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`) and a new ISO. A host that imports `secrets` needs its age key before the first boot: use [disko-install](#by-hand-with-disko-install) for it, or create the key on the installed machine and rebuild ([services.md](services.md#secrets-secrets-opt-in)).
 
 ## Remote install with nixos-anywhere
 

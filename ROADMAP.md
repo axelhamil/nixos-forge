@@ -25,3 +25,4 @@ Each lot builds and boots on its own before the next starts, and keeps a guardra
 | **16. Hardware report**: host `facter` field reading the installer's nixos-facter report | `facter` |
 | **17. Printing**: CUPS with driverless network printers in the `desktop` profile, state persisted | `profile-desktop` |
 | **18. Init**: commented example host read top to bottom, `nix run .#init` writes a fork's first host and drops the examples | `init` |
+| **19. Hibernate**: opt-in `hibernate`, swap file in LUKS on its own subvolume, resume through systemd before the `/` rollback, suspend-then-hibernate | `system-hibernate` |

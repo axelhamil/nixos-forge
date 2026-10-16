@@ -76,6 +76,6 @@ nix.buildMachines = [
 
 ## Tests
 
-- `<host>-sd-image` builds the SD card image on an `ubuntu-24.04-arm` runner, in place of `<host>-toplevel` and `<host>-boots`: the image contains the system, and the vendor kernel only boots on the board. The first run after a lock update compiles the kernel, which takes more than an hour (the job allows 240 minutes); the job then keeps its Nix store in the GitHub Actions cache from pushes to `develop` and `main`, so later PRs download it ([ci.md](ci.md)).
+- `<host>-sd-image` builds the SD card image on an `ubuntu-24.04-arm` runner, in place of `<host>-toplevel` and `<host>-boots`: the image contains the system, and the vendor kernel only boots on the board. Pushes to `develop` and `main` build it and keep the Nix store in the GitHub Actions cache; a PR builds it from that cache, or only evaluates it when its `flake.lock` or `modules/hardware` changed the kernel, since compiling the kernel takes more than an hour ([ci.md](ci.md)).
 - `profile-pi` checks the `server` settings, the remote builder in `/etc/nix/machines` with `builders-use-substitutes`, passwordless `sudo` for `wheel`, the watchdog and the journal cap.
 - The PR package diff covers `aarch64-linux` hosts in a job on the arm runner.

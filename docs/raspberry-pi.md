@@ -76,6 +76,6 @@ nix.buildMachines = [
 
 ## Tests
 
-- `<host>-sd-image` builds the SD card image on an `ubuntu-24.04-arm` runner, in place of `<host>-toplevel` and `<host>-boots`: the image contains the system, and the vendor kernel only boots on the board.
+- `<host>-sd-image` builds the SD card image on an `ubuntu-24.04-arm` runner, in place of `<host>-toplevel` and `<host>-boots`: the image contains the system, and the vendor kernel only boots on the board. Without a binary cache it compiles the kernel on every run, which takes more than an hour (the job allows 240 minutes): set up the optional Cachix cache of [ci.md](ci.md) so later runs download it.
 - `profile-pi` checks the `server` settings, the remote builder in `/etc/nix/machines` with `builders-use-substitutes`, passwordless `sudo` for `wheel`, the watchdog and the journal cap.
 - The PR package diff covers `aarch64-linux` hosts in a job on the arm runner.

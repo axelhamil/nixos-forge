@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: check-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -23,23 +23,34 @@ jobs:
           fail-mode: true
       - run: nix build -L .#checks.x86_64-linux.treefmt
 
-  matrix:
+  plan:
     runs-on: ubuntu-latest
     outputs:
-      checks: ${{ steps.eval.outputs.checks }}
+      checks: ${{ steps.plan.outputs.checks }}
+      closures: ${{ steps.plan.outputs.closures }}
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
-      - id: eval
-        run: echo "checks=$(nix eval --json .#ci.checks)" >> "$GITHUB_OUTPUT"
+      - uses: cachix/cachix-action@v17
+        if: vars.CACHIX_CACHE != ''
+        continue-on-error: true
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skipPush: true
+      - id: plan
+        run: nix run .#ci-plan -- ${{ github.event_name }} >> "$GITHUB_OUTPUT"
 
   build:
-    needs: matrix
-    runs-on: ubuntu-latest
+    needs: plan
+    if: needs.plan.outputs.checks != '[]'
+    name: build (${{ matrix.check }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
-        check: ${{ fromJSON(needs.matrix.outputs.checks) }}
+        include: ${{ fromJSON(needs.plan.outputs.checks) }}
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
@@ -48,14 +59,63 @@ jobs:
             system-features = nixos-test benchmark big-parallel kvm
       - uses: cachix/cachix-action@v17
         if: vars.CACHIX_CACHE != ''
+        continue-on-error: true
         with:
           name: ${{ vars.CACHIX_CACHE }}
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - run: nix build -L .#checks.x86_64-linux.${{ matrix.check }}
+          useDaemon: false
+          pushFilter: (-source$|-nixos-image-|\.img$|\.iso$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
+      - run: nix build -L .#checks.${{ matrix.system }}.${{ matrix.check }}
+
+  closure:
+    needs: plan
+    if: github.event_name == 'pull_request' && needs.plan.outputs.closures != '[]'
+    name: closure (${{ matrix.system }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.closures) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        if: vars.CACHIX_CACHE != ''
+        continue-on-error: true
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+          pushFilter: (-source$|-nixos-image-|\.img$|\.iso$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
+      - run: nix run .#closure-diff -- ${{ github.event.pull_request.base.sha }} ${{ !matrix.build && '--no-build' || '' }} > closure-${{ matrix.system }}.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: closure-${{ matrix.system }}
+          path: closure-${{ matrix.system }}.md
+
+  comment:
+    needs: closure
+    if: ${{ !cancelled() && needs.closure.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: closure-*
+          merge-multiple: true
+      - run: cat closure-*.md 2>/dev/null | tee diff.md >> "$GITHUB_STEP_SUMMARY"
+      - if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file diff.md --edit-last --create-if-none
 
   ci-ok:
     if: always()
-    needs: [lint, build]
+    needs: [lint, plan, build]
     runs-on: ubuntu-latest
     steps:
       - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')

@@ -2,79 +2,26 @@
 
 From the deepest layer to the most visible one: each lot builds and boots on its own before the next starts. A shipped lot keeps a guardrail in CI; a change that touches it keeps that guardrail green.
 
-Everything is developed and tested in VMs. Installing on real hardware is each fork's business, not a lot of this starter.
+The starter is universal: a fork picks what it needs. Anything beyond the shared base (disk, boot, Nix) ships as an opt-in module a host imports, with neutral defaults; personal choices belong in forks, not here.
+
+Everything is developed and tested in VMs. Installing on real hardware is each fork's business; the starter gives each host an installer ISO and proves it in a VM.
 
 ## Shipped
 
 | Lot | Guardrail |
 |---|---|
-| **1. Repo tooling**: dendritic flake, nixfmt + statix + deadnix, build check per host, boot test, CI matrix with KVM, PR package diff, weekly lock update merged on green CI, `develop` sync, release PRs with release-please, MIT license | `nix flake check` (`treefmt`, `<host>-toplevel`, `desktop-boots`), `ci-ok` required on `main` |
-
-## Next
-
-### 2. Generic starter
-
-- Rename the example host to `example`; `desktop` and `server` become profiles
-- Host registry (`configurations.nixos.<name>`): declaring a host generates its `nixosConfigurations` entry, build check and boot test
-- CI matrix carries system and runner, ready for `aarch64-linux`
-- Starter modules expose options with neutral defaults; personal values (locale, keyboard, time zone) move to hosts and users
-- CONTRIBUTING, SECURITY, CODE_OF_CONDUCT
-
-Guardrail: every declared host gets a build check and a boot test without extra code.
-
-### 3. Disk
-
-disko layout, LUKS unlocked by TPM2 (passphrase fallback), btrfs subvolumes, impermanence of `/` with `/home` and `/persist` kept.
-
-Guardrail: VM test that reboots and checks `/` is wiped while declared state survives.
-
-### 4. Boot
-
-Kernel choice, systemd initrd, Secure Boot with lanzaboote, optional Windows entry in the boot menu.
-
-Guardrail: VM test booting under OVMF with Secure Boot enforced.
-
-### 5. Hardware
-
-NVIDIA (open kernel module), firmware and microcode, PipeWire, Bluetooth, nixos-hardware profiles.
-
-Guardrail: host builds per hardware profile.
-
-### 6. Performance profiles
-
-`desktop`, `laptop`, `server` and `pi` profiles, one power manager per profile, only settings backed by a measured gain:
-
-- Kernel: latest on desktop and laptop, stable on servers; CachyOS kernel (`xddxdd/nix-cachyos-kernel`) evaluated against latest before adoption
-- sched-ext (`services.scx`): `scx_lavd` or `scx_bpfland` on desktop, benchmarked on the machine; off on servers and Pi
-- Power: power-profiles-daemon on desktop and laptop, thermald on Intel laptops, tuned on servers
-- Memory and IO: zram with zstd (never with zswap), tmpfs `/tmp` on desktop, btrfs `compress=zstd` and `noatime`, monthly scrub
-- Nix: parallel builds, automatic garbage collection, Pi builds offloaded to a remote builder
-- Excluded: `mitigations=off`, `-march=native` on nixpkgs
-
-Guardrail: VM test asserting the active scheduler, governor and zram per profile.
-
-### 7. Services
-
-NetworkManager and resolved, Tailscale, SSH, secrets with sops-nix, btrfs snapshots.
-
-Guardrail: boot test checks the services are active and a secret decrypts.
-
-### 8. Dev base
-
-Docker, libvirt, nh, nix-index-database, Nix garbage collection.
-
-### 9. Shell and tools
-
-zsh, git, nvim, terminal, CLI tools through home-manager.
-
-### 10. Desktop
-
-greetd, Hyprland with UWSM, bar, launcher, theme.
-
-Guardrail: VM test reaching the graphical session.
-
-### 11. Raspberry Pi
-
-`aarch64-linux` host on the `pi` profile through `nvmd/nixos-raspberrypi` (Pi 5 has no official nixpkgs support), SD image output, CI on `ubuntu-24.04-arm`.
-
-Guardrail: SD image builds in CI.
+| **1. Repo tooling**: dendritic flake, nixfmt + statix + deadnix, build check per host, boot test, CI matrix with KVM, PR package diff, weekly lock update merged on green CI, `develop` sync, release PRs with release-please, MIT license | `nix flake check` (`treefmt`, `<host>-toplevel`, `<host>-boots` or `<host>-sd-image`), `ci-ok` required on `main` |
+| **2. Generic starter**: host registry `configurations.nixos.<name>` generating the config, build check and boot test, CI matrix per system and runner (`aarch64-linux` ready), neutral `example` host and `alice` user, locale in the host, `desktop` profile, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT | every registry entry gets `<name>-toplevel` and `<name>-boots` (`<name>-sd-image` instead for a Raspberry Pi) and a matrix entry on its system's runner (`nix eval --json .#ci.matrix`) |
+| **3. Disk**: disko layout, LUKS2 with TPM2 unlock enrolled after install (passphrase fallback), btrfs subvolumes `@root`, `@nix`, `@persist`, `@home` with zstd, `/` restored from a blank snapshot in the systemd initrd, impermanence list, immutable users, install guide, `/persist` declared per module | `<host>-disk`: installs on a blank disk, reboots, checks `/` is wiped while `/persist`, `/home` and `machine-id` survive |
+| **4. Boot**: opt-in `secure-boot` module with lanzaboote, keys generated on the machine and enrolled from setup mode (Microsoft keys kept), TPM2 unlock bound to PCR 7 and to PCR 15 at zero (volume key measured by the initrd), enrolled automatically by the `tpm2-enroll` service at the first boot with Secure Boot enforced (temporary keyslot from the volume key linked by the initrd, passphrase kept) | `<host>-disk` on an `x86_64-linux` `secure-boot` host: boots the installed disk under OVMF in setup mode with swtpm, checks Secure Boot is enforced, `tpm2-enroll` succeeds and leaves one systemd-tpm2 token, two keyslots, slot 31 free and no volume key in the keyring, the passphrase still opens the disk, and the next boot unlocks with the TPM alone, the initrd drops the volume key before stage 2 and nothing is enrolled again |
+| **5. Hardware**: opt-in `firmware` (redistributable firmware, fwupd signed by lanzaboote), `audio` (PipeWire), `bluetooth`, `nvidia` (open kernel module), `amd-gpu`, `intel-gpu` modules, nixos-hardware input, unfree packages allowed by name (`allowUnfreePackages`) instead of a global `allowUnfree` | `<host>-nvidia` on every `x86_64-linux` host without NVIDIA: the host with the `nvidia` module evaluates and the NVIDIA open kernel module builds against its kernel, so a lock update that breaks it never merges |
+| **6. Performance profiles**: `desktop` (latest kernel, sched-ext `scx_lavd`, power-profiles-daemon, systemd-oomd, tmpfs `/tmp`), `laptop` (`scx_lavd --autopower`), `server` (LTS kernel, tuned); zram with zstd, weekly `nix.gc` (replaced by `nh clean` in lot 8), store optimisation timer, monthly btrfs scrub; `nix run .#bench` (schbench packaged in the flake, perf, hackbench, stress-ng, fio) to measure on real hardware (CachyOS kernel, thermald and zram sysctls wait for a measurement) | `profile-desktop`, `profile-laptop`, `profile-server`: VM tests asserting the active scheduler, power service, zram, tmpfs `/tmp` and oomd per profile |
+| **7. Services**: systemd-resolved in every host (no compiled-in fallback DNS, LLMNR off), btrbk snapshots of `@home` and `@persist` into a new `@snapshots` subvolume (hourly, 2 days, 14 daily, 4 weekly), opt-in `ssh` (public keys only, no root, single ED25519 host key in `/persist`, post-quantum key exchange, finite-field Diffie-Hellman refused), opt-in `secrets` (sops-nix with a per-machine post-quantum age key in `/persist`), `sops` and `age` in `nix develop`; no service depends on a third-party cloud | `system-resolved`, `system-ssh` (key login from a second VM, password and root refused, `mlkem768x25519-sha256` negotiated), `system-secrets` (a fixture decrypts to `/run/secrets`); `<host>-disk` takes a snapshot and checks it sits in its own subvolume, outside the wiped `@root` |
+| **8. Dev base**: `nh clean` (14 days and the last 5 generations, latest dev shell per direnv project, weekly, persistent) replaces `nix.gc`, channels off, nix-index-database (small database) with comma and command-not-found offline, opt-in rootless `docker` (containerd image store, `local` logs, persistent weekly prune, cgroup controllers delegated), opt-in `libvirt` (unprivileged QEMU, swtpm, virtiofs, USB redirection, virt-manager, `nodatacow` images subvolume kept out of snapshots, state in `/persist`), opt-in `nix-ld` and `direnv` (nix-direnv) | `system-nix` (nh timer, no `nix.gc`), `system-nix-index` (`nix-locate` offline, comma), `dev-docker` (rootless container on a btrfs `/home`, containerd `overlayfs` snapshotter, `local` logs, persistent prune timer), `dev-libvirt` (libvirtd answers, `nodatacow` subvolume on btrfs, emulated TPM) |
+| **9a. Shell and tools**: `home/` layer of home-manager modules (zsh with autosuggestions, highlighting and a single `compinit`, starship in plain text symbols, git with core developers' defaults and delta, every value a default the user overrides plainly, neovim as editor with an unmanaged config, CLI tools: fzf, zoxide, eza, bat, ripgrep, fd, btop, jq) and a `shell` bundle the example user imports, XDG layout (only `~/.zshenv` in the home, Nix profiles in `~/.local/state`), opt-in `stow` linking a user's dotfiles at every switch, as a mirror of the home or as stow packages (live edits, `--no-folding`, dropped packages unlinked first, conflicts with home-manager stop the switch with the option to turn off); the terminal moves to the desktop lot | `home-shell` (login shell, one `compinit`, starship, git settings and delta, neovim, CLI tools on the path, nothing outside XDG directories), `home-stow` (both layouts, idempotent rerun, removed files and dropped packages unlinked, foreign file kept, conflict stops the switch, Nix profiles under XDG) |
+| **9b. Wipe `/home`**: opt-in `wipe-home` module, the initrd moves the previous `@home` read-only to `/.snapshots/home-wiped.<date>` (kept 7 days, the 2 most recent always) and starts an empty one, btrbk then snapshots `@persist` only; paths declared with home-manager's `home.persistence."/persist"` come back from `/persist/home/<user>`, active only on hosts with `wipe-home`; the starter's modules declare their own state (zsh history, zoxide, neovim plugins and undo, direnv allow list, rootless Docker, the `stow` clone and state, user timer stamps); guide to list what an existing home needs and to switch an existing home over | `<host>-wipe-home` on every `disk` host without `wipe-home` (`<host>-disk` on hosts with it): installs with `wipe-home`, reboots, checks the home is empty, the previous one read-only in `/.snapshots`, an expired one deleted, `@home` no longer snapshotted by btrbk, a declared path kept and the home directory owned by its user, mode `700` |
+| **10. Desktop**: `desktop/` layer with `greetd` (tuigreet, last user and session remembered in `/persist` across rebuilds), `plymouth` (`bgrt`, quiet boot, LUKS passphrase on the splash), and `hyprland` as the example desktop: UWSM session, Lua config, waybar, fuzzel, kitty, mako, hyprlock and hypridle, cliphist, home-manager variables in the session (`uwsm/env`), XDG user folders, screenshots, NixOS's default fonts with JetBrainsMono Nerd Font as monospace, each tool's own look (no theme or keyring, left to forks); audio state kept under `wipe-home`; every value a default the user overrides; other desktops plug in as sibling modules | `desktop-hyprland` (tuigreet login, `graphical-session.target`, session services and environment, no config error, dpms, lock and unlock, terminal keybind, portal), `desktop-plymouth` (LUKS passphrase typed on the splash), `<host>-disk` unlocking through Plymouth |
+| **11. Raspberry Pi**: `raspberry-pi-4` and `raspberry-pi-5` board modules on `nvmd/nixos-raspberrypi` (vendor kernel and firmware built from this flake's nixpkgs with its overlays, SD card layout, ZFS left out), a `pi` profile (`server`, builds offloaded once `nix.buildMachines` lists a builder, builders substitute, passwordless sudo for key-only SSH admins, 15 s hardware watchdog, journal capped, no manual), `rpi-eeprom` on the board, an `aarch64-linux` `example-pi` host, the SD image check in place of the host build and boot test, the PR package diff extended to `aarch64-linux` hosts on the arm runner | `<host>-sd-image` on `ubuntu-24.04-arm` for every host with an SD image, `profile-pi` (server settings, remote builder in `/etc/nix/machines`, `builders-use-substitutes`, passwordless sudo for `wheel`, hardware watchdog, journal cap) |
+| **12. One file per machine**: registry fields in plain values (`stateVersion`, `profile`, `features`, `apps`, `users` with `fullName`, `email`, `admin`, `sshKeys`, `home`, `apps` and `groups`, `disk`, `hardware` (starter modules or nixos-hardware profiles), `timeZone`, `locale`, `keyboard`), names turned into imports in the registry with an error listing the known ones, `module` kept for anything else, the user account and its home-manager config generated from `users`, a fork's own home module listed in `home`, nothing imported by matching a name, the `desktop` profile bringing firmware, audio and Bluetooth, an `apps/` layer in its own `apps.<name>` namespace with `firefox` as the only browser (privacy policies, profile persisted), a VM test per app through `helpers.appCheck`, loaded once when a host and a user both name it, and any nixpkgs package by name with its unfree name read from nixpkgs, `docs/options.md` generated from the option declarations, an `example-server` host on plain systemd-boot with `wipe-home` and `ssh` | `app-firefox` (policies in the wrapped Firefox), `options-doc` (fails when `docs/options.md` is stale), `example-server-toplevel`, `-boots` (SSH port open) and `-disk` (install, wipe, snapshots and `wipe-home` on plain systemd-boot), every example host configured through registry fields only |
+| **13. Fast CI**: a `plan` job (`ci-plan`, `nix-eval-jobs --check-cache-status`) builds only the checks the binary cache does not hold, a PR never compiles a kernel (only evaluates what needs one, built on the push after the merge), Cachix as the shared cache with images, VMs and sources left out for the free 5 GB and failed pushes never failing a job, the package diff folded into the `check` workflow | `ci-plan` in CI: a PR changing only docs builds no host, `example-pi-sd-image` is evaluated in PRs and built on pushes, `ci-ok` required on `main` |
+| **14. Installer ISO**: `disk` turned into a feature named in `features`, no device in the registry and `disk.device` defaulting to a path that cannot exist, `nix build .#installer-<host>` for every host with `disk` (nixpkgs' minimal ISO with the prebuilt toplevel and its disko script, offline), an `install-host` assistant on tty1 (disk list without the live medium, refusal when another disk carries the layout's labels, passphrase and every user's password twice, then a summary confirmed by retyping the disk name, yescrypt hashes in `/persist/passwords`, a nixos-facter report in `/persist/facter.json`, reboot offered) with a non-interactive mode that fails before erasing on any missing value, install guide rewritten around the ISO with nixos-anywhere and disko-install as alternatives, no image published by releases | `example-server-installer` (hosts in `installer.testedHosts`): boots the ISO under OVMF next to a blank disk, the assistant starts on tty1, lists the disk but not the ISO and refuses the CD drive, stops with the disk untouched when a password file is missing, installs with `--yes`, then the installed disk boots, unlocks with the passphrase, holds the hashes and the report, and the user logs in on the console with the password given at install |

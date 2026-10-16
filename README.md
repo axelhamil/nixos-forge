@@ -19,6 +19,7 @@ It follows the idea of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nv
 - **Services without a cloud**: systemd-resolved with no hidden fallback DNS, hourly btrbk snapshots of `/home` and `/persist`, opt-in SSH (keys only, post-quantum key exchange) and opt-in secrets with [sops-nix](https://github.com/Mic92/sops-nix) and a per-machine post-quantum age key. Each one has a VM test. See [docs/services.md](docs/services.md).
 - **Dev base**: [nh](https://github.com/nix-community/nh) to switch with a package diff and clean old generations, offline `nix-locate` and `, <command>` with [nix-index-database](https://github.com/nix-community/nix-index-database), and opt-in rootless Docker, libvirt with an emulated TPM, nix-ld and direnv. nh, nix-index, Docker and libvirt each have a VM test. See [docs/dev.md](docs/dev.md).
 - **A shell ready to use**: zsh with autosuggestions and highlighting, starship, git with sane defaults and delta, neovim left for your own config, and modern CLI tools (fzf, zoxide, eza, bat, ripgrep, fd), all through home-manager in the XDG layout and covered by a VM test; bring your own dotfiles, a mirror of your home or [stow](https://www.gnu.org/software/stow/) packages, with one import. See [docs/home.md](docs/home.md).
+- **A desktop ready to log in**: greetd with tuigreet, a Plymouth splash that asks the LUKS passphrase, and [Hyprland](https://hypr.land) through UWSM with waybar, fuzzel, ghostty, mako, hyprlock, hypridle and cliphist, all colored from one palette you override, gnome-keyring and the GTK portal. A VM test logs in, locks, unlocks and opens a terminal. See [docs/desktop.md](docs/desktop.md).
 - **Lint and format in the check**: nixfmt, statix and deadnix run through `nix fmt` and `nix flake check`.
 
 ## Requirements
@@ -70,7 +71,7 @@ modules/
 ├── home/      home-manager modules a user picks: zsh, starship, git, neovim, cli, the shell bundle, stow
 ├── users/     accounts and their home-manager config
 ├── hosts/     one folder per machine: its registry entry and hardware
-└── desktop/   (planned) graphical session, terminal
+└── desktop/   graphical session: greetd, plymouth, theme, hyprland with waybar, fuzzel, ghostty, mako, lock
 ```
 
 Modules publish themselves under `flake.modules.nixos.<name>` or `flake.modules.homeManager.<name>`. A host is declared in `modules/hosts/<host>/default.nix` with `configurations.nixos.<host>`: its `system` (`x86_64-linux` by default), its `module`, which imports the named modules it wants, and an optional `testScript` appended to its boot test.
@@ -79,9 +80,9 @@ A function that two modules need goes to `modules/helpers/<topic>.nix` as `helpe
 
 ## Status and roadmap
 
-Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot and `/home` too on hosts that import `wipe-home`, NetworkManager, systemd-resolved, hourly btrbk snapshots, opt-in SSH and sops-nix secrets, nh and nix-index, opt-in rootless Docker and libvirt, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager and a ready zsh, git and neovim) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
+Working today: a minimal system (systemd-boot, or lanzaboote with Secure Boot on hosts that import `secure-boot`, LUKS and btrfs with `/` wiped at boot and `/home` too on hosts that import `wipe-home`, NetworkManager, systemd-resolved, hourly btrbk snapshots, opt-in SSH and sops-nix secrets, nh and nix-index, opt-in rootless Docker and libvirt, performance profiles (desktop, laptop, server), firmware with fwupd, PipeWire and Bluetooth, one user with home-manager and a ready zsh, git and neovim, greetd, Plymouth and a Hyprland desktop) that builds, installs and boots in a VM, with the tooling and CI around it. The user and host are example values you rename by hand. The CI matrix is ready for `aarch64-linux` hosts; the starter itself ships none yet.
 
-Next lots (desktop, Raspberry Pi, a single file for newcomers) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Next lots (Raspberry Pi, a single file for newcomers) and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
 
 ## Releases
 

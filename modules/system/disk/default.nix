@@ -91,7 +91,17 @@
 
         disko.tests = {
           efi = true;
-          bootCommands = builtins.readFile ./unlock-disk.py;
+          bootCommands = ''
+            unlock_prompt = ${
+              builtins.toJSON (
+                if config.boot.plymouth.enable then
+                  "Please enter passphrase for disk"
+                else
+                  "password query on /dev/tty1"
+              )
+            }
+          ''
+          + builtins.readFile ./unlock-disk.py;
           extraChecks = lib.mkMerge [
             (builtins.readFile ./wipe-test.py)
             (lib.mkIf (!config.impermanence.wipeHome) (

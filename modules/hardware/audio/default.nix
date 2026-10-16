@@ -1,7 +1,14 @@
+{ config, ... }:
+
+let
+  inherit (config.helpers) persistInEveryHome;
+in
 {
   flake.modules.nixos.audio =
     { pkgs, ... }:
     {
+      imports = [ (persistInEveryHome (home: "${home.xdg.stateHome}/wireplumber")) ];
+
       services.pipewire = {
         enable = true;
         alsa.enable = true;

@@ -10,6 +10,8 @@
       audio
       bluetooth
       desktop
+      plymouth
+      hyprland
       alice
     ];
 

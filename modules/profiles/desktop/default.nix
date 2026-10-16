@@ -47,5 +47,11 @@ in
         "/var/lib/power-profiles-daemon"
         "/var/lib/cups"
       ];
+
+      doctor.ephemeralPaths = [
+        "/etc/wpa_supplicant/imperative.conf"
+        "/etc/printcap"
+        "/var/cache/cups"
+      ];
     };
 }

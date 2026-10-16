@@ -9,7 +9,7 @@ Every host runs systemd-resolved (`modules/system/resolved`). It gets the DNS se
 - **No fallback DNS.** systemd ships with Cloudflare, Google and Quad9 compiled in as a fallback; `FallbackDNS=` is empty, so queries never leave for a provider you did not choose.
 - **LLMNR off.** It answers name lookups from anyone on the local network, the classic target of poisoning attacks.
 
-DNS-over-TLS and DNSSEC are off: both need servers that support them, and strict mode breaks home routers and captive portals. To pick your own resolvers, set them in your host:
+DNS-over-TLS and DNSSEC are off: both need servers that support them, and strict mode breaks home routers and captive portals. To pick your own resolvers, set them in your host's `module`:
 
 ```nix
 services.resolved.settings.Resolve = {
@@ -28,12 +28,12 @@ If your fork enables avahi, also set `MulticastDNS = false` there, so the two do
 
 ## SSH: `ssh` (opt-in)
 
-Import `ssh` on a host you log into remotely. It allows public keys only (no password, no keyboard-interactive, no root login) and keeps a single ED25519 host key, in `/persist/etc/ssh` when `/` is wiped at boot so clients do not see a new key after every reboot. Key exchange is limited to the post-quantum `mlkem768x25519-sha256` and `sntrup761x25519-sha512` and to `curve25519-sha256`: the finite-field Diffie-Hellman that OpenSSH 10 stopped offering by default is refused. OpenSSH's own `PerSourcePenalties` already slows down clients that keep failing, so fail2ban is not needed.
+Add `ssh` to the features of a host you log into remotely. It allows public keys only (no password, no keyboard-interactive, no root login) and keeps a single ED25519 host key, in `/persist/etc/ssh` when `/` is wiped at boot so clients do not see a new key after every reboot. Key exchange is limited to the post-quantum `mlkem768x25519-sha256` and `sntrup761x25519-sha512` and to `curve25519-sha256`: the finite-field Diffie-Hellman that OpenSSH 10 stopped offering by default is refused. OpenSSH's own `PerSourcePenalties` already slows down clients that keep failing, so fail2ban is not needed.
 
 Add your public key to your user before the first remote login:
 
 ```nix
-users.users.<you>.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... you@laptop" ];
+users.<you>.sshKeys = [ "ssh-ed25519 AAAA... you@laptop" ];
 ```
 
 A hardware security key keeps the private key off the disk: `ssh-keygen -t ed25519-sk` creates one bound to a FIDO2 token.
@@ -44,7 +44,7 @@ Root cannot log in, so deploy as yourself: `nixos-rebuild switch --flake .#<host
 
 ## Secrets: `secrets` (opt-in)
 
-Import `secrets` to decrypt [sops](https://github.com/getsops/sops) files at boot with [sops-nix](https://github.com/Mic92/sops-nix). Each machine has its own age key in `/persist/var/lib/sops-nix/key.txt` (`/var/lib/sops-nix/key.txt` without `disk`), independent of SSH, so secrets work on hosts without `ssh`. `nix develop` provides `sops` and `age`.
+Add `secrets` to the features of a host to decrypt [sops](https://github.com/getsops/sops) files at boot with [sops-nix](https://github.com/Mic92/sops-nix). Each machine has its own age key in `/persist/var/lib/sops-nix/key.txt` (`/var/lib/sops-nix/key.txt` without `disk`), independent of SSH, so secrets work on hosts without `ssh`. `nix develop` provides `sops` and `age`.
 
 Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipient: the encrypted files live in a git repository that may be public, and a classic X25519 recipient would let someone who stores them today decrypt them once quantum computers can. A file is only as strong as its weakest recipient. Each post-quantum recipient adds about 1.5 KB to every file: prefer one key per machine and per person over many.
 
@@ -62,7 +62,7 @@ Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipi
          - age: [*me, *laptop]
    ```
 
-4. Write the secrets with `sops modules/hosts/laptop/secrets.yaml` (or run `sops updatekeys` on an existing file after adding the machine), then declare them in the host:
+4. Write the secrets with `sops modules/hosts/laptop/secrets.yaml` (or run `sops updatekeys` on an existing file after adding the machine), then declare them in the host's `module`:
 
    ```nix
    sops.defaultSopsFile = ./secrets.yaml;

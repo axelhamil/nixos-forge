@@ -42,7 +42,7 @@ Rootless limits: ports below 1024 need `net.ipv4.ip_unprivileged_port_start`, `-
 libvirtd with QEMU running unprivileged (`runAsRoot = false`), UEFI firmware from QEMU, swtpm for guests that need a TPM (Windows 11), virtiofs for shared folders, USB redirection and virt-manager. Add your user to the `libvirtd` group to manage VMs without sudo, and start the NAT network once so guests get internet (`virbr0` is a trusted firewall interface, so guests reach libvirt's DHCP and DNS):
 
 ```nix
-users.users.<you>.extraGroups = [ "libvirtd" ];
+users.<you>.groups = [ "libvirtd" ];
 ```
 
 ```sh

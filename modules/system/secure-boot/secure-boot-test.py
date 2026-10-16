@@ -1,3 +1,4 @@
+import json
 import subprocess
 
 luks = "/dev/disk/by-partlabel/disk-main-luks"
@@ -30,12 +31,38 @@ unlock_disk(machine)
 machine.wait_for_unit("multi-user.target")
 machine.succeed("bootctl status | grep -q 'Secure Boot: enabled (user)'")
 
-machine.succeed(f"printf {test_passphrase} > /run/passphrase")
-machine.succeed(f"systemd-cryptenroll --unlock-key-file=/run/passphrase --tpm2-device=auto --tpm2-pcrs=7+15:sha256={'0' * 64} {luks}")
-machine.succeed(f"cryptsetup luksRemoveKey {luks} /run/passphrase")
+
+def luks_header():
+    return json.loads(machine.succeed(f"cryptsetup luksDump --dump-json-metadata {luks}"))
+
+
+def check_tpm2_enrolled():
+    header = luks_header()
+    tokens = [t for t in header["tokens"].values() if t["type"] == "systemd-tpm2"]
+    assert len(tokens) == 1, f"expected one systemd-tpm2 token, got {header['tokens']}"
+    assert len(header["keyslots"]) == 2, f"expected the passphrase and the TPM2 keyslots, got {sorted(header['keyslots'])}"
+    assert "31" not in header["keyslots"], "the temporary keyslot 31 is still there"
+
+
+def journal(unit):
+    return machine.succeed(f"journalctl -b -o cat -u {unit}")
+
+
+machine.wait_for_unit("tpm2-enroll.service")
+assert "Kept the volume key" in journal("limit-volume-key"), "the initrd did not keep the volume key for enrollment"
+enroll_log = journal("tpm2-enroll")
+assert "Enrolled a TPM2 token" in enroll_log, enroll_log
+assert "Removed the temporary keyslot 31" in enroll_log, enroll_log
+check_tpm2_enrolled()
+machine.wait_until_fails("grep -q tpm2-enroll /proc/keys")
+machine.succeed(f"printf {test_passphrase} | cryptsetup open --test-passphrase {luks}")
 machine.reboot()
 
+machine.wait_for_unit("sysinit.target")
+machine.fail("grep -q tpm2-enroll /proc/keys")
 machine.wait_for_unit("multi-user.target")
-machine.succeed(f"cryptsetup luksDump {luks} | grep -q systemd-tpm2")
-machine.fail(f"printf {test_passphrase} | cryptsetup open --test-passphrase {luks}")
+machine.wait_for_unit("tpm2-enroll.service")
+assert "dropped its volume key" in journal("limit-volume-key"), "the initrd let the volume key reach stage 2"
+assert "No volume key" in journal("tpm2-enroll"), "the volume key reached stage 2"
+check_tpm2_enrolled()
 assert machine.succeed("systemd-analyze pcrs 15 --json=short").count("0" * 64) == 0, "PCR 15 not extended by the unlock"

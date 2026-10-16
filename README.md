@@ -42,7 +42,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check and
 
 ## What you get
 
-**A disk that forgets, and opens on its own.** [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), only declared state kept in `/persist`, hourly btrbk snapshots, and an opt-in empty `/home` at every boot (`wipe-home`). With `secure-boot`, [lanzaboote](https://github.com/nix-community/lanzaboote) enrolls its own keys, then one `systemd-cryptenroll` lets the TPM2 unlock the disk at boot, bound to the Secure Boot state, the passphrase kept as a fallback. [docs/install.md](docs/install.md)
+**A disk that forgets, and opens on its own.** [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), only declared state kept in `/persist`, hourly btrbk snapshots, and an opt-in empty `/home` at every boot (`wipe-home`). With `secure-boot`, [lanzaboote](https://github.com/nix-community/lanzaboote) enrolls its own keys, then the first boot with Secure Boot enforced enrolls the TPM2 on its own: the disk opens with no passphrase, bound to the Secure Boot state, the passphrase kept as a fallback. [docs/install.md](docs/install.md)
 
 **A shell worth logging into.** zsh with autosuggestions, highlighting and a shared history, the starship prompt, git with its own developers' defaults and delta, neovim left for your config, and fzf, zoxide, eza, bat, ripgrep, fd, btop, all through home-manager in the XDG layout. Bring your dotfiles as a mirror of your home or as [stow](https://www.gnu.org/software/stow/) packages. [docs/home.md](docs/home.md)
 

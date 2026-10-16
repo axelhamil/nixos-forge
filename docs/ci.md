@@ -10,7 +10,7 @@ What the GitHub Actions workflows do, and what a fork sets so they run.
 4. **Allow auto-merge**: Settings, General, "Allow auto-merge".
 5. **Ruleset on `main`**: require a pull request and the `ci-ok` status check. Without a required check, auto-merge merges at once.
 6. **Ruleset on `develop`**: block deletions and force pushes, or "Automatically delete head branches" deletes `develop` when a `develop` into `main` PR merges.
-7. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. Jobs pull from it and push what they built, except sources and images (SD card, ISO, disk, VM). Without it, every run builds every check and PRs never build kernels.
+7. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. Every job pulls from it; only pushes to `main` and `develop` write what they built, except sources and images (SD card, ISO, disk, VM). A PR reads the cache but never gets the token, so code under review, such as an upstream sync PR, cannot poison it; the push after the merge builds and uploads what the PR built. Without it, every run builds every check and PRs never build kernels.
 
 Scheduled workflows and Dependabot only run from the default branch, so they start once the workflows are on `main`.
 

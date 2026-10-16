@@ -31,7 +31,7 @@ In the firmware settings, find the Secure Boot page and choose the option that c
 
 ## Steps
 
-From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk.device` set in `modules/hosts/<host>/hardware.nix`. Prefer a stable name from `ls -l /dev/disk/by-id/` over `/dev/nvme0n1`: on a machine with several disks, kernel names can swap between boots.
+From the NixOS installer ISO, with your fork cloned in `~/nixos` and `disk` set in `modules/hosts/<host>/default.nix`. Prefer a stable name from `ls -l /dev/disk/by-id/` over `/dev/nvme0n1`: on a machine with several disks, kernel names can swap between boots.
 
 1. Write the LUKS passphrase where disko reads it (no trailing newline):
 

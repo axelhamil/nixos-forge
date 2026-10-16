@@ -4,31 +4,17 @@ The `shell` bundle gives a user a ready shell with no choice to make: zsh, stars
 
 ## Use it
 
-The example user already has it. For another user, in `modules/users/<you>/default.nix`:
+Every user gets it: `home` defaults to `[ "shell" ]` in the host file, and makes zsh the login shell.
 
 ```nix
-{ config, ... }:
-
-let
-  inherit (config.flake.modules) nixos homeManager;
-in
-{
-  flake.modules.nixos.<you> = { pkgs, ... }: {
-    imports = [ nixos.zsh ];
-    users.users.<you>.shell = pkgs.zsh;
-  };
-
-  flake.modules.homeManager.<you> = {
-    imports = [ homeManager.shell ];
-  };
-}
+users.<you>.home = [ "shell" ];
 ```
 
-To pick tools one by one, import them instead of `shell`: `homeManager.zsh`, `starship`, `git`, `neovim`, `cli`. Every value is a default: set the same option in your user's home config to change it, `false` included.
+To pick tools one by one, list them instead of `shell`: `zsh`, `starship`, `git`, `neovim`, `cli`. Every value is a default: set the same option in your user's home config (a `flake.modules.homeManager.<you>` in `modules/users/<you>/default.nix`, listed in your `home` next to `shell`) to change it, `false` included.
 
 ## What is in it
 
-- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. The NixOS `zsh` module makes it a login shell, completes system commands and skips the global `compinit`, so completion is initialised once, by home-manager, instead of twice. That switch is system-wide: another zsh user of the host needs home-manager's zsh too (import `homeManager.zsh`), or gets no completion.
+- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. The NixOS `zsh` module makes it a login shell, completes system commands and skips the global `compinit`, so completion is initialised once, by home-manager, instead of twice. That switch is system-wide: another zsh user of the host needs home-manager's zsh too (`zsh` or `shell` in its `home`), or gets no completion.
 - **starship** prompt with plain text symbols, readable on a console without a Nerd Font. Once you have one, drop the preset: `programs.starship.presets = [ ];`.
 - **git** with the settings git's own developers use: `main` as first branch, recent branches first, `push.autoSetupRemote`, pruned fetches, histogram diffs with moved lines highlighted, the diff shown while writing a commit, `zdiff3` conflicts, `rerere`, rebases that autostash and update stacked branches, autocorrect on prompt. Diffs and blame page through [delta](https://github.com/dandavison/delta) (`n` and `N` jump between files). Set your identity in your home config:
 
@@ -60,15 +46,10 @@ The terminal emulator and its font come with the desktop.
 
 ## Bring your dotfiles
 
-Import `homeManager.stow` next to `shell`, clone your dotfiles repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live; a new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
+Add `stow` next to `shell`, clone your dotfiles repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live; a new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
 
 ```nix
-flake.modules.homeManager.<you> = {
-  imports = [
-    homeManager.shell
-    homeManager.stow
-  ];
-};
+users.<you>.home = [ "shell" "stow" ];
 ```
 
 Both common layouts work with no setting:
@@ -95,15 +76,15 @@ What to expect:
 
 ## Start `/home` empty at every boot
 
-A host that imports `wipe-home` (next to `disk`) forgets `/home` like `/`: every boot starts from an empty home, and only the paths someone declared come back. Clutter cannot pile up, and what your machine needs is written down in your config.
+A host with a `disk` that adds `wipe-home` to its features forgets `/home` like `/`: every boot starts from an empty home, and only the paths someone declared come back. Clutter cannot pile up, and what your machine needs is written down in your config.
 
 ```nix
-configurations.nixos.<host>.module.imports = with config.flake.modules.nixos; [ disk wipe-home ];
+features = [ "wipe-home" ];
 ```
 
 At every boot, the initrd moves the previous `@home` to `/.snapshots/home-wiped.<UTC date>`, read-only, and creates an empty one. A wiped home stays there for 7 days, then a later boot deletes it (the 2 most recent always stay): a file you forgot to declare can still be copied back. The dates come from the hardware clock, which every UEFI machine has. btrbk stops snapshotting `/home` and keeps snapshotting `/persist`, where declared paths live ([services.md](services.md#snapshots-btrbk)). home-manager links its files again at every boot, so your config, shell and tools are there as usual.
 
-Declared paths live in `/persist/home/<you>` and are bind-mounted into your home at boot. The starter's own modules declare their state, only when `wipe-home` is on: zsh history (`~/.local/state/zsh`), zoxide (`~/.local/share/zoxide`), neovim plugins and undo history (`~/.local/share/nvim`, `~/.local/state/nvim`), the direnv allow list (`~/.local/share/direnv`), rootless Docker (`~/.local/share/docker`), the `stow` clone (`~/dotfiles`) and its state, the audio volumes and devices (`~/.local/state/wireplumber`, with `audio`), the desktop keyring (`~/.local/share/keyrings`, with `hyprland`), and the last run of user timers (`~/.local/share/systemd/timers`, so a weekly job missed while the machine was off still catches up). Declare yours in your user's home config, relative to your home:
+Declared paths live in `/persist/home/<you>` and are bind-mounted into your home at boot. The starter's own modules declare their state, only when `wipe-home` is on: zsh history (`~/.local/state/zsh`), zoxide (`~/.local/share/zoxide`), neovim plugins and undo history (`~/.local/share/nvim`, `~/.local/state/nvim`), the direnv allow list (`~/.local/share/direnv`), rootless Docker (`~/.local/share/docker`), the `stow` clone (`~/dotfiles`) and its state, the audio volumes and devices (`~/.local/state/wireplumber`, with `audio`), and the last run of user timers (`~/.local/share/systemd/timers`, so a weekly job missed while the machine was off still catches up). Declare yours in your user's home config, relative to your home:
 
 ```nix
 flake.modules.homeManager.<you> = {

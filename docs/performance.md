@@ -47,7 +47,7 @@ nix run .#bench -- run lavd
 nix run .#bench -- compare bench-eevdf.json bench-lavd.json
 ```
 
-To try another scheduler, set `services.scx.scheduler` (for example `scx_bpfland`) in your host, switch, and run the bench again.
+To try another scheduler, set `services.scx.scheduler` (for example `scx_bpfland`) in your host's `module`, switch, and run the bench again.
 
 ### Compare kernels or settings that need a reboot
 

@@ -4,16 +4,11 @@ The `desktop/` layer turns a host into a graphical machine: a text login screen,
 
 ## Use it
 
-The example host imports it after the `desktop` profile:
+The example host turns it on with the `desktop` profile:
 
 ```nix
-imports = with config.flake.modules.nixos; [
-  base
-  desktop
-  plymouth
-  hyprland
-  alice
-];
+profile = "desktop";
+features = [ "plymouth" "hyprland" ];
 ```
 
 `hyprland` pulls in `greetd` and `lock`, and gives every home-manager user of the host the Hyprland session through `home-manager.sharedModules`. `plymouth` is independent: import it on any host, with or without a desktop.
@@ -46,7 +41,7 @@ imports = with config.flake.modules.nixos; [
 | `Print`, `Shift + Print` | screenshot of an area, of the screen, saved to `~/Pictures/Screenshots` and copied |
 | media and brightness keys | volume, mute, brightness, player, also on the lock screen; volume and brightness repeat while held |
 
-The keyboard layout comes from the host's `services.xserver.xkb`.
+The keyboard layout comes from the host's `keyboard` field (`services.xserver.xkb`).
 
 ## Make it yours
 

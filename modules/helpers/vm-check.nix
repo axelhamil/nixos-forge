@@ -2,6 +2,7 @@
 
 let
   inherit (config.flake.modules) nixos;
+  inherit (config) apps;
 in
 {
   helpers.vmCheck =
@@ -37,6 +38,24 @@ in
           nixos.${profile}
         ];
         virtualisation.cores = 2;
+      };
+      inherit testScripts;
+    };
+
+  helpers.appCheck =
+    app: testScripts:
+    config.helpers.vmCheck "app-${app}" {
+      nodes.machine = {
+        imports = [
+          nixos.base
+          apps.${app}.nixos
+        ];
+        users.users.tester.isNormalUser = true;
+        home-manager.users.tester = {
+          imports = [ apps.${app}.homeManager ];
+          home.stateVersion = "26.05";
+        };
+        virtualisation.memorySize = 2048;
       };
       inherit testScripts;
     };

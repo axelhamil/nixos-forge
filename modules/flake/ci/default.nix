@@ -18,11 +18,17 @@ let
     }) (buildChecksOn system);
 
   hostNamesOn = system: lib.attrNames (hostsOn system);
+
+  systemsWithHosts = lib.filter (system: hostsOn system != { }) config.systems;
 in
 {
   flake.ci = {
     matrix = lib.concatMap jobsOn config.systems;
     hosts = lib.genAttrs config.systems hostNamesOn;
+    closureMatrix = map (system: {
+      inherit system;
+      runner = runners.${system};
+    }) systemsWithHosts;
   };
 
   perSystem =

@@ -102,15 +102,6 @@ in
         text = builtins.readFile ./ci-mirror.sh;
       };
 
-      packages.sync-upstream = pkgs.writeShellApplication {
-        name = "sync-upstream";
-        runtimeInputs = [
-          pkgs.git
-          pkgs.gh
-        ];
-        text = builtins.readFile ./sync-upstream.sh;
-      };
-
       packages.sync-develop = pkgs.writeShellApplication {
         name = "sync-develop";
         runtimeInputs = [ pkgs.git ];

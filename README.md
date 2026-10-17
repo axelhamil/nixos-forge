@@ -60,7 +60,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 | **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd). [performance](docs/performance.md) |
 | **Hardware** | firmware, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
 | **Services and dev** | systemd-resolved, key-only SSH, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
-| **Updates** | every Monday your fork gets a PR with fresh inputs, merged once CI is green, and one with the starter's latest release for you to review; machines pull your fork with `update`, or daily on their own with `auto-upgrade`, which takes only the version CI validated for that machine. [updates](docs/updates.md) |
+| **Updates** | every Monday your fork gets a PR with fresh inputs, merged once CI is green; `nix run .#upstream` shows what the starter changed and prepares its merge when you choose; machines pull your fork with `update`, or daily on their own with `auto-upgrade`, which takes only the version CI validated for that machine. [updates](docs/updates.md) |
 | **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space and your checkout, and lists what the next boot erases from `/`. [doctor](docs/doctor.md) |
 | **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, `flake.lock` updates itself weekly, only what the cache lacks is built. [ci](docs/ci.md) |
 
@@ -140,7 +140,7 @@ modules/
 
 ## Releases
 
-Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x` and every release is a pre-release, and your fork receives each one as a PR to review every Monday ([docs/updates.md](docs/updates.md)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
+Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x` and every release is a pre-release, and your fork takes each one when you run `nix run .#upstream` ([docs/updates.md](docs/updates.md#your-fork-follows-the-starter)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

@@ -5,15 +5,12 @@ on:
   schedule:
     - cron: "0 7 * * 1"
 
-env:
-  UPSTREAM: axelhamil/nixos-starter
-
 permissions:
   contents: read
 
 jobs:
   sync:
-    if: github.repository != 'axelhamil/nixos-starter'
+    if: github.repository != 'axelhamil/nixos-starter' && vars.SYNC_UPSTREAM == 'true'
     runs-on: ubuntu-latest
     steps:
       - id: bot
@@ -29,4 +26,5 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
-        run: nix run .#sync-upstream -- "$UPSTREAM"
+          UPSTREAM: ${{ vars.UPSTREAM || 'axelhamil/nixos-starter' }}
+        run: nix run .#upstream -- --yes "$UPSTREAM"

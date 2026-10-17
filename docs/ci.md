@@ -71,9 +71,9 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 
 | Check | When | What it proves |
 |---|---|---|
-| `<host>-toplevel` | every host without an SD image | the system builds |
+| `<host>-toplevel` | every host | the system builds, with its real revision; its closure is what `auto-upgrade` substitutes |
 | `<host>-boots` | every host without an SD image | the VM reaches `multi-user.target` and every `home-manager-<user>` service |
-| `<host>-sd-image` | Raspberry Pi hosts, in place of the two above | the SD card image builds |
+| `<host>-sd-image` | Raspberry Pi hosts, in place of `<host>-boots` | the SD card image builds |
 | `<host>-disk` | hosts with `disk` | install on a blank disk, reboot, `/` wiped, btrbk snapshot taken; Secure Boot and TPM2 unlock on `x86_64-linux` hosts with `secure-boot`; the swap file, with a 1G size, on hosts with `hibernate` |
 | `<host>-wipe-home` | hosts with `disk` but not `wipe-home` | the install test with `wipe-home` added |
 | `<host>-installer` | hosts in `installer.testedHosts` | the installer ISO installs without questions and the installed disk boots |

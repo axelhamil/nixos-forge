@@ -22,11 +22,4 @@ desktop.succeed("git -C /tmp/elsewhere commit --allow-empty -m third && git -C /
 desktop.fail("update")
 assert desktop.succeed("git -C /srv/nixos log -1 --format=%s").strip() == "local", "update merged a diverged checkout"
 
-server.wait_for_unit("multi-user.target")
-server.succeed("systemctl is-active nixos-upgrade.timer")
-assert "OnCalendar=Tue 04:00" in server.succeed("systemctl cat nixos-upgrade.timer"), "auto-upgrade is not weekly"
-upgrade = server.succeed(
-    "systemctl cat nixos-upgrade.service | grep -o '/nix/store/[^ ]*nixos-upgrade-start' | head -1 | xargs cat"
-)
-assert "--flake github:alice/nixos" in upgrade, "auto-upgrade does not build from the host flake"
-desktop.fail("systemctl cat nixos-upgrade.timer")
+assert desktop.succeed("nixos-version --configuration-revision").strip() != "", "the system does not record the commit it was built from"

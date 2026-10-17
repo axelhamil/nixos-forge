@@ -1,4 +1,4 @@
-{ config, ... }:
+{ lib, config, ... }:
 
 let
   inherit (config.helpers) appPart;
@@ -20,6 +20,10 @@ let
     };
 in
 {
+  helpers.testRevision = {
+    system.configurationRevision = lib.mkForce "test";
+  };
+
   helpers.vmCheck =
     name:
     { nodes, testScripts }:
@@ -32,7 +36,10 @@ in
     lib.mkIf (system == "x86_64-linux") {
       checks.${name} = pkgs.testers.runNixOSTest {
         inherit name nodes;
-        defaults.system.stateVersion = "26.05";
+        defaults = {
+          imports = [ config.helpers.testRevision ];
+          system.stateVersion = "26.05";
+        };
         testScript = lib.concatMapStrings builtins.readFile testScripts;
       };
     };

@@ -19,5 +19,7 @@ in
       services.journald.settings.Journal.SystemMaxUse = lib.mkDefault "100M";
 
       documentation.nixos.enable = lib.mkDefault false;
+
+      autoUpgrade.allowLocalBuild = lib.mkDefault false;
     };
 }

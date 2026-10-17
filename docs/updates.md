@@ -7,7 +7,10 @@ nixos-starter release ──┐
 nixpkgs and inputs ─────┤ Monday PRs: inputs merge once ci-ok is green,
                         │ the starter's release waits for your review
                         ▼
-                your fork's main ──▶ `update` on a desktop, `auto-upgrade` on a server
+                your fork's main ──▶ `update` on a desktop
+                        │ CI passes for a host
+                        ▼
+                deploy/<host> ───▶ `auto-upgrade` on that host
 ```
 
 ## Your fork follows the starter
@@ -41,4 +44,32 @@ configurations.nixos.my-laptop.flake = "/home/alice/nixos";
 
 **A checkout on the machine** (desktops, laptops): run `update`. It pulls your fork with `git pull --ff-only`, refusing a checkout that has diverged, then runs `nh os switch`, which builds, shows the package diff and switches. Extra arguments go to nh (`update --ask`). `nh os switch` alone works too, since `flake` is also its default.
 
-**A flake reference** (servers, Raspberry Pi): set `flake = "github:alice/nixos"` and add the `auto-upgrade` feature. Every Tuesday from 04:00 (randomized over 45 minutes), after Monday's PRs and their CI, the machine builds your fork's `main` and switches to it, so it runs exactly what CI proved. It does not reboot: a new kernel waits for the next reboot. `update` works there too, with no checkout to pull.
+**A flake reference** (servers, Raspberry Pi): set `flake = "github:alice/nixos"` and run `update`, which builds your fork's `main` with no checkout to pull.
+
+## A machine upgrades on its own
+
+Add the `auto-upgrade` feature to a host to have it follow the version CI validated for it. Once every check of a host passes on `main`, CI moves the `deploy/<host>` branch of your fork to that commit ([ci.md](ci.md#validated-versions-per-machine)); every day from 04:00 (randomized over 45 minutes, caught up at the next start when the machine was off), `auto-upgrade.service` fetches that branch and builds it. It works with a flake reference (a plain `github:<owner>/<repo>` or `git+https://...`, without a query such as `?dir=`), or with a checkout, whose `origin` remote it reads, an SSH remote turned into its https URL. It trusts that remote only when root or an admin (`wheel`) owns the checkout, its `.git` folder (not a file or a link, as in a worktree) and `.git/config`, and no one outside root and `wheel` can write to them: otherwise any user could point it at a repository of their own. A checkout with no `.git` yet goes straight to the mirrors. When that source is down, it tries the host's `mirrors` in order:
+
+```nix
+configurations.nixos.my-server = {
+  flake = "github:alice/nixos";
+  mirrors = [ "https://codeberg.org/alice/nixos.git" ];
+};
+```
+
+It fetches over https without credentials: a private fork needs a mirror the machine can read without a login. Every source, `mirrors` included, is trusted as much as the fork itself, since whoever can push `deploy/<host>` to one of them chooses what the machine builds as root.
+
+It applies the new version with `nixos-rebuild boot`: the machine keeps running what it runs, and starts the new version at the next reboot. Set `autoUpgrade.operation = "switch"` in the host's `module` to start it right away. On a Raspberry Pi (`pi` profile) it builds nothing itself (`autoUpgrade.allowLocalBuild = false`): it substitutes everything from the binary cache and its remote builders, so a Pi upgrades only to a version CI built and cached (`<host>-toplevel`); one the cache does not hold yet waits for the next run.
+
+It never replaces a system it cannot place in the history of `deploy/<host>`:
+
+| Outcome | When | What to do |
+|---|---|---|
+| `upgraded` | a newer validated commit was built | nothing, it applies at next boot |
+| `up-to-date` | `deploy/<host>` is the running commit, or is installed and applies at next boot | nothing, or reboot |
+| `waiting` | CI has not validated a version for this host yet (a source answered without `deploy/<host>`), or the cache lacks that version and local builds are off | nothing, the next run retries |
+| `refused` | the running system or the one installed for next boot was built from uncommitted changes, or from a commit `deploy/<host>` does not contain (not pushed yet, or the pointer was moved back by a force push), or the checkout is not owned by an admin | commit and push, let CI validate it; or `chown` the checkout |
+| `unreachable` | no source answered within 60 seconds | check the network or the mirrors; the machine stays on its version |
+| `failed` | the build or the switch failed | `journalctl -u auto-upgrade` |
+
+The last run is in `/var/lib/auto-upgrade/state.json` (outcome, from and to commits, source, message, and the package diff summary from `nvd`), one line per run in `/var/lib/auto-upgrade/history.tsv`; both survive reboots. `nixos-version --configuration-revision` prints the commit the running system was built from, with a `-dirty` suffix when the tree had uncommitted changes.

@@ -6,7 +6,7 @@
 }:
 
 let
-  inherit (config.helpers) hostsOn hasDisk;
+  inherit (config.helpers) hostsOn hasDisk testRevision;
   inherit (config) base features;
 
   hostConfig = name: config.flake.nixosConfigurations.${name};
@@ -65,6 +65,7 @@ let
         features.hibernate
         testSwap
         resumeTest
+        testRevision
         {
           nixpkgs.hostPlatform = system;
           networking.hostName = "hibernate";
@@ -81,7 +82,12 @@ in
         lib.concatMapAttrs (name: _: {
           "${name}-disk" =
             lib.mkForce
-              ((hostConfig name).extendModules { modules = [ testSwap ]; }).config.system.build.installTest;
+              ((hostConfig name).extendModules {
+                modules = [
+                  testSwap
+                  testRevision
+                ];
+              }).config.system.build.installTest;
         }) (lib.filterAttrs (name: _: hibernatesOnDisk name) (hostsOn system))
         // lib.optionalAttrs (system == "x86_64-linux") {
           feature-hibernate = (hibernatingMachine system).config.system.build.installTest;

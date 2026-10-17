@@ -40,7 +40,9 @@ To boot from NVMe on a Pi 5, write the same image to the drive and put NVMe firs
 
 ## Update it
 
-Build on your machine and push the result, so the Pi never builds anything:
+With the `auto-upgrade` feature, the Pi follows `deploy/<host>` on its own ([updates.md](updates.md#a-machine-upgrades-on-its-own)) without building anything: the `pi` profile turns local builds off, so it upgrades only to a version CI built and pushed to your binary cache (`<host>-toplevel`), and waits otherwise.
+
+By hand, build on your machine and push the result, so the Pi never builds anything:
 
 ```sh
 nh os switch --hostname example-pi --target-host alice@example-pi --elevation-strategy passwordless .

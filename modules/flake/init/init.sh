@@ -435,6 +435,7 @@ HOST_ATTRIBUTE=$(nix_attribute "$host") \
     /^    system = "/ { print set_string($0, ENVIRON["SYSTEM"]); next }
     /^    profile = "/ { print set_string($0, ENVIRON["PROFILE"]); next }
     /^    flake = "\/home\/alice\// { print set_string($0, "/home/" ENVIRON["LOGIN"] "/nixos"); next }
+    /^    # mirrors = / { gsub(/alice/, ENVIRON["LOGIN"]); print; next }
     /^    timeZone = "/ { print set_string($0, ENVIRON["TIME_ZONE"]); next }
     /^    locale = "/ { print set_string($0, ENVIRON["LOCALE"]); next }
     /^    keyboard = "/ { print set_string($0, ENVIRON["KEYBOARD"]); next }

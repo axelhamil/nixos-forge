@@ -1,17 +1,91 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
+    <img src="docs/assets/hero-light.svg" alt="nixos-forge: a doorway drawn in fine lines, its arch keyed by the Nix snowflake between two holly trees" width="100%">
+  </picture>
+</p>
+
+<p align="center">A NixOS starter you fork and forge: every machine you describe is built, booted and installed in a VM by CI before it reaches yours.</p>
+
+<p align="center"><sub>Fork, friend, and enter.</sub></p>
+
 <div align="center">
 
-# nixos-forge
-
-**A NixOS base to fork: one file per machine, every host booted in CI, a shell and a desktop ready on first login.**
-
-[![check](https://github.com/axelhamil/nixos-forge/actions/workflows/check.yml/badge.svg)](https://github.com/axelhamil/nixos-forge/actions/workflows/check.yml)
-[![NixOS unstable](https://img.shields.io/badge/NixOS-unstable-5277C3?logo=nixos&logoColor=white)](https://nixos.org)
-[![flake-parts](https://img.shields.io/badge/built%20with-flake--parts-7EBAE4)](https://flake.parts)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+<table>
+  <tr>
+    <td>Proved by CI</td>
+    <td>
+      <a href="https://github.com/axelhamil/nixos-forge/actions/workflows/check.yml"><img alt="check" src="https://img.shields.io/github/actions/workflow/status/axelhamil/nixos-forge/check.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=check"></a>
+      <a href="https://github.com/axelhamil/nixos-forge/actions/workflows/reproducibility.yml"><img alt="reproducibility workflow" src="https://img.shields.io/github/actions/workflow/status/axelhamil/nixos-forge/reproducibility.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=reproducibility"></a>
+      <a href="https://github.com/axelhamil/nixos-forge/actions/workflows/update-flake-lock.yml"><img alt="update-flake-lock" src="https://img.shields.io/github/actions/workflow/status/axelhamil/nixos-forge/update-flake-lock.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=update-flake-lock"></a>
+      <a href="https://github.com/axelhamil/nixos-forge/actions/workflows/release.yml"><img alt="release" src="https://img.shields.io/github/actions/workflow/status/axelhamil/nixos-forge/release.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=release"></a>
+      <br>
+      <a href="docs/ci.md#live-badges"><img alt="checks passing" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fchecks.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/ci.md#live-badges"><img alt="VM tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fvm-tests.json&style=flat-square&logo=qemu&logoColor=white"></a>
+      <a href="docs/ci.md#live-badges"><img alt="hosts built" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fhosts.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/ci.md#live-badges"><img alt="boot time" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fboot-time.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/ci.md#reproducibility"><img alt="reproducibility" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Freproducibility.json&style=flat-square&logo=nixos&logoColor=white"></a>
+    </td>
+  </tr>
+  <tr>
+    <td>Built on</td>
+    <td>
+      <a href="https://nixos.org"><img alt="NixOS unstable" src="https://img.shields.io/badge/NixOS-unstable-3F4D66?style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="https://flake.parts"><img alt="flake-parts" src="https://img.shields.io/badge/flake--parts-dendritic-3F4D66?style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="https://github.com/nix-community/home-manager"><img alt="home-manager" src="https://img.shields.io/badge/home--manager-3F4D66?style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="https://github.com/nix-community/disko"><img alt="disko" src="https://img.shields.io/badge/disko-3F4D66?style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="https://github.com/nix-community/lanzaboote"><img alt="lanzaboote" src="https://img.shields.io/badge/lanzaboote-Secure%20Boot-3F4D66?style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="https://github.com/nix-community/impermanence"><img alt="impermanence" src="https://img.shields.io/badge/impermanence-3F4D66?style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="https://github.com/Mic92/sops-nix"><img alt="sops-nix" src="https://img.shields.io/badge/sops--nix-3F4D66?style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="https://hypr.land"><img alt="Hyprland" src="https://img.shields.io/badge/Hyprland-3F4D66?style=flat-square&logo=hyprland&logoColor=white"></a>
+    </td>
+  </tr>
+  <tr>
+    <td>Project</td>
+    <td>
+      <a href="https://github.com/axelhamil/nixos-forge/releases"><img alt="latest release" src="https://img.shields.io/github/v/release/axelhamil/nixos-forge?include_prereleases&sort=semver&style=flat-square&color=6B7A90&label=release"></a>
+      <a href="LICENSE"><img alt="license" src="https://img.shields.io/github/license/axelhamil/nixos-forge?style=flat-square&color=6B7A90"></a>
+      <a href="https://www.conventionalcommits.org"><img alt="Conventional Commits" src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-6B7A90?style=flat-square&logo=conventionalcommits&logoColor=white"></a>
+      <a href="https://github.com/googleapis/release-please"><img alt="release-please" src="https://img.shields.io/badge/release--please-6B7A90?style=flat-square"></a>
+      <a href="https://github.com/axelhamil/nixos-forge/commits/develop"><img alt="last commit" src="https://img.shields.io/github/last-commit/axelhamil/nixos-forge/develop?style=flat-square&color=6B7A90"></a>
+    </td>
+  </tr>
+</table>
 
 </div>
 
 In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a readable starting point, not a framework. Every piece is a module you turn on by name, read in one file and drop by deleting it. The commented `example` host lists every profile, feature, hardware module and app, one line each to uncomment, `example` and `example-server` show `wipe-home` and `example-pi` a Raspberry Pi, so you see the whole starter; your fork keeps what it wants.
+
+## What CI proves
+
+Every host in the registry gets its checks generated, so a machine you add is tested without touching YAML. Each run ends in one report per machine, in the run summary and as a single PR comment ([docs/ci.md](docs/ci.md)).
+
+| Check | What it proves |
+|---|---|
+| `<host>-toplevel` | The system builds with its real revision; this closure is what `auto-upgrade` installs. |
+| `<host>-boots` | The machine boots in a VM to `multi-user.target` and every user's home-manager service starts. |
+| `<host>-disk` | It installs on a blank encrypted disk, reboots, wipes `/` and takes a snapshot; with `secure-boot`, it boots under Secure Boot and unlocks the disk with the TPM2. |
+| `<host>-installer` | The installer ISO installs the host without questions and the installed disk boots. |
+| `<host>-wipe-home` | The same install with `wipe-home` added, so `/home` starts empty at every boot. |
+| `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit` | A new generation whose health check fails, or whose service fails after boot, is never blessed: after 3 tries the machine boots the one before. |
+| `feature-migration` | A machine installed from the base revision (the PR's base, or the commit before a push) upgrades to this one in place and keeps its state. |
+| `ci-promote`, `feature-auto-upgrade-signed` | `deploy/<host>` moves only once every check of that host passed, signed by CI, and a machine applies only a commit signed for it, never an older one replayed. |
+| `app-*`, `feature-*`, `profile-*`, `base-*` | Each module with a `check.nix` boots in its own VM test, from the Hyprland session to hibernate and resume. |
+| Reproducibility, nightly | Every system is rebuilt with `nix build --rebuild` and compared, with a diffoscope summary when it differs. |
+| Boot time | Each boot test records `systemd-analyze`, shown in the report beside the base revision's. |
+| Package diff, every PR | [nvd](https://git.sr.ht/~khumba/nvd) lists the packages each system gains, loses or changes. |
+
+## What your fork gets on day one
+
+Fork it, run `nix run .#init`, turn CI on ([docs/ci.md](docs/ci.md#turn-ci-on-in-your-fork)), and your repository works the same way for your machines:
+
+- The same CI on your own hosts: each one is built, booted in a VM and, with `disk`, installed on a blank disk with Secure Boot and TPM2.
+- Your own live badges, published by your CI once it runs on `main` ([docs/ci.md](docs/ci.md#live-badges)).
+- A pull request every Monday with fresh inputs in `flake.lock`, merged on its own once CI is green.
+- A package diff on every pull request.
+- Deploy branches signed by your CI with a key `init` generates, which your machines alone accept ([docs/ci.md](docs/ci.md#sign-the-deploy-branches)).
+- `auto-upgrade`, which takes only the version CI validated for that machine and on a host with `disk`, goes back to the previous generation when the new one does not boot ([docs/updates.md](docs/updates.md)).
+- `nix run .#upstream`, which shows what the starter changed and merges its release when you choose ([docs/updates.md](docs/updates.md#your-fork-follows-the-starter)).
 
 ## A machine is one file
 
@@ -62,7 +136,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 | **Services and dev** | systemd-resolved, key-only SSH, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
 | **Updates** | every Monday your fork gets a PR with fresh inputs, merged once CI is green; `nix run .#upstream` shows what the starter changed and prepares its merge when you choose; machines pull your fork with `update`, or daily on their own with `auto-upgrade`, which takes only the version CI validated for that machine, and with `signers` only one CI signed for it; a desktop then shows a notification with what changed. [updates](docs/updates.md) |
 | **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, what the last auto-upgrade did, whether it requires signed deploy commits and whether a boot went back to the previous version, and lists what the next boot erases from `/`. [doctor](docs/doctor.md) |
-| **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, `flake.lock` updates itself weekly, only what the cache lacks is built. [ci](docs/ci.md) |
+| **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, `flake.lock` updates itself weekly, only what the cache lacks is built ([above](#what-ci-proves)). [ci](docs/ci.md) |
 
 ## Quick start
 
@@ -145,3 +219,5 @@ Versions come from Conventional Commits through [release-please](https://github.
 ## License
 
 [MIT](LICENSE)
+
+<sub>Why the name: Celebrimbor, the smith of Eregion, forged and taught others to forge their own. You forge your own NixOS from this one. The Nix snowflake in the door comes from [nixos-icons](https://github.com/NixOS/nixos-artwork), under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).</sub>

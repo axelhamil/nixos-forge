@@ -59,11 +59,14 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 | `<host>-disk` | hosts with `disk` | install on a blank disk, reboot, `/` wiped, btrbk snapshot taken; Secure Boot and TPM2 unlock on `x86_64-linux` hosts with `secure-boot`; the swap file, with a 1G size, on hosts with `hibernate` |
 | `<host>-wipe-home` | hosts with `disk` but not `wipe-home` | the install test with `wipe-home` added |
 | `<host>-installer` | hosts in `installer.testedHosts` | the installer ISO installs without questions and the installed disk boots |
-| `profile-*`, `system-*`, `dev-*`, `home-*`, `desktop-*`, `app-*` | modules with a `check.nix` | the module's own VM test |
+| `base-*`, `feature-*`, `profile-*`, `app-*` | modules with a `check.nix` | the module's own VM test |
+| `wrong-namespace` | always, on `x86_64-linux` | a host naming in `features`, `profile` or `hardware` a name of another field fails to evaluate, with an error naming that field and listing only its own names; a name in `apps` that is neither an app nor a nixpkgs package lists the configured apps; a `users` entry with no person in `modules/users` lists the known people |
+| `apps-once` | always, on `x86_64-linux` | apps reached twice (`shell` and `zsh`, `hyprland` and `lock`, on the host and the user) build the same system as each one once, with a hyprlock PAM service |
+| `flake-modules` | always, on `x86_64-linux` | no name is published by two namespaces in the `flake.modules.nixos` output |
 | `facter` | always, on `x86_64-linux` | a host with the registry field `facter` set to nixpkgs' sample report turns on nixpkgs' facter module |
 | `options-doc` | always | `docs/options.md` matches the registry options |
-| `init` | while the `example` host exists | `nix run .#init -- --yes` on a copy of the flake writes a host that parses, with the answers and features asked, removes the examples and refuses to overwrite a host |
-| `example-hosts` | while an example host exists, on `x86_64-linux` | every example host has a line, enabled or commented out, for every registry field, profile, feature, hardware module and app of the starter |
+| `init` | while the `example` host exists | `nix run .#init -- --yes` on a copy of the flake writes a host and a person that parse, with the answers and features asked, removes the examples, renames the example person in the hosts it keeps, refuses to overwrite a host or a person, and evaluates the `toplevel` of every host left with the flake's locked inputs; an unknown package in `--apps`, a person field of the wrong type and an unknown option in a person's `module` make it fail |
+| `example-hosts` | while an example host exists, on `x86_64-linux` | every example host has a line, enabled or commented out, for every registry field, profile, feature, hardware module and app of the starter, and the person the `example` host names has one for every person field |
 | `ci-report` | always, on `x86_64-linux` | `ci-build` keeps a clean log excerpt and retries a VM test once; `ci-report` turns sample runs into the right verdict, a table per host that never mixes two hosts, the cause of a failure, and a comment cut to fit |
 
 ## Running the CI scripts locally

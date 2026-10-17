@@ -4,7 +4,7 @@ A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modul
 
 ## Use it
 
-[`modules/hosts/example-pi/default.nix`](../modules/hosts/example-pi/default.nix) is the example: `system = "aarch64-linux"`, `profile = "pi"`, the features `raspberry-pi-5` (or `raspberry-pi-4`) and `ssh`, and a user. Rename the host and the user as for any host, and give your user an SSH key: a Pi starts headless, and SSH refuses passwords.
+[`modules/hosts/example-pi/default.nix`](../modules/hosts/example-pi/default.nix) is the example: `system = "aarch64-linux"`, `profile = "pi"`, the hardware `raspberry-pi-5` (or `raspberry-pi-4`), the feature `ssh`, and a user. Rename the host and the user as for any host, and give your person an SSH key in `modules/users/<you>/default.nix`: a Pi starts headless, and SSH refuses passwords.
 
 ```nix
 users.<you>.sshKeys = [ "ssh-ed25519 AAAA... you@laptop" ];

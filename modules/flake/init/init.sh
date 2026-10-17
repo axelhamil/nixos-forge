@@ -1,5 +1,7 @@
 template_dir=modules/hosts/example
 template=$template_dir/default.nix
+example_person=alice
+person_template=modules/users/$example_person/default.nix
 profiles=(desktop laptop server pi)
 systems=(x86_64-linux aarch64-linux)
 
@@ -7,13 +9,14 @@ usage() {
   cat <<'EOF'
 Usage: nix run .#init -- [options]
 
-Writes modules/hosts/<host>/default.nix from the commented example host, removes the
-example hosts and stages the result. Asks for every answer not given as an option.
+Writes modules/hosts/<host>/default.nix from the commented example host and
+modules/users/<login>/default.nix from the example person, removes the examples and stages
+the result. Asks for every answer not given as an option.
 
   --host NAME            host name: 1 to 63 letters, digits, - and _, starting and ending with a letter or digit
   --system SYSTEM        x86_64-linux (default) or aarch64-linux
   --profile PROFILE      desktop, laptop, server or pi
-  --login LOGIN          your login name
+  --login LOGIN          your login name, and the name of your person in modules/users
   --full-name NAME       your full name
   --email EMAIL          your email, used by git; empty for none
   --time-zone ZONE       such as Europe/Paris (default: this machine's)
@@ -21,6 +24,7 @@ example hosts and stages the result. Asks for every answer not given as an optio
   --locale LOCALE        such as fr_FR.UTF-8 (default: en_US.UTF-8)
   --features LIST        features to turn on, comma or space separated (default: picked for the profile)
   --hardware LIST        hardware modules or nixos-hardware profiles (default: raspberry-pi-5 for pi, else none)
+  --apps LIST            apps for every user: starter apps or nixpkgs packages (default: picked for the profile)
   --keep-server          keep the example-server host
   --keep-pi              keep the example-pi host
   --yes                  ask nothing: use the defaults, fail on a missing answer
@@ -37,6 +41,7 @@ host="" system="" profile="" login="" full_name="" time_zone="" keyboard="" loca
 email="" email_set=false
 features="" features_set=false
 hardware="" hardware_set=false
+apps="" apps_set=false
 keep_server="" keep_pi="" yes=false
 
 while (($# > 0)); do
@@ -51,7 +56,7 @@ while (($# > 0)); do
   shift
 
   case $option in
-  --host | --system | --profile | --login | --full-name | --email | --time-zone | --keyboard | --locale | --features | --hardware)
+  --host | --system | --profile | --login | --full-name | --email | --time-zone | --keyboard | --locale | --features | --hardware | --apps)
     if [[ $has_value == false ]]; then
       (($# > 0)) || die "$option needs a value"
       value=$1
@@ -72,6 +77,7 @@ while (($# > 0)); do
   --locale) locale=$value ;;
   --features) features=$value features_set=true ;;
   --hardware) hardware=$value hardware_set=true ;;
+  --apps) apps=$value apps_set=true ;;
   --keep-server) keep_server=yes ;;
   --keep-pi) keep_pi=yes ;;
   --yes) yes=true ;;
@@ -87,6 +93,7 @@ root=$(git rev-parse --show-toplevel 2>/dev/null) || die "run it inside a git ch
 cd "$root"
 
 [[ -f $template ]] || die "$template is missing: init starts from the example host, which a previous run already replaced"
+[[ -f $person_template ]] || die "$person_template is missing: init starts from the example person, which a previous run already replaced"
 
 list_block() {
   awk -v block="$1" '
@@ -141,6 +148,10 @@ check_login() {
     echo "a login has at most 32 lowercase letters, digits, - and _, and starts with a letter or _"
     return 1
   }
+  [[ $1 == "$example_person" || ! -e modules/users/$1 ]] || {
+    echo "modules/users/$1 already exists: pick another login, init never overwrites a person"
+    return 1
+  }
 }
 
 check_text() {
@@ -174,11 +185,11 @@ check_features() {
   done
 }
 
-check_hardware() {
+check_names() {
   local item
   for item in $(words "$1"); do
     check_word "$item" >/dev/null || {
-      echo "\"$item\" is not a module name"
+      echo "\"$item\" is not a module or package name"
       return 1
     }
   done
@@ -257,7 +268,7 @@ detected_locale() {
 default_features() {
   local wanted=() feature
   case $1 in
-  desktop | laptop) wanted=(disk plymouth hyprland nix-ld direnv) ;;
+  desktop | laptop) wanted=(disk plymouth nix-ld) ;;
   server) wanted=(disk ssh) ;;
   pi) wanted=(ssh) ;;
   esac
@@ -271,17 +282,23 @@ default_features() {
   done
 }
 
-show_features() {
-  local chosen name description mark
-  mapfile -t chosen < <(words "$1")
-  echo "Features (each one is described in $template):" >&2
+default_apps() {
+  case $1 in
+  desktop | laptop) printf 'hyprland direnv firefox' ;;
+  esac
+}
+
+show_list() {
+  local block=$1 title=$2 chosen name description mark
+  mapfile -t chosen < <(words "$3")
+  echo "$title (each one is described in $template):" >&2
   while IFS=$'\t' read -r name description; do
     mark=" "
     if contains "$name" "${chosen[@]}"; then
       mark=x
     fi
     printf '  [%s] %-14s %s\n' "$mark" "$name" "$description" >&2
-  done < <(list_block features)
+  done < <(list_block "$block")
 }
 
 ask host host "Host name" "" check_host
@@ -310,25 +327,32 @@ if [[ $features_set == true ]]; then
 elif [[ $yes == true ]]; then
   features=$suggested_features
 else
-  show_features "$suggested_features"
+  show_list features Features "$suggested_features"
   ask features features "Features, space separated (blank keeps the ones marked)" "$suggested_features" check_features true
 fi
 
 suggested_hardware=""
 [[ $profile == pi ]] && suggested_hardware=raspberry-pi-5
 if [[ $hardware_set == true ]]; then
-  ask hardware hardware "" "" check_hardware set
+  ask hardware hardware "" "" check_names set
 elif [[ $yes == true ]]; then
   hardware=$suggested_hardware
 else
-  ask hardware hardware "Hardware: starter modules or nixos-hardware profiles, space separated (blank for none)" "$suggested_hardware" check_hardware true
+  ask hardware hardware "Hardware: starter modules or nixos-hardware profiles, space separated (blank for none)" "$suggested_hardware" check_names true
+fi
+
+suggested_apps=$(default_apps "$profile")
+if [[ $apps_set == true ]]; then
+  ask apps apps "" "" check_names set
+elif [[ $yes == true ]]; then
+  apps=$suggested_apps
+else
+  show_list apps Apps "$suggested_apps"
+  ask apps apps "Apps for every user: starter apps or nixpkgs packages, space separated (blank keeps the ones marked)" "$suggested_apps" check_names true
 fi
 
 [[ -d modules/hosts/example-server ]] && ask_yes_no keep_server "Keep the example-server host"
 [[ -d modules/hosts/example-pi ]] && ask_yes_no keep_pi "Keep the example-pi host"
-
-apps=""
-[[ $profile == desktop || $profile == laptop ]] && apps=firefox
 
 nix_string() {
   local text=$1
@@ -348,22 +372,24 @@ nix_attribute() {
 
 target_dir=modules/hosts/$host
 target=$target_dir/default.nix
+person_dir=modules/users/$login
+person=$person_dir/default.nix
+login_attribute=$(nix_attribute "$login")
 generated=$(mktemp)
-trap 'rm -f "$generated"' EXIT
+generated_person=$(mktemp)
+trap 'rm -f "$generated" "$generated_person"' EXIT
 
 HOST_ATTRIBUTE=$(nix_attribute "$host") \
   SYSTEM=$system \
   PROFILE=$profile \
   LOGIN=$login \
-  LOGIN_ATTRIBUTE=$(nix_attribute "$login") \
-  FULL_NAME=$(nix_string "$full_name") \
-  EMAIL=$(nix_string "$email") \
+  LOGIN_ATTRIBUTE=$login_attribute \
   TIME_ZONE=$time_zone \
   KEYBOARD=$keyboard \
   LOCALE=$locale \
   FEATURES=$(words "$features" | tr '\n' ' ') \
   HARDWARE=$(words "$hardware" | tr '\n' ' ') \
-  APPS=$apps \
+  APPS=$(words "$apps" | tr '\n' ' ') \
   awk '
     function set_string(line, value,    start, rest) {
       start = index(line, "\"")
@@ -413,25 +439,40 @@ HOST_ATTRIBUTE=$(nix_attribute "$host") \
     /^    locale = "/ { print set_string($0, ENVIRON["LOCALE"]); next }
     /^    keyboard = "/ { print set_string($0, ENVIRON["KEYBOARD"]); next }
     /^    users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
-    /^      fullName = "/ { print set_string($0, ENVIRON["FULL_NAME"]); next }
-    /^      email = "/ {
-      if (ENVIRON["EMAIL"] == "") { sub(/email/, "# email"); print }
-      else print set_string($0, ENVIRON["EMAIL"])
-      next
-    }
 
     { print }
   ' "$template" >"$generated"
 
-mkdir -p "$target_dir"
-cp "$generated" "$target"
-chmod 644 "$target"
+LOGIN=$login \
+  LOGIN_ATTRIBUTE=$login_attribute \
+  FULL_NAME=$(nix_string "$full_name") \
+  EMAIL=$(nix_string "$email") \
+  awk '
+    function set_string(line, value,    start, rest) {
+      start = index(line, "\"")
+      rest = substr(line, start + 1)
+      return substr(line, 1, start) value substr(rest, index(rest, "\""))
+    }
+
+    /^  users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
+    /^    fullName = "/ { print set_string($0, ENVIRON["FULL_NAME"]); next }
+    /^    email = "/ {
+      if (ENVIRON["EMAIL"] == "") { sub(/email/, "# email"); gsub(/alice/, ENVIRON["LOGIN"]); print }
+      else print set_string($0, ENVIRON["EMAIL"])
+      next
+    }
+
+    { gsub(/users\.alice/, "users." ENVIRON["LOGIN_ATTRIBUTE"]); gsub(/alice/, ENVIRON["LOGIN"]); print }
+  ' "$person_template" >"$generated_person"
+
+install -D -m 644 "$generated" "$target"
+install -D -m 644 "$generated_person" "$person"
 
 if command -v nix >/dev/null; then
-  nix fmt -- "$target" >/dev/null 2>&1 || echo "init: nix fmt failed, run it yourself" >&2
+  nix fmt -- "$target" "$person" >/dev/null 2>&1 || echo "init: nix fmt failed, run it yourself" >&2
 fi
 
-git add -- "$target"
+git add -- "$target" "$person"
 
 removed=(example)
 [[ $keep_server == yes ]] || removed+=(example-server)
@@ -441,10 +482,19 @@ for example in "${removed[@]}"; do
   git rm -r -q -- "modules/hosts/$example"
 done
 
+if [[ $login != "$example_person" ]]; then
+  for example in modules/hosts/example-server modules/hosts/example-pi; do
+    [[ -f $example/default.nix ]] || continue
+    sed -i "s/^    users\.$example_person = {\$/    users.$login_attribute = {/" "$example/default.nix"
+    git add -- "$example/default.nix"
+  done
+  git rm -r -q -- "modules/users/$example_person"
+fi
+
 cat <<EOF
 
-$target is ready and staged; the example hosts you did not keep are removed.
-Read it top to bottom: every line you may want is there, commented out.
+$target and $person are ready and staged; the example hosts you did not
+keep are removed. Read them top to bottom: every line you may want is there, commented out.
 
 Next steps:
   nix develop          installs the pre-push hook

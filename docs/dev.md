@@ -27,7 +27,7 @@ Gotchas:
 
 ## `libvirt` (opt-in)
 
-libvirtd with unprivileged QEMU, UEFI firmware, swtpm (for guests that need a TPM, such as Windows 11), virtiofs, USB redirection and virt-manager. Add your user to `libvirtd` and start the NAT network once:
+libvirtd with unprivileged QEMU, UEFI firmware, swtpm (for guests that need a TPM, such as Windows 11), virtiofs, USB redirection and virt-manager. Add your user to `libvirtd` in the host and start the NAT network once:
 
 ```nix
 users.<you>.groups = [ "libvirtd" ];
@@ -41,6 +41,8 @@ virsh -c qemu:///system net-start default
 `/var/lib/libvirt` is kept in `/persist`. On a btrfs `/`, `/var/lib/libvirt/images` is its own subvolume without copy-on-write (`+C`), so btrbk snapshots skip VM disks: back them up yourself (`virsh snapshot-create`). The attribute only applies to new files: move existing images out and back in.
 
 ## `nix-ld` and `direnv` (opt-in)
+
+`nix-ld` is a feature, `direnv` an app: `features = [ "nix-ld" ]; apps = [ "direnv" ];`.
 
 - **`nix-ld`** runs dynamically linked binaries not built for NixOS (editor language servers, prebuilt npm or pip binaries, VS Code server). Add missing libraries to `programs.nix-ld.libraries`.
 - **`direnv`** with nix-direnv: `use flake` in a project's `.envrc` loads its dev shell on `cd`, cached.

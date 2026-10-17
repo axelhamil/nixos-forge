@@ -1,6 +1,6 @@
 # Desktop
 
-The `desktop/` layer turns a host into a graphical machine: a text login screen, a boot splash, and Hyprland with a bar, a launcher, a terminal, notifications and a lock screen. Each piece is its own module with its tool's own look; another desktop plugs in as a sibling of `hyprland`.
+The `hyprland` app and two features turn a host into a graphical machine: a text login screen, a boot splash, and Hyprland with a bar, a launcher, a terminal, notifications and a lock screen. Each piece is its own module with its tool's own look; another desktop plugs in as a sibling of `hyprland`.
 
 ## Use it
 
@@ -8,10 +8,11 @@ The example host turns it on with the `desktop` profile:
 
 ```nix
 profile = "desktop";
-features = [ "plymouth" "hyprland" ];
+features = [ "plymouth" ];
+apps = [ "hyprland" ];
 ```
 
-`hyprland` pulls in `greetd` and `lock`, and gives every home-manager user of the host the Hyprland session through `home-manager.sharedModules`. `plymouth` is independent: import it on any host, with or without a desktop.
+`hyprland` pulls in the `greetd` feature and the `lock`, `waybar`, `fuzzel`, `kitty` and `mako` apps; named in the host's `apps`, every user of the host gets the Hyprland session, named in your person's `apps` or in the host's `users.<you>.apps`, only you get its home config, while its NixOS part (greetd, Hyprland, fonts) is on for the whole machine ([apps.md](apps.md)). `plymouth` is independent: import it on any host, with or without a desktop.
 
 ## What is in it
 
@@ -47,7 +48,7 @@ The keyboard layout comes from the host's `keyboard` field (`services.xserver.xk
 
 ## Make it yours
 
-Every value is a default: set the same option in your user's home config to change it.
+Every value is a default: set the same option in your person's `module` to change it ([apps.md](apps.md#change-a-starter-default)).
 
 ```nix
 programs.kitty.settings.font_size = 12;

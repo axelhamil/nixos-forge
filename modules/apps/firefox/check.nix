@@ -1,5 +1,5 @@
 { config, ... }:
 
 {
-  perSystem = config.helpers.appCheck "firefox" [ ./test.py ];
+  perSystem = config.helpers.appCheck "firefox" { testScripts = [ ./test.py ]; };
 }

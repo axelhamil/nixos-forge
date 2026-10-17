@@ -7,88 +7,77 @@
 
 let
   inherit (lib) mkOption types;
-  inherit (config.flake.modules) nixos homeManager;
-  inherit (config) systems apps;
+  inherit (config.helpers) appPart;
+  inherit (config)
+    systems
+    apps
+    base
+    profiles
+    features
+    hardware
+    ;
 
-  fail = host: message: throw "configurations.nixos.${host}: ${message}";
+  fail =
+    host: field: message:
+    throw "configurations.nixos.${host}.${field}: ${message}";
+
+  known = namespace: lib.concatStringsSep ", " (lib.attrNames namespace);
 
   pick =
-    host: kind: available: name:
-    available.${name}
-      or (fail host "unknown ${kind} \"${name}\". Known: ${lib.concatStringsSep ", " (lib.attrNames available)}.");
+    host: field: namespace: name:
+    namespace.${name} or (fail host field "unknown name \"${name}\". Known: ${known namespace}.");
 
   hardwareModule =
     host: name:
-    nixos.${name} or inputs.nixos-hardware.nixosModules.${name}
-      or (fail host "unknown hardware \"${name}\": neither a module of the starter nor a nixos-hardware profile (https://github.com/NixOS/nixos-hardware).");
+    hardware.${name} or inputs.nixos-hardware.nixosModules.${name} or (fail host "hardware"
+      "unknown name \"${name}\": neither a module of modules/features/hardware (${known hardware}) nor a nixos-hardware profile (https://github.com/NixOS/nixos-hardware)."
+    );
 
   configuredApps = lib.filter (name: apps ? ${name});
   packagedApps = lib.filter (name: !(apps ? ${name}));
 
-  appModules =
-    part: names:
-    map (name: {
-      key = "nixos-starter/apps/${name}/${part}";
-      imports = [ apps.${name}.${part} ];
-    }) (configuredApps names);
+  appModules = part: names: map (name: appPart name part) (configuredApps names);
 
   package =
-    host: pkgs: name:
+    where: pkgs: name:
     lib.attrByPath (lib.splitString "." name)
-      (fail host "unknown app \"${name}\": no modules/apps/${name} and no pkgs.${name}.")
+      (throw "${where}: unknown name \"${name}\": neither an app of modules/apps (${known apps}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\".")
       pkgs;
 
   unfreeName =
-    host: system: name:
-    lib.getName (package host inputs.nixpkgs.legacyPackages.${system} name);
+    where: system: name:
+    lib.getName (package where inputs.nixpkgs.legacyPackages.${system} name);
 
-  userOptions = {
+  bringsZsh = lib.any (
+    name:
+    lib.elem name [
+      "shell"
+      "zsh"
+    ]
+  );
+
+  person =
+    host: name:
+    config.users.${name} or (fail host "users"
+      "unknown person \"${name}\": no modules/users/${name}. Known: ${known config.users}."
+    );
+
+  accountOptions = {
     options = {
-      fullName = mkOption {
-        type = types.str;
-        default = "";
-        example = "Alice Example";
-        description = "Full name, shown by the greeter and used as git author name.";
-      };
-
-      email = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        example = "alice@example.org";
-        description = "Email used as git author email.";
-      };
-
       admin = mkOption {
         type = types.bool;
         default = true;
         description = "Whether the user may run `sudo` (member of `wheel`).";
       };
 
-      sshKeys = mkOption {
-        type = types.listOf types.str;
-        default = [ ];
-        example = [ "ssh-ed25519 AAAA... alice@laptop" ];
-        description = "Public SSH keys allowed to log in as this user.";
-      };
-
-      home = mkOption {
-        type = types.listOf types.str;
-        default = [ "shell" ];
-        example = [
-          "shell"
-          "stow"
-        ];
-        description = "home-manager modules the user imports, by name: the starter's (`modules/home/<name>`) or your own, such as `flake.modules.homeManager.<user>` in `modules/users/<user>`.";
-      };
-
       apps = mkOption {
         type = types.listOf types.str;
         default = [ ];
         example = [
-          "firefox"
-          "obsidian"
+          "stow"
+          "kdePackages.kate"
         ];
-        description = "Apps for this user only: an app of `modules/apps/<name>` when there is one, else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed.";
+        description = "Apps for this user on this machine only, added to the person's `apps`: an app of `modules/apps/<name>`, else the nixpkgs package of that name. Unfree packages named here are allowed.";
       };
 
       groups = mkOption {
@@ -101,7 +90,7 @@ let
   };
 
   userModule =
-    host: system: name: user:
+    host: hostApps: system: name: account:
     {
       lib,
       pkgs,
@@ -109,27 +98,41 @@ let
       ...
     }:
     let
-      usesZsh = lib.elem "shell" user.home || lib.elem "zsh" user.home;
-      packages = packagedApps user.apps;
+      user = person host name;
+      userApps = user.apps ++ account.apps;
+      packages =
+        lib.concatMap (origin: map (app: origin // { inherit app; }) (packagedApps origin.apps))
+          [
+            {
+              where = "users.${name}.apps (modules/users/${name})";
+              inherit (user) apps;
+            }
+            {
+              where = "configurations.nixos.${host}.users.${name}.apps";
+              inherit (account) apps;
+            }
+          ];
     in
     {
-      imports = lib.optional usesZsh nixos.zsh ++ appModules "nixos" user.apps;
+      imports = appModules "nixos" userApps;
 
       users.users.${name} = {
         isNormalUser = true;
         description = user.fullName;
         extraGroups =
-          lib.optional user.admin "wheel"
+          lib.optional account.admin "wheel"
           ++ lib.optional config.networking.networkmanager.enable "networkmanager"
-          ++ user.groups;
-        shell = lib.mkIf usesZsh pkgs.zsh;
+          ++ account.groups;
+        shell = lib.mkIf (bringsZsh (hostApps ++ userApps)) pkgs.zsh;
         openssh.authorizedKeys.keys = user.sshKeys;
         hashedPasswordFile =
           lib.mkIf config.environment.persistence."/persist".enable
             "/persist/passwords/${name}";
       };
 
-      nixpkgs.config.allowUnfreePackages = map (unfreeName host system) packages;
+      nixpkgs.config.allowUnfreePackages = map (
+        origin: unfreeName origin.where system origin.app
+      ) packages;
 
       virtualisation.vmVariant.users.users.${name} = {
         hashedPasswordFile = lib.mkForce null;
@@ -137,9 +140,9 @@ let
       };
 
       home-manager.users.${name} = {
-        imports = map (pick host "home module" homeManager) user.home ++ appModules "homeManager" user.apps;
+        imports = appModules "homeManager" userApps ++ [ user.module ];
         home.stateVersion = config.system.stateVersion;
-        home.packages = map (package host pkgs) packages;
+        home.packages = map (origin: package origin.where pkgs origin.app) packages;
         programs.git.settings.user = lib.mkIf (user.email != null) {
           name = lib.mkDefault user.fullName;
           email = lib.mkDefault user.email;
@@ -171,7 +174,7 @@ let
           type = types.nullOr types.str;
           default = null;
           example = "laptop";
-          description = "Role of the machine: `desktop`, `laptop`, `server` or `pi` (`modules/profiles`).";
+          description = "Role of the machine: `desktop`, `laptop`, `server` or `pi`, the profiles of `modules/features/profiles/<name>`.";
         };
 
         features = mkOption {
@@ -180,26 +183,26 @@ let
           example = [
             "disk"
             "secure-boot"
-            "hyprland"
             "docker"
           ];
-          description = "NixOS modules the machine turns on, by name: anything a file under `modules/` publishes as `flake.modules.nixos.<name>` (`disk`, `secure-boot`, `wipe-home`, `hyprland`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...). `disk` is the encrypted btrfs layout with `/` wiped at boot; the disk it erases is chosen at install (installer ISO, `disko-install --disk main`, or `disk.device` in `module`), never in the registry.";
+          description = "NixOS modules the machine turns on, by name: the features of `modules/features/<name>` (`disk`, `secure-boot`, `wipe-home`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...). `disk` is the encrypted btrfs layout with `/` wiped at boot; the disk it erases is chosen at install (installer ISO, `disko-install --disk main`, or `disk.device` in `module`), never in the registry.";
         };
 
         apps = mkOption {
           type = types.listOf types.str;
           default = [ ];
           example = [
+            "hyprland"
             "firefox"
             "vlc"
           ];
-          description = "Apps for every user of the machine: an app of `modules/apps/<name>` when there is one, else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
+          description = "Apps for every user of the machine: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`hyprland` is the desktop), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
         };
 
         users = mkOption {
-          type = types.attrsOf (types.submodule userOptions);
+          type = types.attrsOf (types.submodule accountOptions);
           default = { };
-          description = "Accounts of the machine, by login name. Each one gets home-manager with the `home` modules it lists.";
+          description = "Accounts of the machine, by login name: each one is a person of `modules/users/<name>` (the `users` of the flake), with their identity, apps and home-manager `module`, plus the host's `apps`. The fields below are what changes from one machine to another.";
         };
 
         hardware = mkOption {
@@ -209,7 +212,7 @@ let
             "common-pc-ssd"
             "common-cpu-intel"
           ];
-          description = "Hardware of the machine, by name: a module of the starter (`nvidia`, `amd-gpu`, `intel-gpu`, `raspberry-pi-4`, `raspberry-pi-5`, ...) or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile (`common-pc-ssd`, `framework-13-7040-amd`, ...).";
+          description = "Hardware of the machine, by name: a module of `modules/features/hardware/<name>` (`nvidia`, `amd-gpu`, `intel-gpu`, `raspberry-pi-4`, `raspberry-pi-5`, ...) or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile (`common-pc-ssd`, `framework-13-7040-amd`, ...).";
         };
 
         facter = mkOption {
@@ -264,13 +267,13 @@ let
         { lib, pkgs, ... }:
         {
           imports = [
-            nixos.base
+            base
           ]
-          ++ lib.optional (host.profile != null) (pick name "profile" nixos host.profile)
-          ++ map (pick name "feature" nixos) host.features
+          ++ lib.optional (host.profile != null) (pick name "profile" profiles host.profile)
+          ++ map (pick name "features" features) host.features
           ++ map (hardwareModule name) host.hardware
           ++ appModules "nixos" host.apps
-          ++ lib.mapAttrsToList (userModule name host.system) host.users;
+          ++ lib.mapAttrsToList (userModule name host.apps host.system) host.users;
 
           networking.hostName = name;
           update.flake = host.flake;
@@ -280,9 +283,9 @@ let
           services.xserver.xkb.layout = lib.mkDefault host.keyboard;
           console.keyMap = lib.mkDefault host.keyboard;
 
-          environment.systemPackages = map (package name pkgs) packages;
+          environment.systemPackages = map (package "configurations.nixos.${name}.apps" pkgs) packages;
           home-manager.sharedModules = appModules "homeManager" host.apps;
-          nixpkgs.config.allowUnfreePackages = map (unfreeName name host.system) packages;
+          nixpkgs.config.allowUnfreePackages = map (unfreeName "configurations.nixos.${name}.apps" host.system) packages;
 
           system.stateVersion = host.stateVersion;
         };

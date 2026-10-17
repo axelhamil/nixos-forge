@@ -23,16 +23,25 @@ In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a
     hardware = [ "framework-13-7040-amd" ];
 
     profile = "laptop";
-    features = [ "disk" "secure-boot" "plymouth" "hyprland" "docker" ];
-    apps = [ "firefox" ];
+    features = [ "disk" "secure-boot" "plymouth" "docker" ];
+    apps = [ "hyprland" "firefox" ];
 
     timeZone = "Europe/Paris";
     keyboard = "fr";
 
-    users.alice = {
-      fullName = "Alice Example";
-      email = "alice@example.org";
-    };
+    users.alice = { };
+  };
+}
+```
+
+`users.alice` gives an account to a person defined once, in `modules/users/alice/default.nix`, with her name, email, SSH keys, apps and own home-manager config; every machine that names her gets the same person.
+
+```nix
+{
+  users.alice = {
+    fullName = "Alice Example";
+    email = "alice@example.org";
+    apps = [ "shell" "stow" ];
   };
 }
 ```
@@ -46,7 +55,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 | **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/install.md), [wipe-home](docs/wipe-home.md), [hibernate](docs/hibernate.md) |
 | **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback. [install](docs/install.md) |
 | **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
-| **Shell** | zsh, starship, git with delta, neovim, fzf, zoxide, eza, bat, ripgrep, fd, btop through home-manager in the XDG layout; your dotfiles with [stow](https://www.gnu.org/software/stow/). [home](docs/home.md) |
+| **Shell** | zsh, starship, git with delta, neovim, fzf, zoxide, eza, bat, ripgrep, fd, btop through home-manager in the XDG layout; your dotfiles with [stow](https://www.gnu.org/software/stow/). [apps](docs/apps.md) |
 | **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land) with waybar, fuzzel, kitty, mako, hyprlock and hypridle, Firefox with telemetry off. [desktop](docs/desktop.md) |
 | **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd). [performance](docs/performance.md) |
 | **Hardware** | firmware, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
@@ -60,7 +69,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests and the VM.
 
 1. **Fork and clone** the repo.
-2. **Make it yours** with `nix run .#init`: it asks for your host name, profile, login, name, email, time zone, keyboard, locale and features, writes `modules/hosts/<host>/default.nix` from the commented [example host](modules/hosts/example/default.nix), removes the examples you do not keep and stages the result (`--help` lists a flag for every answer, `--yes` asks nothing). To do it by hand, copy the example host to `modules/hosts/<host>`, rename `example` and `alice`, uncomment what you want, and `git add` it: a flake only sees what git tracks.
+2. **Make it yours** with `nix run .#init`: it asks for your host name, profile, login, name, email, time zone, keyboard, locale, features, hardware and apps, writes `modules/hosts/<host>/default.nix` from the commented [example host](modules/hosts/example/default.nix) and `modules/users/<login>/default.nix` from the commented [example person](modules/users/alice/default.nix), removes the examples you do not keep and stages the result (`--help` lists a flag for every answer, `--yes` asks nothing). To do it by hand, copy the example host to `modules/hosts/<host>` and the example person to `modules/users/<login>`, rename `example` and `alice`, uncomment what you want, and `git add` them: a flake only sees what git tracks.
 3. **Check it and boot it** in a VM:
 
    ```sh
@@ -83,19 +92,21 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | Field | What it takes |
 |---|---|
 | `profile` | the role: `desktop`, `laptop`, `server` or `pi` |
-| `features` | any NixOS module by name: `disk` (the encrypted layout, on the disk picked at install), `secure-boot`, `wipe-home`, `plymouth`, `hyprland`, `docker`, `libvirt`, `nix-ld`, `direnv`, `ssh`, `secrets`, yours |
-| `apps` | an app of `modules/apps/<name>` with its config, else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
+| `features` | any NixOS module by name: `disk` (the encrypted layout, on the disk picked at install), `secure-boot`, `wipe-home`, `plymouth`, `docker`, `libvirt`, `nix-ld`, `ssh`, `secrets`, yours |
+| `apps` | an app of `modules/apps/<name>` with its config (`hyprland`, `direnv`, `firefox`, `stow`, ...), else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
 | `hardware` | a starter module (`nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
-| `users.<name>` | `fullName`, `email`, `admin`, `sshKeys`, its own `apps`, and `home`, the home-manager modules (`shell` by default) |
+| `users.<name>` | an account for the person of `modules/users/<name>`: `admin`, `groups` and `apps` on this machine, added to the person's |
 | `facter` | the hardware report the installer saves in `/persist/facter.json`, copied next to the host file: `./facter.json` |
 | `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
 | `module` | anything else, as plain NixOS config |
 
-An unknown name stops the evaluation with the list of known ones.
+A person (`modules/users/<name>`, every field in [docs/options.md](docs/options.md#person-options)) has `fullName`, `email`, `sshKeys`, `apps` that follow them on every machine (`shell` by default) and `module`, their own home-manager config.
 
-**Add a module.** Publish `flake.modules.nixos.<name>` from any file under `modules/` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as a sibling of `hyprland`.
+An unknown name stops the evaluation with the list of known ones; in `apps`, a name that is no app and no nixpkgs package; in `users`, a person with no folder in `modules/users`.
 
-**Add an app with its config.** Create `modules/apps/<name>/default.nix` and name it in `apps`; a `check.nix` with `helpers.appCheck` gives it a VM test. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the example, swap it for the browser you like the same way.
+**Add a feature.** Publish `features.<name>` from a file under `modules/features/<name>` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as an app, a sibling of `hyprland`.
+
+**Add an app with its config** ([docs/apps.md](docs/apps.md)). Create `modules/apps/<name>/default.nix` and name it in `apps`; a `check.nix` with `helpers.appCheck` gives it a VM test, `app-<name>`. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the example, swap it for the browser you like the same way.
 
 ```nix
 {
@@ -105,7 +116,9 @@ An unknown name stops the evaluation with the list of known ones.
 }
 ```
 
-**Add your home config.** A file such as `modules/users/<you>/default.nix` publishing `flake.modules.homeManager.<you>`, listed in your `home` (`[ "shell" "<you>" ]`). Every value the starter sets is a default you override there without `mkForce`.
+**Add your home config.** `users.<you>.module` in `modules/users/<you>`, home-manager config that follows you on every machine ([docs/apps.md](docs/apps.md#change-a-starter-default)). Every setting a starter app writes, its `enable` flags aside, is a default you override there without `mkForce`.
+
+**Change your system.** Edit the checkout, try it with `nh os test`, switch with `nh os switch`, then commit and push so your other machines follow ([docs/updates.md](docs/updates.md#the-edit-loop)).
 
 ## Layout
 
@@ -114,18 +127,15 @@ Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) modul
 ```text
 modules/
 ├── flake/     flake wiring: host registry and its checks, installer ISO, formatter, dev shell,
-│              CI scripts
-├── helpers/   functions shared by modules (config.helpers)
-├── system/    the OS base: nix, home-manager, resolved; opt-in disk (with btrbk snapshots),
-│              wipe-home, secure-boot, ssh, secrets
-├── hardware/  firmware, audio, bluetooth, GPUs, Raspberry Pi 4 and 5
-├── profiles/  desktop, laptop, server, pi
-├── dev/       docker (rootless), libvirt, nix-ld, direnv
-├── home/      zsh, starship, git, neovim, cli, the shell bundle, stow
-├── desktop/   plymouth, greetd, hyprland, waybar, fuzzel, kitty, mako, lock
-├── apps/      apps with their config: firefox
-├── users/     your own home config, when you need one
-└── hosts/     one file per machine
+│              CI scripts, helpers/ (functions shared by modules, config.helpers)
+├── features/  the system: base/ (nix, home-manager, impermanence, resolved, doctor, update),
+│              profiles/ (desktop, laptop, server, pi), hardware/ (firmware, audio, GPUs,
+│              Raspberry Pi), and disk, wipe-home, secure-boot, ssh, secrets, docker, libvirt,
+│              nix-ld, greetd, plymouth, ...
+├── apps/      everything a user runs, with its config: hyprland, waybar, fuzzel, kitty, mako,
+│              lock, the shell bundle (zsh, starship, git, neovim, cli), direnv, stow, firefox
+├── users/     one folder per person: name, email, SSH keys, apps and home config
+└── hosts/     one file per machine, giving accounts to people
 ```
 
 ## Releases

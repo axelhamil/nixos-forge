@@ -81,7 +81,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
    ```
 
    Log in with your user and the password `test`, set for the VM only. Nothing touches a physical disk.
-4. **Install** on a real machine: build the installer ISO, write it to a USB stick and boot it; the assistant asks for the disk, the passphrase and the passwords. Other paths (nixos-anywhere, disko-install) are in [docs/install.md](docs/install.md). Turn on the CI of your fork with [docs/ci.md](docs/ci.md).
+4. **Install** on a real machine: build the installer ISO, write it to a USB stick and boot it; the assistant asks for the disk, the passphrase and the passwords. `nix run .#try-install -- <host>` runs the same install in a local VM first. Other paths (nixos-anywhere, disko-install) are in [docs/install.md](docs/install.md). Turn on the CI of your fork with [docs/ci.md](docs/ci.md).
 
    ```sh
    nix build .#installer-<host>   # result/iso/<host>-installer.iso

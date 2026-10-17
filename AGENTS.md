@@ -20,6 +20,7 @@ A NixOS flake meant to be forked (the kickstart.nvim model): a readable starting
 | Build the VM | `nix build .#nixosConfigurations.<host>.config.system.build.vm` |
 | Boot the VM headless (blocks until killed) | `QEMU_KERNEL_PARAMS=console=ttyS0 ./result/bin/run-<host>-vm -nographic` |
 | Build the installer ISO of a host with `disk` | `nix build .#installer-<host>` |
+| Try a host's full install in a local graphical VM (Secure Boot setup mode, TPM2, blank disk; `--reset` starts over) | `nix run .#try-install -- <host>` |
 | Regenerate `docs/options.md` after changing the registry options | `nix run .#options-doc` |
 | Package diff against a revision | `nix run .#closure-diff -- <rev>` |
 | Show what the starter changed and prepare its merge in a fork | `nix run .#upstream` |

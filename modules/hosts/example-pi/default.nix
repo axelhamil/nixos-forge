@@ -23,7 +23,7 @@
       # "greetd" # the tuigreet login screen alone, for another desktop (docs/desktop.md)
       # "docker" # rootless Docker (docs/dev.md)
       # "libvirt" # virtual machines with virt-manager (docs/dev.md)
-      # "nix-ld" # run binaries not built for NixOS (docs/dev.md)
+      # "nix-ld" # run binaries not built for NixOS, and AppImages (docs/dev.md)
       "ssh" # key-only SSH server (docs/services.md)
       # "secrets" # sops-nix secrets (docs/services.md)
       # "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, no automatic rollback on a Pi (docs/raspberry-pi.md)
@@ -34,7 +34,7 @@
     hardware = [
       # "raspberry-pi-4" # Raspberry Pi 4 (docs/raspberry-pi.md)
       "raspberry-pi-5" # Raspberry Pi 5 (docs/raspberry-pi.md)
-      # "firmware" # redistributable firmware and fwupd
+      # "firmware" # redistributable firmware, CPU microcode and fwupd
       # "audio" # PipeWire
       # "bluetooth" # Bluetooth
       # "nvidia" # NVIDIA GPU with the open kernel module, x86_64-linux only

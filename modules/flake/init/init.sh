@@ -378,7 +378,31 @@ person=$person_dir/default.nix
 login_attribute=$(nix_attribute "$login")
 generated=$(mktemp)
 generated_person=$(mktemp)
-trap 'rm -f "$generated" "$generated_person"' EXIT
+if [[ -d ${XDG_RUNTIME_DIR:-} ]]; then
+  key_dir=$(mktemp -d -p "$XDG_RUNTIME_DIR" deploy-key.XXXXXX)
+else
+  key_dir=$(mktemp -d)
+fi
+key_file=$key_dir/deploy
+trap 'status=$?; rm -f "$generated" "$generated_person" "$key_file.pub"; if ((status != 0)) && [[ -f $key_file ]]; then echo "init: the deploy signing key is kept in $key_file, its public key may already be in the signers of your hosts" >&2; fi' EXIT
+
+ssh-keygen -q -t ed25519 -N "" -C deploy -f "$key_file" </dev/null
+read -r key_type key_body _ <"$key_file.pub"
+rm -f -- "$key_file.pub"
+signer="$key_type $key_body deploy"
+
+trust_signer() {
+  SIGNER=$signer awk '
+    match($0, /^    # signers = \[ "[^"]*" \];(.*)$/, m) {
+      print "    signers = ["
+      print "      \"" ENVIRON["SIGNER"] "\""
+      print "    ];" m[1]
+      next
+    }
+
+    { print }
+  '
+}
 
 HOST_ATTRIBUTE=$(nix_attribute "$host") \
   SYSTEM=$system \
@@ -443,7 +467,7 @@ HOST_ATTRIBUTE=$(nix_attribute "$host") \
     /^    users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
 
     { print }
-  ' "$template" >"$generated"
+  ' "$template" | trust_signer >"$generated"
 
 LOGIN=$login \
   LOGIN_ATTRIBUTE=$login_attribute \
@@ -484,13 +508,22 @@ for example in "${removed[@]}"; do
   git rm -r -q -- "modules/hosts/$example"
 done
 
-fork_flake() {
+github_repo() {
   local origin repo
   origin=$(git remote get-url origin 2>/dev/null) || return 0
   repo=${origin%/}
   repo=${repo%.git}
   if [[ $repo =~ ^(https://github\.com/|ssh://git@github\.com/|git@github\.com:)([^/]+/[^/]+)$ ]]; then
-    [[ ${BASH_REMATCH[2],,} == "${upstream,,}" ]] || printf 'github:%s' "${BASH_REMATCH[2]}"
+    printf '%s' "${BASH_REMATCH[2]}"
+  fi
+}
+
+fork_flake() {
+  local origin repo
+  origin=$(git remote get-url origin 2>/dev/null) || return 0
+  repo=$(github_repo)
+  if [[ -n $repo ]]; then
+    [[ ${repo,,} == "${upstream,,}" ]] || printf 'github:%s' "$repo"
   elif [[ $origin =~ ^https://[^?#]+$ ]]; then
     printf 'git+%s' "$origin"
   fi
@@ -518,7 +551,7 @@ for example in modules/hosts/example-server modules/hosts/example-pi; do
     ENVIRON["KEPT_FLAKE"] == "" && /^      "auto-upgrade" #/ { sub(/"auto-upgrade"/, "# \"auto-upgrade\""); print; next }
 
     { print }
-  ' "$example/default.nix" >"$generated"
+  ' "$example/default.nix" | trust_signer >"$generated"
   cat -- "$generated" >"$example/default.nix"
   git add -- "$example/default.nix"
 done
@@ -539,4 +572,24 @@ Next steps:
                        boots $host in a VM: log in as $login with the password "test"
   nix build .#installer-$host
                        the installer ISO, for a host with the disk feature (docs/install.md)
+
+Deploy signing key: CI signs every deploy/<host> commit with it, and auto-upgrade
+applies only commits signed by its public key, written in the signers of your hosts.
+The private key is in $key_file, outside the repository and readable
+by you alone. In your fork, create the environment deploy limited to the main branch
+(Settings, Environments; docs/ci.md), then store the key there and delete the file:
+
+EOF
+
+repo=$(github_repo)
+printf -v quoted_key '%q' "$key_file"
+if [[ -n $repo && ${repo,,} != "${upstream,,}" ]]; then
+  echo "  gh secret set DEPLOY_SIGNING_KEY --env deploy --repo $repo < $quoted_key && shred -u $quoted_key"
+else
+  echo "  gh secret set DEPLOY_SIGNING_KEY --env deploy < $quoted_key && shred -u $quoted_key"
+fi
+cat <<EOF
+
+or, on GitHub, paste the content of the file in the secret DEPLOY_SIGNING_KEY of the
+environment deploy, then run: shred -u $quoted_key
 EOF

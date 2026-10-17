@@ -51,6 +51,15 @@
           example = [ "https://codeberg.org/alice/nixos.git" ];
           description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted.";
         };
+
+        signers = lib.mkOption {
+          type = lib.types.listOf (
+            lib.types.strMatching "(ssh|ecdsa|sk)-[a-z0-9@.-]+ [A-Za-z0-9+/]+=*( [^\n]*)?"
+          );
+          default = [ ];
+          example = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyOfTheDeploySecret deploy" ];
+          description = "SSH public keys that sign deploy commits: when set, `auto-upgrade` applies only a `deploy/<host>` commit signed by one of them for this host.";
+        };
       };
 
       options.autoUpgrade = {

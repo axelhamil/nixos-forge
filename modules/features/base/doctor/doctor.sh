@@ -361,6 +361,24 @@ check_upgrades() {
   fi
 }
 
+check_signers() {
+  if [ -z "$auto_upgrade_state" ]; then
+    report SKIP "Signed deploys" "auto-upgrade is off"
+    return
+  fi
+
+  if [ "$deploy_signers" = 0 ]; then
+    report WARN "Signed deploys" "auto-upgrade applies any deploy commit its sources serve, signed or not" "set the host's signers to the public key of DEPLOY_SIGNING_KEY (update.signers, docs/updates.md)"
+    return
+  fi
+
+  local keys="$deploy_signers keys"
+  if [ "$deploy_signers" = 1 ]; then
+    keys="1 key"
+  fi
+  report OK "Signed deploys" "auto-upgrade applies only deploy commits signed by $keys of update.signers"
+}
+
 check_boot() {
   if ! is_root; then
     report SKIP "Boot" "needs root, run sudo doctor"
@@ -498,6 +516,7 @@ check_space
 check_units
 check_updates
 check_upgrades
+check_signers
 check_boot
 check_impermanence
 

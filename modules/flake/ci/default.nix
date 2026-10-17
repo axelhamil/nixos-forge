@@ -104,6 +104,7 @@ in
           pkgs.jq
           pkgs.coreutils
           pkgs.gnugrep
+          pkgs.openssh
         ];
         text = builtins.readFile ./ci-promote.sh;
       };

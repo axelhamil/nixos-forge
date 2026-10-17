@@ -75,6 +75,7 @@
     # pulls the deploy/<host> branch of that fork, which CI moves once this host passed.
     flake = "/home/alice/nixos";
     # mirrors = [ "https://codeberg.org/alice/nixos.git" ]; # other copies of your fork, tried in order when the first is unreachable
+    # signers = [ "ssh-ed25519 AAAA... deploy" ]; # keys signing deploy/<host>: auto-upgrade applies only what they signed, `nix run .#init` writes yours
 
     timeZone = "Europe/Paris"; # such as "UTC"
     locale = "fr_FR.UTF-8"; # language and formats, such as "en_US.UTF-8"

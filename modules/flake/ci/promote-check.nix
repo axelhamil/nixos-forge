@@ -16,6 +16,7 @@
           pkgs.jq
           pkgs.coreutils
           pkgs.gnugrep
+          pkgs.openssh
         ];
         runtimeEnv = {
           RUNS = ./_fixtures/runs;

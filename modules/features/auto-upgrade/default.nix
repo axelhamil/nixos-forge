@@ -7,7 +7,7 @@
       ...
     }:
     let
-      inherit (config.update) flake mirrors;
+      inherit (config.update) flake mirrors signers;
       inherit (config) autoUpgrade;
 
       checkout = flake != null && lib.hasPrefix "/" flake;
@@ -33,6 +33,10 @@
         else
           [ ];
 
+      allowedSigners = pkgs.writeText "allowed-signers" (
+        lib.concatMapStrings (key: "deploy namespaces=\"git\" ${key}\n") signers
+      );
+
       auto-upgrade = pkgs.writeShellApplication {
         name = "auto-upgrade";
         runtimeInputs = [
@@ -52,6 +56,7 @@
           OPERATION = autoUpgrade.operation;
           REBUILD = autoUpgrade.rebuildCommand;
           ALLOW_LOCAL_BUILD = lib.boolToString autoUpgrade.allowLocalBuild;
+          ALLOWED_SIGNERS = if signers == [ ] then "" else "${allowedSigners}";
         };
         text = builtins.readFile ./auto-upgrade.sh;
       };

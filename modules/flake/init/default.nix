@@ -60,6 +60,7 @@ in
           pkgs.gawk
           pkgs.gnused
           pkgs.coreutils
+          pkgs.openssh
         ];
         text = builtins.readFile ./init.sh;
       };
@@ -73,7 +74,9 @@ in
                 config.packages.init
                 pkgs.git
                 pkgs.gnugrep
+                pkgs.gnused
                 pkgs.coreutils
+                pkgs.openssh
                 pkgs.nixfmt
               ];
               runtimeEnv = {

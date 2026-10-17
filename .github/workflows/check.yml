@@ -166,6 +166,7 @@ jobs:
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.result == 'success' && vars.BOT_CLIENT_ID != '' }}
     needs: [plan, build]
     runs-on: ubuntu-latest
+    environment: deploy
     env:
       PLANNED: ${{ needs.plan.outputs.checks }}
       SKIPPED: ${{ needs.plan.outputs.skipped }}
@@ -187,7 +188,9 @@ jobs:
           pattern: result-*
           path: results
           merge-multiple: true
-      - run: nix run .#ci-promote -- results "$GITHUB_SHA"
+      - env:
+          DEPLOY_SIGNING_KEY: ${{ secrets.DEPLOY_SIGNING_KEY }}
+        run: nix run .#ci-promote -- results "$GITHUB_SHA"
 
   ci-ok:
     if: always()

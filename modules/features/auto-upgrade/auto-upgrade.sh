@@ -102,7 +102,46 @@ done <<<"$SOURCES"
 
 [[ -d $repo ]] || git init --quiet --bare "$repo"
 
+signers_git() {
+  GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null git -C "$repo" -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$ALLOWED_SIGNERS" -c gpg.openpgp.program=false -c gpg.x509.program=false "$@"
+}
+
+unverified() {
+  local commit=$1 subject
+  if signers_git verify-commit "$commit" >/dev/null 2>&1; then
+    subject=$(git -C "$repo" log -1 --format=%s "$commit")
+    if [[ $subject != "deploy $HOST: "* ]]; then
+      echo "signed for another host"
+      return 0
+    fi
+    return 1
+  fi
+  case $(signers_git log -1 --format=%G? "$commit") in
+  N)
+    if [[ $(git -C "$repo" cat-file commit "$commit") == *$'\ngpgsig '* ]]; then
+      echo "not signed with an SSH key"
+    else
+      echo "unsigned"
+    fi
+    ;;
+  B) echo "signature invalid" ;;
+  *) echo "signed by a key not in update.signers" ;;
+  esac
+}
+
+carried() {
+  local commit=$1 subject parents
+  subject=$(git -C "$repo" log -1 --format=%s "$commit" 2>/dev/null) || return 1
+  if [[ $subject == "deploy $HOST: checks passed for "* ]]; then
+    read -r -a parents < <(git -C "$repo" rev-list --parents -n 1 "$commit")
+    echo "${parents[-1]}"
+  else
+    echo "$commit"
+  fi
+}
+
 answered=false
+refusals=()
 for index in "${!sources[@]}"; do
   candidate=${sources[index]}
   status=0
@@ -113,11 +152,22 @@ for index in "${!sources[@]}"; do
   fi
   ((status == 0)) || continue
   if timeout 60 git -C "$repo" fetch --quiet --no-tags --end-of-options "$candidate" "+refs/heads/$branch:refs/candidates/$index"; then
+    fetched=$(git -C "$repo" rev-parse "refs/candidates/$index")
+    if [[ -n $ALLOWED_SIGNERS ]] && reason=$(unverified "$fetched"); then
+      refusals+=("$candidate: $reason")
+      continue
+    fi
     source=$candidate
-    to=$(git -C "$repo" rev-parse "refs/candidates/$index")
+    to=$fetched
     break
   fi
 done
+
+if [[ -z $source && ${#refusals[@]} -gt 0 ]]; then
+  printf -v reasons '%s; ' "${refusals[@]}"
+  finish refused "no source serves a $branch commit signed for this host by a key of update.signers, so this machine stays on its version (${reasons%; }): check the DEPLOY_SIGNING_KEY secret of the fork (docs/ci.md)"
+  exit 0
+fi
 
 if [[ -z $source && $answered == true ]]; then
   finish waiting "CI has not validated a version for this host yet; if this lasts, CI has not promoted it: check that the bot App is set up (docs/ci.md) and that the host's checks pass"
@@ -146,6 +196,13 @@ for revision in "$running" "$next"; do
   fi
 done
 
+keep() {
+  git -C "$repo" update-ref "refs/auto-upgrade/$1" "$2" 2>/dev/null || true
+}
+
+keep current "$running"
+keep next "$next"
+
 if [[ $next == "$to" && $running == "$to" ]]; then
   finish up-to-date "$branch is the running commit"
   exit 0
@@ -161,9 +218,10 @@ if [[ $next == "$to" ]]; then
   exit 0
 fi
 
+carried_to=$(carried "$to")
 for revision in "$running" "$next"; do
-  if ! git -C "$repo" merge-base --is-ancestor "$revision" "$to" 2>/dev/null; then
-    finish refused "$branch does not contain the running commit: push it, or the pointer was moved back"
+  if ! carried_revision=$(carried "$revision") || ! git -C "$repo" merge-base --is-ancestor "$carried_revision" "$carried_to" 2>/dev/null; then
+    finish refused "$branch does not contain the main commit this machine runs: push it, or the pointer was moved back"
     exit 0
   fi
 done
@@ -182,6 +240,11 @@ if ! "$REBUILD" "$OPERATION" --flake "git+file://$repo?rev=$to#$HOST" "${build_o
   fi
   finish failed "nixos-rebuild $OPERATION failed: journalctl -u auto-upgrade shows why"
   exit 1
+fi
+
+keep next "$to"
+if [[ $OPERATION != boot ]]; then
+  keep current "$to"
 fi
 
 changes=$(nvd diff "$old_system" /nix/var/nix/profiles/system 2>/dev/null | grep '^Closure size:' || true)

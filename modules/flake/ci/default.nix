@@ -95,7 +95,10 @@ in
 
       packages.ci-mirror = pkgs.writeShellApplication {
         name = "ci-mirror";
-        runtimeInputs = [ pkgs.git ];
+        runtimeInputs = [
+          pkgs.git
+          pkgs.coreutils
+        ];
         text = builtins.readFile ./ci-mirror.sh;
       };
 

@@ -69,6 +69,44 @@ status=0
 [ "$(at ../mirror.git main)" = "$c" ] || fail "main was force-pushed to the mirror"
 [ "$(at ../mirror.git deploy/example)" = "$c" ] || fail "deploy/example does not follow the source when it moved back, or a refused main held it: $(cat third.out)"
 
+cat >../capture.py <<'PY'
+import http.server, sys
+
+class Capture(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        with open(sys.argv[1], "a") as seen:
+            seen.write(f"{self.headers.get('Authorization', '')}\n")
+        self.send_response(404)
+        self.end_headers()
+
+    def log_message(self, *args):
+        pass
+
+server = http.server.HTTPServer(("127.0.0.1", 0), Capture)
+with open(sys.argv[2], "w") as port:
+    port.write(str(server.server_port))
+server.serve_forever()
+PY
+python3 ../capture.py ../headers ../port &
+capture=$!
+for _ in $(seq 50); do
+  [ -s ../port ] && break
+  sleep 0.1
+done
+[ -s ../port ] || fail "the capture server did not start"
+http_mirror=http://127.0.0.1:$(cat ../port)/alice/nixos.git
+
+(cd ../run && MIRROR_TOKEN=s3cr3t-token timeout 30 "$CI_MIRROR" "$http_mirror") >http.out 2>&1 || true
+expected="Basic $(printf '%s' 'x-access-token:s3cr3t-token' | base64 -w0)"
+grep -qxF "$expected" ../headers || fail "the mirror did not get the header $expected: $(cat ../headers)"
+grep -q s3cr3t-token http.out && fail "the token shows in the output: $(cat http.out)"
+
+: >../headers
+(cd ../run && timeout 30 "$CI_MIRROR" "$http_mirror") >anonymous.out 2>&1 || true
+[ -s ../headers ] || fail "the mirror got no request without a token"
+grep -qv '^$' ../headers && fail "a header was sent without MIRROR_TOKEN: $(cat ../headers)"
+kill "$capture"
+
 status=0
 (cd ../run && "$CI_MIRROR") >usage.out 2>&1 || status=$?
 [ "$status" -eq 2 ] || fail "no URL exits with $status instead of 2"

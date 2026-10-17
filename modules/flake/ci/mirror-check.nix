@@ -15,6 +15,7 @@
           pkgs.git
           pkgs.coreutils
           pkgs.gnugrep
+          pkgs.python3
         ];
         runtimeEnv.CI_MIRROR = lib.getExe self'.packages.ci-mirror;
         text = builtins.readFile ./mirror-test.sh;

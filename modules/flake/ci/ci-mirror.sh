@@ -7,7 +7,8 @@ url=$1
 
 auth=()
 if [ -n "${MIRROR_TOKEN:-}" ]; then
-  export MIRROR_AUTH_HEADER="Authorization: token $MIRROR_TOKEN"
+  MIRROR_AUTH_HEADER="Authorization: Basic $(printf '%s' "x-access-token:$MIRROR_TOKEN" | base64 -w0)"
+  export MIRROR_AUTH_HEADER
   auth=(--config-env="http.$url.extraHeader=MIRROR_AUTH_HEADER")
 fi
 

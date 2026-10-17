@@ -42,14 +42,14 @@ in
       environment.persistence."/persist".directories = [
         "/etc/NetworkManager/system-connections"
         "/var/lib/NetworkManager"
-        "/var/lib/power-profiles-daemon"
-        "/var/lib/cups"
       ];
 
       doctor.ephemeralPaths = [
         "/etc/wpa_supplicant/imperative.conf"
         "/etc/printcap"
+        "/var/lib/cups"
         "/var/cache/cups"
+        "/var/lib/power-profiles-daemon"
       ];
     };
 }

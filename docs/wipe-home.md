@@ -19,6 +19,8 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 
 | Module | Path |
 |---|---|
+| `base` | `~/.ssh`, `~/.gnupg` and `~/.config/gh`, mode `0700`, in every home |
+| `update` | the host's `flake` checkout, when it is a path in `/home/<you>/` (do not list it again) |
 | `zsh` | `~/.local/state/zsh` |
 | `cli` | `~/.local/share/zoxide` |
 | `neovim` | `~/.local/share/nvim`, `~/.local/state/nvim` |
@@ -37,8 +39,7 @@ users.<you>.module = {
     directories = [
       "projects"
       "Documents"
-      { directory = ".ssh"; mode = "0700"; }
-      { directory = ".gnupg"; mode = "0700"; }
+      { directory = ".local/share/keyrings"; mode = "0700"; }
       ".local/share/nix"
     ];
     files = [ ".config/monitors.xml" ];
@@ -53,7 +54,7 @@ users.<you>.module = {
 
 ## Find what is missing
 
-Usual candidates: projects and documents, `~/.ssh`, `~/.gnupg`, other browser profiles (`~/.config/chromium`), keyrings (`~/.local/share/keyrings`), app sessions under `~/.config` and `~/.local/share`, and `~/.local/share/nix` for the flake settings you trusted.
+Usual candidates: projects and documents, other browser profiles (`~/.config/chromium`), keyrings (`~/.local/share/keyrings`), app sessions under `~/.config` and `~/.local/share`, and `~/.local/share/nix` for the flake settings you trusted.
 
 On a home you are about to wipe, list what changed in the last 30 days:
 
@@ -76,7 +77,7 @@ find /.snapshots/home-wiped.<date>/<you> -xdev -type f -printf '%P\n' | cut -d/ 
    ```sh
    systemctl --user stop docker
    old=/.snapshots/home-wiped.<date>/$USER
-   for path in projects dotfiles .local/state/zsh .local/share/zoxide .local/share/direnv .local/share/docker; do
+   for path in projects nixos dotfiles .ssh .gnupg .config/gh .local/state/zsh .local/share/zoxide .local/share/direnv .local/share/docker; do
      [ -e "$old/$path" ] && cp -a --reflink=auto "$old/$path/." ~/"$path/"
    done
    sudo systemctl restart home-manager-$USER

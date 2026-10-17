@@ -4,6 +4,6 @@
 
     services.fwupd.enable = true;
 
-    environment.persistence."/persist".directories = [ "/var/lib/fwupd" ];
+    doctor.ephemeralPaths = [ "/var/lib/fwupd" ];
   };
 }

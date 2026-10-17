@@ -45,6 +45,7 @@ let
     ci-promote = "a machine's deploy branch moves only once every check of that machine passed";
     feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";
+    upstream = "`nix run .#upstream` lists the starter's breaking changes and merges its release into a branch, or stops cleanly on a conflict";
     example-hosts = "every example host and the example person list every option the starter ships";
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
     apps-once = "an app reached twice is imported once";

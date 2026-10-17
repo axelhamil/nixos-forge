@@ -6,7 +6,7 @@ What the GitHub Actions workflows do, and what a fork sets so they run.
 
 1. **Keep `develop`**: untick "Copy the main branch only" when forking, or create `develop` from `main`. Work lands on `develop`, then reaches `main` through a PR.
 2. **Enable the workflows**: GitHub disables them on forks. Open the Actions tab and enable them.
-3. **Bot GitHub App**: the release PR and the weekly lock and upstream PRs need an App token, since PRs opened with `GITHUB_TOKEN` trigger no workflow. [Create a GitHub App](https://github.com/settings/apps/new) with webhooks off and the repository permissions **Contents** and **Pull requests** set to read and write, and preferably **Workflows** too (see [below](#validated-versions-per-machine)), generate a private key, install the App on your fork, then set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key. One App serves all your repositories.
+3. **Bot GitHub App**: the release PR, the weekly lock PR and the optional upstream PRs need an App token, since PRs opened with `GITHUB_TOKEN` trigger no workflow. [Create a GitHub App](https://github.com/settings/apps/new) with webhooks off and the repository permissions **Contents** and **Pull requests** set to read and write, and preferably **Workflows** too (see [below](#validated-versions-per-machine)), generate a private key, install the App on your fork, then set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key. One App serves all your repositories.
 4. **Allow auto-merge and merge commits**: Settings, General, "Allow auto-merge" (the lock PR) and "Allow merge commits" (the upstream PRs).
 5. **Ruleset on `main`**: require a pull request and the `ci-ok` status check. Without a required check, auto-merge merges at once.
 6. **Ruleset on `develop`**: block deletions and force pushes, or "Automatically delete head branches" deletes `develop` when a `develop` into `main` PR merges.
@@ -23,7 +23,7 @@ Scheduled workflows and Dependabot only run from the default branch, so they sta
 | `mirror` | push to `main` or `deploy/*`, when `MIRROR_URL` is set | Pushes `main` and every `deploy/<host>` to a second forge, so machines can still fetch their validated version when GitHub is down; a version whose `flake.lock` changed still needs its inputs from GitHub ([below](#mirror-to-a-second-forge)). |
 | `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR updating `flake.lock` against `main`, with auto-merge on. |
 | `sync-develop` | push to `main` | Merges `main` into `develop`. |
-| `sync-upstream` | Monday 07:00 UTC, or by hand, forks only | Opens a PR merging the starter's latest release, for you to review and merge ([updates.md](updates.md)). |
+| `sync-upstream` | Monday 07:00 UTC, or by hand, forks only, when the repository variable `SYNC_UPSTREAM` is `true` | Runs `nix run .#upstream -- --yes` on `main`: opens a PR merging the starter's latest release, for you to review and merge ([updates.md](updates.md#your-fork-follows-the-starter)). The variable `UPSTREAM` (`owner/repo`) points it at another starter. |
 | `release` | push to `main`, starter only | Runs [release-please](https://github.com/googleapis/release-please): a release PR bumps the version and `CHANGELOG.md` from Conventional Commits; merging it tags and publishes the GitHub Release. |
 | Dependabot | weekly | Updates GitHub Actions versions, with PRs against `develop`. |
 

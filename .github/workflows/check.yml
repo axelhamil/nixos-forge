@@ -192,6 +192,39 @@ jobs:
           DEPLOY_SIGNING_KEY: ${{ secrets.DEPLOY_SIGNING_KEY }}
         run: nix run .#ci-promote -- results "$GITHUB_SHA"
 
+  badges:
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [lint, plan, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RESULTS_DIR: results
+      PLANNED: ${{ needs.plan.outputs.checks }}
+      SKIPPED: ${{ needs.plan.outputs.skipped }}
+      HOST_CHECKS: ${{ needs.plan.outputs.hostChecks }}
+      LINT_RESULT: ${{ needs.lint.result }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        if: vars.CACHIX_CACHE != ''
+        continue-on-error: true
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          skipPush: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: result-*
+          path: results
+          merge-multiple: true
+      - continue-on-error: true
+        run: nix run .#ci-boot-time -- github:${{ github.repository }}/${{ github.sha }} results/current
+      - continue-on-error: true
+        run: nix run .#ci-badges -- checks badges
+      - continue-on-error: true
+        run: nix run .#ci-badges -- publish badges
+
   ci-ok:
     if: always()
     needs: [lint, plan, build]

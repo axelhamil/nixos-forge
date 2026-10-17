@@ -83,6 +83,8 @@ in
 
       packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
 
+      packages.ci-badges = import ./_ci-badges.nix { inherit pkgs; };
+
       packages.ci-boot-time = pkgs.writeShellApplication {
         name = "ci-boot-time";
         runtimeInputs = [

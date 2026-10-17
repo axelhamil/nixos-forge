@@ -42,6 +42,7 @@ let
     options-doc = "docs/options.md matches the host options";
     init = "`nix run .#init` writes a first host and person whose system evaluates";
     ci-report = "the CI report reads every result correctly";
+    ci-badges = "the live badges count the checks, VM tests, hosts, boot time and reproducibility of a run, and a publish keeps the badges it does not write";
     reproducibility = "`nix run .#reproducibility` reports an identical rebuild, and a differing one with its diffoscope summary";
     ci-promote = "a machine's deploy branch moves only once every check of that machine passed, signed when CI holds the key, never on a tip the key did not sign";
     feature-auto-upgrade-signed = "a machine with signers applies only a deploy commit they signed for it, never an older one";

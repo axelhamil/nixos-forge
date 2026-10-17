@@ -19,10 +19,13 @@ def rebuild_calls():
     return machine.succeed("cat /var/log/nixos-rebuild-calls 2>/dev/null || true").splitlines()
 
 
-def run(current, following=None):
-    machine.succeed(f"systemctl set-environment CURRENT_REV={current} NEXT_REV={following or current}")
+def run(current, following=None, following_started=True):
+    machine.succeed(
+        f"systemctl set-environment CURRENT_REV={current} NEXT_REV={following or current}"
+        f" NEXT_DID_NOT_START={str(not following_started).lower()}"
+    )
     machine.succeed("systemctl reset-failed auto-upgrade.service", "systemctl start auto-upgrade.service")
-    machine.succeed("systemctl unset-environment CURRENT_REV NEXT_REV")
+    machine.succeed("systemctl unset-environment CURRENT_REV NEXT_REV NEXT_DID_NOT_START")
     return json.loads(machine.succeed("cat /var/lib/auto-upgrade/state.json"))
 
 
@@ -69,6 +72,24 @@ assert state["message"] == "the cache does not have this version yet", state
 assert "local builds are disabled" in machine.succeed("cat /var/lib/auto-upgrade/rebuild.log")
 machine.succeed("rm /run/cache-lacks-version")
 
+state = run(a, b, following_started=False)
+assert state["outcome"] == "rolled-back", state
+short_b = machine.succeed(f"git -C /tmp/work rev-parse --short {b}").strip()
+expected = f"{short_b} did not start and the machine went back to the previous generation: fix it and push, CI will validate the fix"
+assert state["message"] == expected, state
+assert len(rebuild_calls()) == 2, "auto-upgrade reinstalled the version that did not start"
+
+machine.succeed(
+    "git -C /tmp/work checkout -q -b fix HEAD~1",
+    "git -C /tmp/work commit -q --allow-empty -m D",
+    "git -C /tmp/work push -q -f /srv/mirror.git fix:deploy/machine",
+)
+d = machine.succeed("git -C /tmp/work rev-parse HEAD").strip()
+state = run(a, b, following_started=False)
+assert state["outcome"] == "upgraded", state
+assert state["from"] == a and state["to"] == d, state
+assert len(rebuild_calls()) == 3, "auto-upgrade did not install the fix over the version that did not start"
+
 machine.succeed(
     "git -C /tmp/work checkout -q --orphan elsewhere",
     "git -C /tmp/work commit -q --allow-empty -m C",
@@ -77,12 +98,12 @@ machine.succeed(
 state = run(b)
 assert state["outcome"] == "refused", state
 assert "moved back" in state["message"], state
-assert len(rebuild_calls()) == 2, "auto-upgrade replaced a system deploy/machine does not contain"
+assert len(rebuild_calls()) == 3, "auto-upgrade replaced a system deploy/machine does not contain"
 
 machine.succeed("rm -rf /srv/mirror.git")
 state = run(b)
 assert state["outcome"] == "unreachable", state
-assert len(machine.succeed("cat /var/lib/auto-upgrade/history.tsv").splitlines()) == 9
+assert len(machine.succeed("cat /var/lib/auto-upgrade/history.tsv").splitlines()) == 11
 
 assert "CURRENT_REV" not in machine.succeed("systemctl cat auto-upgrade.service")
 machine.succeed("systemctl is-active auto-upgrade.timer")

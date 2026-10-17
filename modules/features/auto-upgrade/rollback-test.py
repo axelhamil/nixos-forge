@@ -71,3 +71,22 @@ with subtest("once its tries are spent, the machine starts the previous generati
     assert current_system() == previous, f"booted {current_system()}, not the previous generation {previous}"
     wait_until_assessed()
     assert boot_entries() == {1: "", 2: "+0-3"}, f"generation 2 is not marked bad: {boot_entries()}"
+
+with subtest("auto-upgrade does not reinstall the version that did not start"):
+    machine.succeed(
+        "git config --global user.email test@example.org",
+        "git config --global user.name test",
+        "git init -q /tmp/work",
+        "git -C /tmp/work commit -q --allow-empty -m previous",
+        "git -C /tmp/work commit -q --allow-empty -m broken",
+        "git init -q --bare /srv/mirror.git",
+        "git -C /tmp/work push -q /srv/mirror.git HEAD:deploy/rollback",
+    )
+    started = machine.succeed("git -C /tmp/work rev-parse HEAD~1").strip()
+    did_not_start = machine.succeed("git -C /tmp/work rev-parse HEAD").strip()
+    machine.succeed(f"systemctl set-environment CURRENT_REV={started} NEXT_REV={did_not_start}")
+    machine.succeed("systemctl start auto-upgrade.service")
+    state = parse_json(machine.succeed("cat /var/lib/auto-upgrade/state.json"))
+    assert state["outcome"] == "rolled-back", state
+    assert state["message"].startswith(f"{did_not_start[:7]} did not start"), state
+    assert machine.succeed("readlink -f /nix/var/nix/profiles/system").strip() == broken, "auto-upgrade replaced the profile"

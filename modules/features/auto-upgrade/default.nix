@@ -33,6 +33,7 @@
           pkgs.nvd
           pkgs.openssh
           config.nix.package
+          config.systemd.package
         ];
         runtimeEnv = {
           HOST = config.networking.hostName;

@@ -45,6 +45,21 @@ revision_of() {
   fi
 }
 
+next_did_not_start() {
+  if [[ -n ${NEXT_DID_NOT_START:-} ]]; then
+    [[ $NEXT_DID_NOT_START == true ]]
+    return
+  fi
+  local profile generation
+  [[ $(readlink -f /run/current-system) != "$(readlink -f /nix/var/nix/profiles/system)" ]] || return 1
+  profile=$(readlink /nix/var/nix/profiles/system)
+  [[ $profile =~ ^system-([0-9]+)-link$ ]] || return 1
+  generation=${BASH_REMATCH[1]}
+  bootctl list --json=short --no-pager 2>/dev/null |
+    jq -e --arg generation "$generation" \
+      'any(.[]; ((.version // "") | test("\\bGeneration \($generation)\\b")) and (.path | test("\\+0-[0-9]+\\.(conf|efi)$")))' >/dev/null
+}
+
 refuse_checkout() {
   finish refused "the checkout $CHECKOUT must be owned by root or an admin (wheel), writable by no one outside root and wheel, with a plain .git folder, for auto-upgrade to trust its origin remote"
   exit 0
@@ -114,6 +129,11 @@ running=${CURRENT_REV:-$(revision_of /run/current-system)}
 next=${NEXT_REV:-$(revision_of /nix/var/nix/profiles/system)}
 next=${next:-$running}
 from=$running
+failed=""
+if [[ $next != "$running" ]] && next_did_not_start; then
+  failed=$next
+  next=$running
+fi
 
 for revision in "$running" "$next"; do
   if [[ -z $revision || $revision == *-dirty ]]; then
@@ -124,6 +144,11 @@ done
 
 if [[ $next == "$to" && $running == "$to" ]]; then
   finish up-to-date "$branch is the running commit"
+  exit 0
+fi
+
+if [[ -n $failed && $failed == "$to" ]]; then
+  finish rolled-back "$(git -C "$repo" rev-parse --short "$to") did not start and the machine went back to the previous generation: fix it and push, CI will validate the fix"
   exit 0
 fi
 

@@ -75,10 +75,17 @@ let
         features.auto-upgrade
         rollbackTest
         testRevision
+        (
+          { pkgs, ... }:
+          {
+            environment.systemPackages = [ pkgs.git ];
+          }
+        )
         {
           nixpkgs.hostPlatform = system;
           networking.hostName = "rollback";
           update.flake = "github:alice/nixos";
+          update.mirrors = [ "file:///srv/mirror.git" ];
           system.stateVersion = "26.05";
         }
       ]

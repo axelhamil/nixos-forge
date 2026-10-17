@@ -68,6 +68,7 @@ It never replaces a system it cannot place in the history of `deploy/<host>`:
 | `upgraded` | a newer validated commit was built | nothing, it applies at next boot |
 | `up-to-date` | `deploy/<host>` is the running commit, or is installed and applies at next boot | nothing, or reboot |
 | `waiting` | CI has not validated a version for this host yet (a source answered without `deploy/<host>`), or the cache lacks that version and local builds are off | nothing, the next run retries |
+| `rolled-back` | the version installed for next boot did not start: its tries are spent and the machine went back to the previous generation, so auto-upgrade does not install it again while `deploy/<host>` points to it | fix it and push, CI will validate the fix; a newer `deploy/<host>` is installed as usual |
 | `refused` | the running system or the one installed for next boot was built from uncommitted changes, or from a commit `deploy/<host>` does not contain (not pushed yet, or the pointer was moved back by a force push), or the checkout is not owned by an admin | commit and push, let CI validate it; or `chown` the checkout |
 | `unreachable` | no source answered within 60 seconds | check the network or the mirrors; the machine stays on its version |
 | `failed` | the build or the switch failed | `journalctl -u auto-upgrade` |

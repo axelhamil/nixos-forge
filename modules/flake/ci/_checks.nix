@@ -52,6 +52,9 @@ let
     example-hosts = "every example host and the example person list every option the starter ships";
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
     apps-once = "an app reached twice is imported once";
+    feature-migration = "a machine running `example` from the base revision keeps its state after switching to this version";
+    feature-migration-without-disk = "an `example` host without `disk`, here or on the base, gets no migration check and still evaluates";
+    feature-rollback-failed-unit = "a generation whose service fails after boot is not blessed and is rolled back";
     flake-modules = "no name is published by two namespaces";
   };
 

@@ -78,6 +78,18 @@ result=unreadable/x86_64-linux-example-boots.json
 jq -e '.outcome == "passed" and .bootTime == null and .screenshots == []' "$result" >/dev/null || fail "unreadable: wrong result: $(cat "$result")"
 grep -q "could not be kept, the check still passed" unreadable.err || fail "unreadable: the lost evidence is not logged: $(cat unreadable.err)"
 
+NIX_CALLS=$PWD/base-calls
+"$BASE_CI_BUILD" x86_64-linux feature-migration results --retry --base-input migration-base --base github:owner/repo/0123abc >base.out || fail "base: a passing check with a base exits non-zero"
+grep -qx "build --no-link --print-build-logs --print-out-paths --override-input migration-base github:owner/repo/0123abc .#checks.x86_64-linux.feature-migration" "$NIX_CALLS" || fail "base: the check does not run against the base: $(cat "$NIX_CALLS")"
+
+NIX_CALLS=$PWD/no-base-calls
+"$BASE_CI_BUILD" x86_64-linux feature-migration results --base-input migration-base --base github:owner/repo/0000000000000000000000000000000000000000 >base.out || fail "base: a check whose push has no previous commit exits non-zero"
+grep -qx "build --no-link --print-build-logs --print-out-paths .#checks.x86_64-linux.feature-migration" "$NIX_CALLS" || fail "base: an all-zero base revision is not left to the locked input: $(cat "$NIX_CALLS")"
+
+if "$BASE_CI_BUILD" x86_64-linux feature-migration results --base github:owner/repo/0123abc >base.out 2>&1; then
+  fail "base: a base without the input it overrides is accepted"
+fi
+
 export PLANNED SKIPPED CACHE_OUTCOME LINT_RESULT PLAN_RESULT RUN_URL HOST_CHECKS DESCRIPTIONS
 PLAN_RESULT=success
 HOST_CHECKS=$(cat "$RUNS/host-checks.json")

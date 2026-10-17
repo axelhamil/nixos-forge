@@ -16,6 +16,7 @@ let
       inherit check system;
       runner = runners.${system};
       retry = config.flake.checks.${system}.${check} ? driver;
+      baseInput = config.flake.checks.${system}.${check}.baseInput or null;
     }) (buildChecksOn system);
 
   kernelsOn =

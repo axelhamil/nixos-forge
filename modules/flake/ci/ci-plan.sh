@@ -10,21 +10,26 @@ evaluated=$(nix-eval-jobs --flake .#checks --force-recurse --check-cache-status 
 
 jq -r 'map(select(.error)) | if length > 0 then (.[] | "\(.attr) does not evaluate: \(.error)\n") | halt_error(1) else empty end' <<<"$evaluated"
 
-status=$(jq 'map({ key: .attr, value: { cached: .isCached, needs: (.neededBuilds // []) } }) | from_entries' <<<"$evaluated")
+status=$(
+  jq --argjson kernels "$kernels" '
+    map(
+      (.attr | split(".")[0]) as $system
+      | { key: .attr, value: { cached: .isCached, kernel: any((.neededBuilds // [])[]; IN(($kernels[$system] // [])[])) } }
+    )
+    | from_entries
+  ' <<<"$evaluated"
+)
 
 plan=$(
   jq -n -c \
     --arg event "$event" \
-    --argjson kernels "$kernels" \
     --argjson jobs "$jobs" \
     --argjson closures "$closures" \
     --argjson status "$status" '
-    def compiles($system; $needs): any($needs[]; IN(($kernels[$system] // [])[]));
-
     ($jobs | map(
       . as $job
       | ($status[$job.system + "." + $job.check] // error("\($job.system).\($job.check) is missing from the evaluation")) as $s
-      | . + { cached: $s.cached, kernel: compiles($job.system; $s.needs) }
+      | . + { cached: ($s.cached and $job.baseInput == null), kernel: $s.kernel }
       | . + { build: ((.cached | not) and ($event == "push" or (.kernel | not))), timeout: (if .kernel then 240 else 60 end) }
     )) as $all
     | {

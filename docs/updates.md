@@ -29,6 +29,8 @@ To get that PR every Monday at 07:00 UTC instead, set the repository variable `S
 
 The starter keeps `modules/hosts` and `modules/users` minimal, so conflicts stay rare as long as your own config lives there. The one that comes back is a release editing the examples your fork removed (`modules/hosts/example*`, `modules/users/alice`): git reports a modify/delete conflict, settled by keeping them deleted (`git rm` them, then commit the merge); read their diff first, it shows what a new field looks like. Only the starter publishes releases (`release` is skipped in forks), so `CHANGELOG.md` and the version files never conflict.
 
+Every change is also tried as an upgrade: `feature-migration` installs the `example` host of the base revision (in CI, the PR's base or the commit before a push; locally, the starter's `main` locked in the `migration-base` input), writes state, installs this version for the next boot and checks that the state is still there once it started ([ci.md](ci.md#checks)). In a fork without the `example` host, or whose `example` here or on the base does not import `disk`, the check does not exist.
+
 `update-flake-lock` runs one hour earlier and opens a PR updating `flake.lock`, which merges itself once `ci-ok` is green: it only moves inputs (nixpkgs, home-manager, ...) to newer revisions of the same sources. Both workflows need the bot App and the settings of [ci.md](ci.md#turn-ci-on-in-your-fork).
 
 ## The edit loop

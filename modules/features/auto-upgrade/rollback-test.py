@@ -60,7 +60,13 @@ for tries_done in range(1, 4):
         boot()
         machine.succeed(f"test -e {boot_count_path}")
         assert current_system() == broken, f"try {tries_done} booted {current_system()}, not {broken}"
-        machine.wait_until_succeeds("systemctl is-failed systemd-boot-check-no-failures.service")
+        machine.wait_until_succeeds("systemctl is-failed failing-upgrade.service")
+        machine.wait_until_succeeds(f"systemctl is-failed {failed_unit}")
+        machine.wait_until_succeeds("test -z \"$(systemctl list-jobs --no-legend)\"")
+        for unit in idle_units:
+            started = machine.succeed(f"systemctl show -P ExecMainStartTimestampMonotonic {unit}").strip()
+            assert started == "0", f"{unit} ran on try {tries_done}, so it may be what kept the boot from being blessed"
+        machine.fail("systemctl is-active boot-complete.target")
         machine.fail("systemctl is-active systemd-bless-boot.service")
         counter = f"+{3 - tries_done}-{tries_done}"
         assert boot_entries()[2] == counter, f"expected generation 2 at {counter}: {boot_entries()}"

@@ -236,6 +236,13 @@ let
           description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted.";
         };
 
+        signers = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          example = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyOfTheDeploySecret deploy" ];
+          description = "SSH public keys that sign the deploy commits CI promotes (the secret `DEPLOY_SIGNING_KEY`, which `nix run .#init` generates). When set, `auto-upgrade` applies a `deploy/<host>` commit only when it carries a valid signature from one of them, and skips a source that serves anything else. Empty, it trusts whatever its sources serve, and `doctor` warns.";
+        };
+
         timeZone = mkOption {
           type = types.str;
           default = "UTC";
@@ -285,6 +292,7 @@ let
           networking.hostName = name;
           update.flake = host.flake;
           update.mirrors = host.mirrors;
+          update.signers = host.signers;
           hardware.facter.reportPath = lib.mkIf (host.facter != null) host.facter;
           time.timeZone = lib.mkDefault host.timeZone;
           i18n.defaultLocale = lib.mkDefault host.locale;

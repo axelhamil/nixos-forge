@@ -43,7 +43,8 @@ let
     init = "`nix run .#init` writes a first host and person whose system evaluates";
     ci-report = "the CI report reads every result correctly";
     reproducibility = "`nix run .#reproducibility` reports an identical rebuild, and a differing one with its diffoscope summary";
-    ci-promote = "a machine's deploy branch moves only once every check of that machine passed";
+    ci-promote = "a machine's deploy branch moves only once every check of that machine passed, signed when CI holds the key, never on a tip the key did not sign";
+    feature-auto-upgrade-signed = "a machine with signers applies only a deploy commit they signed for it, never an older one";
     feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";
     try-install = "`nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything";

@@ -39,6 +39,7 @@
           auto_upgrade_state = lib.optionalString (
             config.systemd.services ? auto-upgrade
           ) "/var/lib/auto-upgrade";
+          deploy_signers = toString (lib.length config.update.signers);
           wiped_root = lib.boolToString wipedRoot;
           ephemeral_paths = config.doctor.ephemeralPaths;
         };

@@ -2,6 +2,7 @@
 
 let
   inherit (config) base features;
+  inherit (config.helpers) vmCheck;
 
   stub =
     pkgs:
@@ -16,40 +17,72 @@ let
     '';
 in
 {
-  perSystem = config.helpers.vmCheck "feature-auto-upgrade" {
-    nodes = {
-      machine =
+  perSystem.imports = [
+    (vmCheck "feature-auto-upgrade" {
+      nodes = {
+        machine =
+          { pkgs, ... }:
+          {
+            imports = [
+              base
+              features.auto-upgrade
+            ];
+            update.flake = "github:alice/nixos";
+            update.mirrors = [ "file:///srv/mirror.git" ];
+            autoUpgrade.allowLocalBuild = false;
+            autoUpgrade.rebuildCommand = toString (stub pkgs);
+            environment.systemPackages = [ pkgs.git ];
+          };
+
+        desktop =
+          { pkgs, ... }:
+          {
+            imports = [
+              base
+              features.auto-upgrade
+            ];
+            update.flake = "/home/bob/nixos";
+            update.mirrors = [ "file:///srv/mirror.git" ];
+            autoUpgrade.rebuildCommand = toString (stub pkgs);
+            environment.systemPackages = [ pkgs.git ];
+            users.users.bob.isNormalUser = true;
+            users.users.alice = {
+              isNormalUser = true;
+              extraGroups = [ "wheel" ];
+            };
+          };
+      };
+      testScripts = [ ./test.py ];
+    })
+
+    (vmCheck "feature-auto-upgrade-signed" {
+      nodes.machine =
         { pkgs, ... }:
+        let
+          keys = import "${pkgs.path}/nixos/tests/ssh-keys.nix" pkgs;
+        in
         {
           imports = [
             base
             features.auto-upgrade
           ];
           update.flake = "github:alice/nixos";
-          update.mirrors = [ "file:///srv/mirror.git" ];
+          update.mirrors = [
+            "file:///srv/primary.git"
+            "file:///srv/mirror.git"
+          ];
+          update.signers = [ keys.snakeOilEd25519PublicKey ];
           autoUpgrade.allowLocalBuild = false;
           autoUpgrade.rebuildCommand = toString (stub pkgs);
-          environment.systemPackages = [ pkgs.git ];
-        };
-
-      desktop =
-        { pkgs, ... }:
-        {
-          imports = [
-            base
-            features.auto-upgrade
+          environment.systemPackages = [
+            pkgs.git
+            pkgs.gnupg
+            pkgs.openssh
           ];
-          update.flake = "/home/bob/nixos";
-          update.mirrors = [ "file:///srv/mirror.git" ];
-          autoUpgrade.rebuildCommand = toString (stub pkgs);
-          environment.systemPackages = [ pkgs.git ];
-          users.users.bob.isNormalUser = true;
-          users.users.alice = {
-            isNormalUser = true;
-            extraGroups = [ "wheel" ];
-          };
+          environment.etc.deploy-key.source = keys.snakeOilEd25519PrivateKey;
+          systemd.services.auto-upgrade.path = [ pkgs.gnupg ];
         };
-    };
-    testScripts = [ ./test.py ];
-  };
+      testScripts = [ ./signed-test.py ];
+    })
+  ];
 }

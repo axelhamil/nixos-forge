@@ -48,6 +48,7 @@ assert "Run sudo doctor" in output, "doctor does not say it runs without root"
 status, output = doctor()
 assert line("SKIP", "Upgrades", output) and "auto-upgrade is off" in output, "doctor checks upgrades without auto-upgrade"
 assert line("SKIP", "Boot", output), "doctor reads boot entries without systemd-boot"
+assert line("SKIP", "Signed deploys", output), "doctor checks deploy signatures without auto-upgrade"
 
 upgrades_doctor = "/run/current-system/specialisation/upgrades/sw/bin/doctor"
 
@@ -64,6 +65,11 @@ def seed_state(outcome, age, message, changes=""):
 
 status, output = doctor(upgrades_doctor)
 assert line("SKIP", "Upgrades", output) and "never ran yet" in output, "doctor misses an auto-upgrade that never ran"
+assert line("WARN", "Signed deploys", output), "doctor does not warn that auto-upgrade trusts unsigned deploy commits"
+assert "update.signers" in output, "doctor does not say how to require signed deploy commits"
+
+status, output = doctor("/run/current-system/specialisation/signed/sw/bin/doctor")
+assert line("OK", "Signed deploys", output) and "1 key" in output, "doctor does not report the keys deploy commits must be signed by"
 
 seed_state("refused", "1 hour ago", "this machine runs uncommitted changes")
 status, output = doctor(upgrades_doctor)

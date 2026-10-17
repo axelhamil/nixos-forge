@@ -15,6 +15,10 @@ in
         ];
         users.users.alice.isNormalUser = true;
         specialisation.upgrades.configuration.imports = [ features.auto-upgrade ];
+        specialisation.signed.configuration = {
+          imports = [ features.auto-upgrade ];
+          update.signers = [ (import "${pkgs.path}/nixos/tests/ssh-keys.nix" pkgs).snakeOilEd25519PublicKey ];
+        };
       };
     testScripts = [ ./test.py ];
   };

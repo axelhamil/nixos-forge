@@ -11,6 +11,7 @@ Every machine has a `doctor` command: one line per check, `OK`, `WARN`, `FAIL`, 
 [WARN] Updates        /home/alice/nixos: behind by 3
                       run update
 [  OK] Upgrades       upgraded 2026-05-12 04:21: Closure size: 2154 -> 2161 (31 paths added, 24 paths removed, delta +12.4 MiB)
+[  OK] Signed deploys auto-upgrade applies only deploy commits signed by 1 key of update.signers
 [  OK] Boot           the newest generation started, or has tries left
 [WARN] Impermanence   2 files written to / since boot are lost at the next boot
                       keep them in environment.persistence."/persist", or list them in doctor.ephemeralPaths
@@ -28,6 +29,7 @@ Every machine has a `doctor` command: one line per check, `OK`, `WARN`, `FAIL`, 
 | Failed units | always | failed system units and the calling user's |
 | Updates | `flake` is a git checkout on the machine | fetches as the checkout's owner, then behind, ahead and uncommitted changes |
 | Upgrades | `auto-upgrade` | the last run in `/var/lib/auto-upgrade/state.json`: when it upgraded and what changed, or since when the machine is up to date; a warning with the reason when it was `refused`, `unreachable`, `waiting`, `failed` or `rolled-back`, or when the last success is more than 14 days old |
+| Signed deploys | `auto-upgrade` | the host's `signers`: a warning, at every run, while it has none and `auto-upgrade` applies any deploy commit its sources serve ([updates.md](updates.md#signed-deploy-commits)) |
 | Boot | systemd-boot, as root | `bootctl list`: a warning when the newest generation spent its tries (`+0-`) and the machine runs an older one: it went back to the previous version |
 | Impermanence | `disk` | files on `/` written since `sysinit.target`, which the rollback erases |
 

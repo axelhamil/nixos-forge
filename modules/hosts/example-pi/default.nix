@@ -70,6 +70,7 @@
     # "github:<you>/<fork>", whose deploy/<host> branch auto-upgrade pulls once CI passed.
     # flake = "github:alice/nixos";
     # mirrors = [ "https://codeberg.org/alice/nixos.git" ]; # other copies of your fork, tried in order when the first is unreachable
+    # signers = [ "ssh-ed25519 AAAA... deploy" ]; # keys signing deploy/<host>: auto-upgrade applies only what they signed, `nix run .#init` writes yours
 
     # timeZone = "UTC"; # such as "Europe/Paris"
     # locale = "en_US.UTF-8"; # language and formats, such as "fr_FR.UTF-8"

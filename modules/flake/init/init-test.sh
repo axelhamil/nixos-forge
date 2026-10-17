@@ -57,6 +57,8 @@ fork=$TMPDIR/fork
 fresh_fork "$fork"
 cd "$fork"
 
+export XDG_RUNTIME_DIR=$TMPDIR/runtime
+mkdir -m 700 "$XDG_RUNTIME_DIR"
 init --yes \
   --host my-box \
   --profile laptop \
@@ -69,7 +71,7 @@ init --yes \
   --features disk,docker \
   --hardware 'nvidia framework-13-7040-amd' \
   --apps firefox,vlc \
-  --keep-pi
+  --keep-pi >"$TMPDIR/init.out"
 
 host_file=modules/hosts/my-box/default.nix
 [[ -f $host_file ]] || fail "$host_file was not written"
@@ -99,6 +101,31 @@ has_line '      # "hyprland" # .*'
 has_line '      # "direnv" # .*'
 if grep -q alice "$host_file"; then
   fail "$host_file still names the example user"
+fi
+
+signer() {
+  grep -A1 -xE '    signers = \[' "$1" | sed -n 's/^      "\(ssh-ed25519 [A-Za-z0-9+/]*=* deploy\)"$/\1/p'
+}
+
+has_line '    signers = \[.*'
+signing_key=$(signer "$host_file")
+[[ -n $signing_key ]] || fail "$host_file holds no deploy signing key: $(grep -A2 signers "$host_file")"
+[[ $(signer modules/hosts/example-pi/default.nix) == "$signing_key" ]] || fail "the kept example-pi does not trust the deploy signing key"
+nixfmt --check modules/hosts/example-pi/default.nix || fail "the kept example-pi is not formatted"
+key_command=$(grep -E '^  gh secret set DEPLOY_SIGNING_KEY --env deploy < [^ ]+ && shred -u [^ ]+$' "$TMPDIR/init.out") || fail "init does not print the command storing the private key: $(cat "$TMPDIR/init.out")"
+key_file=${key_command##* }
+[[ $key_command == *" < $key_file && shred -u $key_file" ]] || fail "the command stores one file and shreds another: $key_command"
+[[ $key_file == "$XDG_RUNTIME_DIR"/* ]] || fail "the private key is not under XDG_RUNTIME_DIR: $key_file"
+[[ $(stat -c %a "$key_file") == 600 && $(stat -c %a "$(dirname "$key_file")") == 700 ]] || fail "the private key or its folder is readable by others: $(stat -c '%a %n' "$key_file" "$(dirname "$key_file")")"
+grep -qF "shred -u $key_file" <(grep -v '^  gh secret set' "$TMPDIR/init.out") || fail "init does not print the way through the GitHub web page"
+if grep -q "PRIVATE KEY" "$TMPDIR/init.out"; then
+  fail "init printed the private deploy key"
+fi
+[[ $(ssh-keygen -y -f "$key_file" | cut -d' ' -f1,2) == "${signing_key% deploy}" ]] || fail "the private key file does not match the public key in $host_file"
+cp "$key_file" "$TMPDIR/deploy-key"
+key_line=$(sed -n 2p "$TMPDIR/deploy-key")
+if grep -rqF -- "$key_line" --exclude-dir=.git . || git grep --cached -qF -- "$key_line"; then
+  fail "init wrote the private deploy key into the fork"
 fi
 
 person_file=modules/users/bob/default.nix
@@ -144,8 +171,9 @@ refuses "modules/users/carol already exists" --yes --host box --login carol --fu
 rmdir modules/users/carol
 [[ -z $(git status --porcelain) ]] || fail "a refused run changed the checkout"
 
-init --yes --host pi-box --system aarch64-linux --login bob --full-name Bob --email ""
+init --yes --host pi-box --system aarch64-linux --login bob --full-name Bob --email "" >/dev/null
 host_file=modules/hosts/pi-box/default.nix
+[[ -n $(signer "$host_file") && $(signer "$host_file") != "$signing_key" ]] || fail "a second fork does not get a deploy signing key of its own"
 "$NIX_INSTANTIATE" --parse "$host_file" >/dev/null || fail "$host_file does not parse"
 nixfmt --check "$host_file" || fail "$host_file is not formatted"
 has_line '    system = "aarch64-linux";.*'

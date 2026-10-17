@@ -7,36 +7,44 @@
 
 let
   inherit (lib) mkOption types;
-  inherit (config.flake.modules) nixos homeManager;
-  inherit (config) systems apps;
+  inherit (config.flake.modules) homeManager;
+  inherit (config.flake.modules.nixos) zsh;
+  inherit (config.helpers) appPart;
+  inherit (config)
+    systems
+    apps
+    base
+    profiles
+    features
+    hardware
+    ;
 
-  fail = host: message: throw "configurations.nixos.${host}: ${message}";
+  fail =
+    host: field: message:
+    throw "configurations.nixos.${host}.${field}: ${message}";
+
+  known = namespace: lib.concatStringsSep ", " (lib.attrNames namespace);
 
   pick =
-    host: kind: available: name:
-    available.${name}
-      or (fail host "unknown ${kind} \"${name}\". Known: ${lib.concatStringsSep ", " (lib.attrNames available)}.");
+    host: field: namespace: name:
+    namespace.${name} or (fail host field "unknown name \"${name}\". Known: ${known namespace}.");
 
   hardwareModule =
     host: name:
-    nixos.${name} or inputs.nixos-hardware.nixosModules.${name}
-      or (fail host "unknown hardware \"${name}\": neither a module of the starter nor a nixos-hardware profile (https://github.com/NixOS/nixos-hardware).");
+    hardware.${name} or inputs.nixos-hardware.nixosModules.${name} or (fail host "hardware"
+      "unknown name \"${name}\": neither a module of modules/features/hardware (${known hardware}) nor a nixos-hardware profile (https://github.com/NixOS/nixos-hardware)."
+    );
 
   configuredApps = lib.filter (name: apps ? ${name});
   packagedApps = lib.filter (name: !(apps ? ${name}));
 
-  appModules =
-    part: names:
-    map (name: {
-      key = "nixos-starter/apps/${name}/${part}";
-      imports = [ apps.${name}.${part} ];
-    }) (configuredApps names);
+  appModules = part: names: map (name: appPart name part) (configuredApps names);
 
   package =
     host: pkgs: name:
-    lib.attrByPath (lib.splitString "." name)
-      (fail host "unknown app \"${name}\": no modules/apps/${name} and no pkgs.${name}.")
-      pkgs;
+    lib.attrByPath (lib.splitString "." name) (fail host "apps"
+      "unknown name \"${name}\": no modules/apps/${name} and no pkgs.${name}."
+    ) pkgs;
 
   unfreeName =
     host: system: name:
@@ -113,7 +121,7 @@ let
       packages = packagedApps user.apps;
     in
     {
-      imports = lib.optional usesZsh nixos.zsh ++ appModules "nixos" user.apps;
+      imports = lib.optional usesZsh zsh ++ appModules "nixos" user.apps;
 
       users.users.${name} = {
         isNormalUser = true;
@@ -137,7 +145,8 @@ let
       };
 
       home-manager.users.${name} = {
-        imports = map (pick host "home module" homeManager) user.home ++ appModules "homeManager" user.apps;
+        imports =
+          map (pick host "users.${name}.home" homeManager) user.home ++ appModules "homeManager" user.apps;
         home.stateVersion = config.system.stateVersion;
         home.packages = map (package host pkgs) packages;
         programs.git.settings.user = lib.mkIf (user.email != null) {
@@ -171,7 +180,7 @@ let
           type = types.nullOr types.str;
           default = null;
           example = "laptop";
-          description = "Role of the machine: `desktop`, `laptop`, `server` or `pi` (`modules/profiles`).";
+          description = "Role of the machine: `desktop`, `laptop`, `server` or `pi`, the profiles of `modules/features/profiles/<name>`.";
         };
 
         features = mkOption {
@@ -183,7 +192,7 @@ let
             "hyprland"
             "docker"
           ];
-          description = "NixOS modules the machine turns on, by name: anything a file under `modules/` publishes as `flake.modules.nixos.<name>` (`disk`, `secure-boot`, `wipe-home`, `hyprland`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...). `disk` is the encrypted btrfs layout with `/` wiped at boot; the disk it erases is chosen at install (installer ISO, `disko-install --disk main`, or `disk.device` in `module`), never in the registry.";
+          description = "NixOS modules the machine turns on, by name: the features of `modules/features/<name>` (`disk`, `secure-boot`, `wipe-home`, `hyprland`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...). `disk` is the encrypted btrfs layout with `/` wiped at boot; the disk it erases is chosen at install (installer ISO, `disko-install --disk main`, or `disk.device` in `module`), never in the registry.";
         };
 
         apps = mkOption {
@@ -209,7 +218,7 @@ let
             "common-pc-ssd"
             "common-cpu-intel"
           ];
-          description = "Hardware of the machine, by name: a module of the starter (`nvidia`, `amd-gpu`, `intel-gpu`, `raspberry-pi-4`, `raspberry-pi-5`, ...) or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile (`common-pc-ssd`, `framework-13-7040-amd`, ...).";
+          description = "Hardware of the machine, by name: a module of `modules/features/hardware/<name>` (`nvidia`, `amd-gpu`, `intel-gpu`, `raspberry-pi-4`, `raspberry-pi-5`, ...) or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile (`common-pc-ssd`, `framework-13-7040-amd`, ...).";
         };
 
         facter = mkOption {
@@ -264,10 +273,10 @@ let
         { lib, pkgs, ... }:
         {
           imports = [
-            nixos.base
+            base
           ]
-          ++ lib.optional (host.profile != null) (pick name "profile" nixos host.profile)
-          ++ map (pick name "feature" nixos) host.features
+          ++ lib.optional (host.profile != null) (pick name "profile" profiles host.profile)
+          ++ map (pick name "features" features) host.features
           ++ map (hardwareModule name) host.hardware
           ++ appModules "nixos" host.apps
           ++ lib.mapAttrsToList (userModule name host.system) host.users;

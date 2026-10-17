@@ -12,22 +12,13 @@ let
     lib.attrNames (lib.filterAttrs (_: type: type == "directory") (builtins.readDir hostsDir))
   );
 
-  profiles = [
-    "desktop"
-    "laptop"
-    "server"
-    "pi"
-  ];
+  profiles = lib.attrNames config.profiles;
 
-  notNamedByHosts = profiles ++ [
-    "base"
-    "lock"
-    "zsh"
+  listedNames = lib.concatMap lib.attrNames [
+    config.features
+    config.hardware
+    config.apps
   ];
-
-  listedNames =
-    lib.filter (name: !(lib.elem name notNamedByHosts)) (lib.attrNames config.flake.modules.nixos)
-    ++ lib.attrNames config.apps;
 
   hostType = options.configurations.nixos.type.nestedTypes.elemType;
   hostFields = lib.filter (name: name != "_module") (lib.attrNames (hostType.getSubOptions [ ]));

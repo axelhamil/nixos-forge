@@ -1,6 +1,7 @@
 { config, ... }:
 
 let
+  inherit (config) base;
   inherit (config.flake.modules) nixos homeManager;
 in
 {
@@ -22,7 +23,7 @@ in
       in
       {
         imports = [
-          nixos.base
+          base
           nixos.zsh
         ];
         users.users = lib.genAttrs [ "tester" "mirror" ] (_: user);

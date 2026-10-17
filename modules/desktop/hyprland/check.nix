@@ -1,14 +1,14 @@
 { config, ... }:
 
 let
-  inherit (config.flake.modules) nixos;
+  inherit (config) base features;
 in
 {
   perSystem = config.helpers.vmCheck "desktop-hyprland" {
     nodes.machine = {
       imports = [
-        nixos.base
-        nixos.hyprland
+        base
+        features.hyprland
       ];
       users.users.tester = {
         isNormalUser = true;

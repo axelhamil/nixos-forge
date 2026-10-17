@@ -65,7 +65,7 @@ null
 
 
 
-NixOS modules the machine turns on, by name: anything a file under ` modules/ ` publishes as ` flake.modules.nixos.<name> ` (` disk `, ` secure-boot `, ` wipe-home `, ` hyprland `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\. ` disk ` is the encrypted btrfs layout with ` / ` wiped at boot; the disk it erases is chosen at install (installer ISO, ` disko-install --disk main `, or ` disk.device ` in ` module `), never in the registry\.
+NixOS modules the machine turns on, by name: the features of ` modules/features/<name> ` (` disk `, ` secure-boot `, ` wipe-home `, ` hyprland `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\. ` disk ` is the encrypted btrfs layout with ` / ` wiped at boot; the disk it erases is chosen at install (installer ISO, ` disko-install --disk main `, or ` disk.device ` in ` module `), never in the registry\.
 
 
 
@@ -128,7 +128,7 @@ null
 
 
 
-Hardware of the machine, by name: a module of the starter (` nvidia `, ` amd-gpu `, ` intel-gpu `, ` raspberry-pi-4 `, ` raspberry-pi-5 `, …) or a [nixos-hardware](https://github\.com/NixOS/nixos-hardware) profile (` common-pc-ssd `, ` framework-13-7040-amd `, …)\.
+Hardware of the machine, by name: a module of ` modules/features/hardware/<name> ` (` nvidia `, ` amd-gpu `, ` intel-gpu `, ` raspberry-pi-4 `, ` raspberry-pi-5 `, …) or a [nixos-hardware](https://github\.com/NixOS/nixos-hardware) profile (` common-pc-ssd `, ` framework-13-7040-amd `, …)\.
 
 
 
@@ -239,7 +239,7 @@ module
 
 
 
-Role of the machine: ` desktop `, ` laptop `, ` server ` or ` pi ` (` modules/profiles `)\.
+Role of the machine: ` desktop `, ` laptop `, ` server ` or ` pi `, the profiles of ` modules/features/profiles/<name> `\.
 
 
 

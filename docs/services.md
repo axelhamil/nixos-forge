@@ -4,7 +4,7 @@ Nothing here depends on a third-party cloud service: DNS comes from your network
 
 ## DNS: systemd-resolved
 
-Every host runs systemd-resolved (`modules/system/resolved`). It uses the DNS servers your network announces. Two defaults differ from systemd's:
+Every host runs systemd-resolved (`modules/features/base/resolved`). It uses the DNS servers your network announces. Two defaults differ from systemd's:
 
 - **No fallback DNS.** systemd ships with Cloudflare, Google and Quad9 compiled in as a fallback; `FallbackDNS=` is empty, so queries never leave for a provider you did not choose.
 - **LLMNR off.** It answers name lookups from anyone on the local network, the classic target of poisoning attacks.
@@ -69,7 +69,7 @@ The value is at `/run/secrets/wifi-password` (root only by default; `owner`, `mo
 
 ## Snapshots: btrbk
 
-Hosts with `disk` snapshot `/home` and `/persist` every hour into the `@snapshots` subvolume, mounted on `/.snapshots` (`modules/system/snapshots`). A snapshot is only taken when the subvolume changed; every snapshot is kept for 2 days, then one per day for 14 days and one per week for 4 weeks. `/` is not snapshotted: it is rebuilt at every boot.
+Hosts with `disk` snapshot `/home` and `/persist` every hour into the `@snapshots` subvolume, mounted on `/.snapshots` (`modules/features/disk/snapshots`). A snapshot is only taken when the subvolume changed; every snapshot is kept for 2 days, then one per day for 14 days and one per week for 4 weeks. `/` is not snapshotted: it is rebuilt at every boot.
 
 A snapshot sits on the same disk: it undoes a deleted file or a bad edit, it is not a backup. Restore a file by copying it back:
 

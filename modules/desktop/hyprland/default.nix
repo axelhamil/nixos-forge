@@ -1,15 +1,16 @@
 { config, ... }:
 
 let
+  inherit (config) features;
   inherit (config.flake.modules) nixos homeManager;
 in
 {
-  flake.modules.nixos.hyprland =
+  features.hyprland =
     { lib, pkgs, ... }:
     {
-      imports = with nixos; [
-        greetd
-        lock
+      imports = [
+        features.greetd
+        nixos.lock
       ];
 
       programs.hyprland = {

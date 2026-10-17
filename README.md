@@ -93,7 +93,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 
 An unknown name stops the evaluation with the list of known ones.
 
-**Add a module.** Publish `flake.modules.nixos.<name>` from any file under `modules/` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as a sibling of `hyprland`.
+**Add a feature.** Publish `features.<name>` from a file under `modules/features/<name>` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as a sibling of `hyprland`.
 
 **Add an app with its config.** Create `modules/apps/<name>/default.nix` and name it in `apps`; a `check.nix` with `helpers.appCheck` gives it a VM test. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the example, swap it for the browser you like the same way.
 

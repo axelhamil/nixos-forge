@@ -1,6 +1,7 @@
 { config, ... }:
 
 let
+  inherit (config) base;
   inherit (config.flake.modules) nixos homeManager;
 in
 {
@@ -9,7 +10,7 @@ in
       { pkgs, ... }:
       {
         imports = [
-          nixos.base
+          base
           nixos.zsh
         ];
         users.users.tester = {

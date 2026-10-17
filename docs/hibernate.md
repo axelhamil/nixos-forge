@@ -16,7 +16,7 @@ module.hibernate.swapSize = "32G";
 | Resume | the systemd initrd resumes from the `HibernateLocation` EFI variable that systemd writes at hibernation: no `resume=` nor `resume_offset` on the kernel command line, so nothing to compute after the install. |
 | Lid | `HandleLidSwitch = "suspend-then-hibernate"` (a default you can override), hibernating after `hibernate.delay` (`2h`) asleep. |
 
-At resume the initrd unlocks the disk first (passphrase, or the TPM2 when enrolled), then systemd-hibernate-resume restores the image. The rollback of `/` (and of `/home` with `wipe-home`) runs after it, so it never touches a hibernated system: a resume keeps `/` as it was, and only a normal boot wipes it. The module asserts this ordering, and the `system-hibernate` check installs a machine, hibernates it, resumes it with `/` and its processes intact, then boots it normally and finds `/` wiped.
+At resume the initrd unlocks the disk first (passphrase, or the TPM2 when enrolled), then systemd-hibernate-resume restores the image. The rollback of `/` (and of `/home` with `wipe-home`) runs after it, so it never touches a hibernated system: a resume keeps `/` as it was, and only a normal boot wipes it. The module asserts this ordering, and the `feature-hibernate` check installs a machine, hibernates it, resumes it with `/` and its processes intact, then boots it normally and finds `/` wiped.
 
 ## Add it to an installed machine
 

@@ -57,6 +57,8 @@ configurations.nixos.my-server = {
 };
 ```
 
+The fork keeps such a mirror up to date on its own: set the repository variable `MIRROR_URL` to the mirror's https URL (Settings, Secrets and variables, Actions, Variables) and the secret `MIRROR_TOKEN` to a token of the mirror's forge that can push to it, and the `mirror` workflow pushes `main` and every `deploy/<host>` there after each change ([ci.md](ci.md#mirror-to-a-second-forge)). List that same URL in the `mirrors` of each host.
+
 It fetches over https without credentials: a private fork needs a mirror the machine can read without a login. Every source, `mirrors` included, is trusted as much as the fork itself, since whoever can push `deploy/<host>` to one of them chooses what the machine builds as root.
 
 It applies the new version with `nixos-rebuild boot`: the machine keeps running what it runs, and starts the new version at the next reboot. Set `autoUpgrade.operation = "switch"` in the host's `module` to start it right away. On a host with `disk`, a new version that does not start is abandoned on its own after 3 tries ([install.md](install.md#going-back-to-the-previous-generation)). On a Raspberry Pi (`pi` profile) it builds nothing itself (`autoUpgrade.allowLocalBuild = false`): it substitutes everything from the binary cache and its remote builders, so a Pi upgrades only to a version CI built and cached (`<host>-toplevel`); one the cache does not hold yet waits for the next run.

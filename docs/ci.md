@@ -20,6 +20,7 @@ Scheduled workflows and Dependabot only run from the default branch, so they sta
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `check` | every PR, push to `main` and `develop` | Lints the flake, plans the build with `ci-plan` (checks already in the binary cache are skipped), builds each remaining check on a runner of its system (`ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`), retrying a VM test once, computes the package diff ([nvd](https://git.sr.ht/~khumba/nvd)) per system on a PR, and writes one readable report ([below](#the-ci-report)). `ci-ok` sums up the result. On a push to `main`, `promote` moves `deploy/<host>` to the pushed commit for every machine whose checks all passed ([below](#validated-versions-per-machine)). |
+| `mirror` | push to `main` or `deploy/*`, when `MIRROR_URL` is set | Pushes `main` and every `deploy/<host>` to a second forge, so machines can still upgrade when GitHub is down ([below](#mirror-to-a-second-forge)). |
 | `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR updating `flake.lock` against `main`, with auto-merge on. |
 | `sync-develop` | push to `main` | Merges `main` into `develop`. |
 | `sync-upstream` | Monday 07:00 UTC, or by hand, forks only | Opens a PR merging the starter's latest release, for you to review and merge ([updates.md](updates.md)). |
@@ -64,6 +65,17 @@ The `promote` job runs after every push to `main`, once the builds ended, even w
 - `deploy/<host> refused: <reason>`: the remote declined the push, with git's reason, for instance a ruleset matching `deploy/*`.
 
 The job is skipped when `BOT_CLIENT_ID` is not set. Its token takes the permissions the App installation grants. GitHub may refuse to move a branch across commits that change `.github/workflows/` unless the App has the **Workflows** permission; `ci-promote` then prints the refusal reason, the branch stays, and granting the permission fixes the next run.
+
+## Mirror to a second forge
+
+The `mirror` workflow copies `main` and the `deploy/*` branches to another forge (Codeberg, a Forgejo or GitLab instance), which machines list in their `mirrors` ([updates.md](updates.md#a-machine-upgrades-on-its-own)). It runs on every push to `main` and to `deploy/*`; the `promote` job pushes `deploy/*` with the App token, and pushes made with an App token do trigger workflows, unlike those made with `GITHUB_TOKEN`, so each promotion reaches the mirror. Runs queue one after the other and each one pushes the branches as they are when it starts.
+
+Set the repository variable `MIRROR_URL` to the https URL of the mirror repository, and the secret `MIRROR_TOKEN` to a token of the mirror's forge with write access to it; it is sent as the header `Authorization: token <token>`, read from the environment, never on the command line or in the log. Without `MIRROR_URL` the workflow is skipped; without `MIRROR_TOKEN` it pushes without credentials, which suits a remote that needs none.
+
+`ci-mirror <url>` pushes only `main` and `deploy/*`, never `develop` or any other branch:
+
+- `main` moves without force: a mirror whose `main` has diverged refuses the push, the job fails and needs a look, while the `deploy/*` branches still go through.
+- `deploy/*` is pushed with force, and a `deploy/<host>` deleted in the fork is deleted on the mirror; nothing else on the mirror is pruned. A deploy branch is the fork's pointer, which only `promote` or the maintainer moves: the mirror holds a copy of it, so a branch moved back or removed by hand in the fork is moved back or removed on the mirror too, and a machine reading the mirror never follows a version the fork withdrew.
 
 ## Checks
 

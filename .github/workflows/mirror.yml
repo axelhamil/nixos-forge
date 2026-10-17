@@ -1,0 +1,27 @@
+name: mirror
+
+on:
+  push:
+    branches: [main, "deploy/**"]
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    if: vars.MIRROR_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      - env:
+          MIRROR_URL: ${{ vars.MIRROR_URL }}
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: nix run .#ci-mirror -- "$MIRROR_URL"

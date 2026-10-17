@@ -93,6 +93,12 @@ in
         text = builtins.readFile ./ci-promote.sh;
       };
 
+      packages.ci-mirror = pkgs.writeShellApplication {
+        name = "ci-mirror";
+        runtimeInputs = [ pkgs.git ];
+        text = builtins.readFile ./ci-mirror.sh;
+      };
+
       packages.sync-upstream = pkgs.writeShellApplication {
         name = "sync-upstream";
         runtimeInputs = [

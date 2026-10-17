@@ -49,7 +49,12 @@ in
                 node.pkgsReadOnly = false;
                 nodes.machine = withoutDisko;
                 testScript = lib.concatLines (
-                  [ (waitForUnit "multi-user.target") ] ++ map waitForUnit homeManagerUnits ++ [ host.testScript ]
+                  [ (waitForUnit "multi-user.target") ]
+                  ++ map waitForUnit homeManagerUnits
+                  ++ [
+                    (builtins.readFile ./boot-time.py)
+                    host.testScript
+                  ]
                 );
               };
             }

@@ -78,6 +78,12 @@ jobs:
           path: results/${{ matrix.system }}-${{ matrix.check }}.json
           if-no-files-found: ignore
           retention-days: 7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: screenshot-${{ matrix.system }}-${{ matrix.check }}
+          path: results/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
 
   closure:
     needs: plan
@@ -131,6 +137,12 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
       - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        if: vars.CACHIX_CACHE != ''
+        continue-on-error: true
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          skipPush: true
       - uses: actions/download-artifact@v8
         with:
           pattern: result-*
@@ -141,6 +153,8 @@ jobs:
           pattern: closure-*
           path: results
           merge-multiple: true
+      - continue-on-error: true
+        run: nix run .#ci-boot-time -- github:${{ github.repository }}/${{ github.event.pull_request.base.sha || github.event.before }} results/base
       - run: nix run .#ci-report > report.md
       - run: cat report.md >> "$GITHUB_STEP_SUMMARY"
       - if: github.event.pull_request.head.repo.full_name == github.repository

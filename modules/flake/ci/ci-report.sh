@@ -42,6 +42,7 @@ jq -n -r \
   --argjson skipped "$(as_json "${SKIPPED:-}" '[]' array)" \
   --argjson hosts "$(as_json "${HOST_CHECKS:-}" '{}' object)" \
   --argjson descriptions "$(as_json "${DESCRIPTIONS:-}" '{}' object)" \
+  --argjson baseBoot "$(as_json "$(cat "$results/base/boot-time.json" 2>/dev/null || true)" '{}' object)" \
   --slurpfile results "$work/results.json" \
   --rawfile causes "$CAUSES" \
   --arg cache "${CACHE_OUTCOME:-}" \
@@ -101,6 +102,35 @@ jq -n -r \
           else [] end)
         + (if $run != "" then ["", "[Open the full log](\($run))"] else [] end)
         + [""];
+
+    def seconds: if type == "number" then "\((. * 10 | round) / 10 | tostring | if test("[.]") then . else . + ".0" end) s" else "n/a" end;
+
+    def bootTimes:
+      [ $hosts | to_entries | sort_by(.key)[]
+        | .key as $host
+        | select(.value | index($host + "-boots"))
+        | { host: $host,
+            current: (first($results[0][] | select(.check == $host + "-boots") | .bootTime | objects) // {}),
+            base: ($baseBoot[$host] | objects // {}) } ]
+      | if any(.[]; .current != {} or .base != {}) then
+          [ "### Boot time",
+            "",
+            "`systemd-analyze` in each boot test, on a shared CI VM: read the trend over several runs, not one value.",
+            "",
+            "| Machine | Total | Total on the base | Userspace | Userspace on the base |",
+            "|---|---|---|---|---|" ]
+          + map("| \(.host | escapeCell) | \(.current.total | seconds) | \(.base.total | seconds) | \(.current.userspace | seconds) | \(.base.userspace | seconds) |")
+          + [ "" ]
+        else [] end;
+
+    def screenshots:
+      [ $results[0][] | select((.screenshots // []) != []) ] | sort_by(.check, .system)
+      | if . == [] then []
+        else
+          [ "### Screenshots", "" ]
+          + map("- \(.check | code) (\(.system)): \(.screenshots | map(code) | join(", ")) in the artifact \("screenshot-\(.system)-\(.check)" | code) of \(if $run != "" then "[this run](\($run)#artifacts)" else "this run" end).")
+          + [ "" ]
+        end;
 
     def lintStatus:
       if $lint == "success" then "passed"
@@ -174,6 +204,7 @@ jq -n -r \
             + [ "", "</details>", "" ]
         end
       )
+    | . + bootTimes + screenshots
     | . + (if $nbad > 0 then [ "### What went wrong", "" ] + ($bad | map(failure) | add) else [] end)
   end
   | .[]

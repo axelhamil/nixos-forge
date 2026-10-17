@@ -38,7 +38,7 @@ jq -e '.check == "example-boots" and .system == "x86_64-linux"' "$result" >/dev/
 jq -e '.outcome == "unstable" and .attempts == 2' "$result" >/dev/null || fail "flaky: not unstable after 2 attempts: $(cat "$result")"
 jq -e '.excerpt | any(test("^RequestedAssertionFailed: action timed out"))' "$result" >/dev/null || fail "flaky: excerpt misses the first failure: $(cat "$result")"
 [ "$(wc -l <"$NIX_CALLS")" -eq 2 ] || fail "flaky: nix called $(wc -l <"$NIX_CALLS") times"
-grep -qx "build --no-link --print-build-logs .#checks.x86_64-linux.example-boots" "$NIX_CALLS" || fail "flaky: unexpected nix call: $(cat "$NIX_CALLS")"
+grep -qx "build --no-link --print-build-logs --print-out-paths .#checks.x86_64-linux.example-boots" "$NIX_CALLS" || fail "flaky: unexpected nix call: $(cat "$NIX_CALLS")"
 grep -q "action timed out" flaky.out || fail "flaky: the full log is not on stdout"
 
 NIX_CALLS=$PWD/broken-calls
@@ -47,6 +47,7 @@ status=0
 [ "$status" -eq 1 ] || fail "a failing check exits with $status instead of 1"
 result=results/x86_64-linux-example-toplevel.json
 jq -e '.outcome == "failed" and .attempts == 1' "$result" >/dev/null || fail "broken: not failed after 1 attempt: $(cat "$result")"
+jq -e '.bootTime == null and .screenshots == []' "$result" >/dev/null || fail "broken: a failed build has evidence: $(cat "$result")"
 jq -e '.excerpt == ["error: undefined variable '"'"'foo'"'"'"]' "$result" >/dev/null || fail "broken: wrong excerpt: $(cat "$result")"
 [ "$(wc -l <"$NIX_CALLS")" -eq 1 ] || fail "broken: a check without --retry was built $(wc -l <"$NIX_CALLS") times"
 
@@ -63,6 +64,19 @@ status=0
 result=killed/x86_64-linux-example-boots.json
 jq -e '.outcome == "failed" and .attempts == 1' "$result" >/dev/null || fail "killed: the first failure is not kept: $(cat "$result" 2>&1)"
 jq -e '.excerpt | any(test("^RequestedAssertionFailed: action timed out"))' "$result" >/dev/null || fail "killed: the excerpt of the first failure is lost: $(cat "$result")"
+
+NIX_CALLS=$PWD/evidence-calls
+"$EVIDENCE_CI_BUILD" x86_64-linux app-hyprland evidence --retry >evidence.out || fail "evidence: a passing check exits non-zero"
+result=evidence/x86_64-linux-app-hyprland.json
+jq -e '.bootTime == { total: 7.04, userspace: 3.0 }' "$result" >/dev/null || fail "evidence: the boot time of the check output is not kept: $(cat "$result")"
+jq -e '.screenshots == ["desktop.png"]' "$result" >/dev/null || fail "evidence: the screenshot is not listed: $(cat "$result")"
+[ "$(cat evidence/screenshots/x86_64-linux-app-hyprland-desktop.png)" = png ] || fail "evidence: the screenshot is not copied for the artifact"
+
+NIX_CALLS=$PWD/unreadable-calls
+"$UNREADABLE_EVIDENCE_CI_BUILD" x86_64-linux example-boots unreadable --retry >unreadable.out 2>unreadable.err || fail "unreadable: evidence that cannot be read turns a passing check red"
+result=unreadable/x86_64-linux-example-boots.json
+jq -e '.outcome == "passed" and .bootTime == null and .screenshots == []' "$result" >/dev/null || fail "unreadable: wrong result: $(cat "$result")"
+grep -q "could not be kept, the check still passed" unreadable.err || fail "unreadable: the lost evidence is not logged: $(cat unreadable.err)"
 
 export PLANNED SKIPPED CACHE_OUTCOME LINT_RESULT PLAN_RESULT RUN_URL HOST_CHECKS DESCRIPTIONS
 PLAN_RESULT=success
@@ -250,6 +264,32 @@ expect_line two-systems '| `feature-ssh` (x86_64-linux) | ssh works in a VM | pa
 expect_line two-systems '| `feature-ssh` (aarch64-linux) | ssh works in a VM | failed |'
 expect_line two-systems '#### `feature-ssh` (aarch64-linux)'
 expect_first_line two-systems "**1 check failed: no machine is affected, but CI stays red until it is fixed.**"
+
+pass_all boot-time
+jq '.bootTime = { total: 7.04, userspace: 3.0 }' boot-time/x86_64-linux-example-boots.json >boot-time/tmp.json
+mv boot-time/tmp.json boot-time/x86_64-linux-example-boots.json
+jq '.screenshots = ["desktop.png"]' boot-time/x86_64-linux-feature-ssh.json >boot-time/tmp.json
+mv boot-time/tmp.json boot-time/x86_64-linux-feature-ssh.json
+mkdir -p boot-time/base
+echo '{ "example": { "total": 6.8, "userspace": null }, "example-server": { "total": 9, "userspace": 4.25 } }' >boot-time/base/boot-time.json
+report boot-time
+expect_first_line boot-time "**Everything works: every machine builds, boots and passed its tests.**"
+expect_line boot-time "### Boot time"
+expect_line boot-time "| example | 7.0 s | 6.8 s | 3.0 s | n/a |"
+expect_line boot-time "| example-server | n/a | 9.0 s | n/a | 4.3 s |"
+if grep -q "^| example-pi |" boot-time.md; then fail "boot-time: a machine without a boot test gets a boot time"; fi
+expect_line boot-time '- `feature-ssh` (x86_64-linux): `desktop.png` in the artifact `screenshot-x86_64-linux-feature-ssh` of [this run](https://github.com/owner/repo/actions/runs/42#artifacts).'
+expect_rows boot-time example "example-toplevel=passed example-boots=passed example-disk=passed example-wipe-home=passed"
+if grep -q "### Boot time\|### Screenshots" all-green.md; then fail "all-green: a run without boot time or screenshot shows their section"; fi
+
+pass_all no-base
+jq '.bootTime = { total: 7.04, userspace: 3.0 }' no-base/x86_64-linux-example-boots.json >no-base/tmp.json
+mv no-base/tmp.json no-base/x86_64-linux-example-boots.json
+mkdir -p no-base/base
+echo 'not json' >no-base/base/boot-time.json
+report no-base
+expect_line no-base "| example | 7.0 s | n/a | 3.0 s | n/a |"
+expect_line no-base "| example-server | n/a | n/a | n/a | n/a |"
 
 pass_all long
 {

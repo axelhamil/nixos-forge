@@ -82,6 +82,21 @@ in
 
       packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
 
+      packages.ci-boot-time = pkgs.writeShellApplication {
+        name = "ci-boot-time";
+        runtimeInputs = [
+          pkgs.nix
+          pkgs.jq
+          pkgs.coreutils
+        ];
+        text = builtins.readFile ./ci-boot-time.sh;
+      };
+
+      packages.reproducibility = import ./_reproducibility.nix {
+        inherit pkgs;
+        inherit (pkgs) nix;
+      };
+
       packages.ci-promote = pkgs.writeShellApplication {
         name = "ci-promote";
         runtimeInputs = [

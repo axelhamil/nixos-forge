@@ -7,6 +7,7 @@ pkgs.writeShellApplication {
     pkgs.jq
     pkgs.coreutils
     pkgs.gawk
+    pkgs.gnugrep
   ];
   runtimeEnv.EXCERPT = ./excerpt.awk;
   text = builtins.readFile ./ci-build.sh;

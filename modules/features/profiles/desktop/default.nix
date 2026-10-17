@@ -2,6 +2,7 @@
 
 let
   inherit (config) hardware;
+  inherit (config.helpers) appPart;
 in
 {
   profiles.desktop =
@@ -11,6 +12,7 @@ in
         hardware.firmware
         hardware.audio
         hardware.bluetooth
+        (appPart "upgrade-notify" "nixos")
       ];
 
       networking.networkmanager.enable = true;

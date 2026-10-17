@@ -84,3 +84,9 @@ It never replaces a system it cannot place in the history of `deploy/<host>`:
 | `failed` | the build or the switch failed | `journalctl -u auto-upgrade` |
 
 The last run is in `/var/lib/auto-upgrade/state.json` (outcome, from and to commits, source, message, and the package diff summary from `nvd`), one line per run in `/var/lib/auto-upgrade/history.tsv`; both survive reboots. `nixos-version --configuration-revision` prints the commit the running system was built from, with a `-dirty` suffix when the tree had uncommitted changes.
+
+### Know what it did
+
+`sudo doctor` reads that state ([doctor.md](doctor.md)): its `Upgrades` line says when the last run upgraded and what it changed, or since when the machine is up to date, and warns with the reason when the last run was `refused`, `unreachable`, `waiting`, `failed` or `rolled-back`, or when the last success is more than 14 days old. Its `Boot` line warns when the newest generation spent its tries and the machine runs an older one. `doctor --history` prints the last 10 runs.
+
+On a host with the `desktop` or `laptop` profile, the `upgrade-notify` user service runs when a graphical session starts: when the last run says `upgraded` and that upgrade was not announced yet, it shows a `System updated` notification with the package diff summary, then remembers the upgrade (its time and commit) in `~/.local/state/upgrade-notify/seen` (persisted with `wipe-home`), so each upgrade is announced once, reboots included. When the machine does not run the upgraded commit yet (`operation = "boot"`), the notification adds `Restart to use it.` It reads the local state only and makes no network call. On another profile, add `upgrade-notify` to the host's `apps`.

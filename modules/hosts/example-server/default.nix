@@ -56,6 +56,7 @@
       # "kitty" # the terminal alone, already in hyprland (docs/desktop.md)
       # "mako" # the notification daemon alone, already in hyprland (docs/desktop.md)
       # "lock" # hyprlock and hypridle alone, already in hyprland (docs/desktop.md)
+      # "upgrade-notify" # a desktop notification after each auto-upgrade, already in desktop and laptop (docs/updates.md)
       # "direnv" # per-project dev shells with nix-direnv (docs/dev.md)
       # "firefox" # Firefox with telemetry off, profile kept (docs/desktop.md)
       # "shell" # zsh, starship, git, neovim, CLI tools; every user has it by default (docs/apps.md)

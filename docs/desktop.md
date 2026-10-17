@@ -20,6 +20,7 @@ apps = [ "hyprland" ];
 - **Plymouth** with the `bgrt` theme (the firmware logo), a quiet boot, and the LUKS passphrase asked on the splash.
 - **Hyprland** started by [UWSM](https://github.com/Vladimir-csp/uwsm), so user services (waybar, mako, hypridle, the polkit agent) start and stop with the session. The config is written in Hyprland's Lua format.
 - **waybar**, **fuzzel** (launcher), **kitty** (terminal), **mako** (notifications), **cliphist** (clipboard history).
+- **upgrade-notify**, from the `desktop` profile: once a session starts after `auto-upgrade` built a new version, mako shows `System updated` with the package diff summary, once per upgrade, and asks for a restart when it applies at next boot ([updates.md](updates.md#know-what-it-did)).
 - **hyprlock** and **hypridle**: locked after 5 minutes idle and before sleep, screen off after 10.
 - **Session environment**: `home.sessionVariables` reach Hyprland and every app through `~/.config/uwsm/env`. `NIXOS_OZONE_WL` runs Chromium and Electron apps on Wayland.
 - **Fonts**: NixOS's default set, and JetBrainsMono Nerd Font as monospace.

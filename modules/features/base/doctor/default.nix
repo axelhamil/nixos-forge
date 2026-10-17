@@ -24,6 +24,7 @@
           pkgs.gnused
           pkgs.util-linux
           pkgs.git
+          pkgs.jq
           config.systemd.package
         ];
         runtimeEnv = {
@@ -35,6 +36,9 @@
           snapshot_dir = "/${btrbkVolume.snapshot_dir or ""}";
           snapshot_subvolumes = lib.attrNames (btrbkVolume.subvolume or { });
           update_flake = lib.optionalString (config.update.flake != null) config.update.flake;
+          auto_upgrade_state = lib.optionalString (
+            config.systemd.services ? auto-upgrade
+          ) "/var/lib/auto-upgrade";
           wiped_root = lib.boolToString wipedRoot;
           ephemeral_paths = config.doctor.ephemeralPaths;
         };

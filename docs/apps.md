@@ -32,6 +32,7 @@ An app that brings others imports them with `helpers.appPart`, so an app reached
 | `hyprland` | the desktop, with `greetd`, `waybar`, `fuzzel`, `kitty`, `mako` and `lock` ([desktop.md](desktop.md)) |
 | `direnv` | per-project dev shells with nix-direnv ([dev.md](dev.md)) |
 | `firefox` | Firefox with telemetry off, its profile kept |
+| `upgrade-notify` | a desktop notification after each `auto-upgrade`, brought by the `desktop` and `laptop` profiles ([updates.md](updates.md#know-what-it-did)) |
 | `stow` | links your dotfiles repository, for those who keep one ([below](#keep-your-dotfiles-with-stow)) |
 
 Each brought app also works alone: list `zsh` and `git` instead of `shell` to leave the rest out.

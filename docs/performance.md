@@ -12,6 +12,7 @@ What each profile tunes.
 | Out of memory | systemd-oomd on root and user slices, `nix-daemon` spared | same | kernel default | kernel default |
 | `/tmp` | tmpfs | tmpfs | on disk | on disk |
 | Printing | CUPS, driverless (IPP Everywhere), network printers found through Avahi | same | none | none |
+| Upgrades | a notification after each `auto-upgrade` (`upgrade-notify`) | same | none | none |
 
 `pi` extends `server` and adds a 15 s hardware watchdog and a 100 MB journal cap instead of 500 MB ([raspberry-pi.md](raspberry-pi.md)).
 

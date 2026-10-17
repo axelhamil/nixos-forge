@@ -82,6 +82,17 @@ in
 
       packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
 
+      packages.ci-promote = pkgs.writeShellApplication {
+        name = "ci-promote";
+        runtimeInputs = [
+          pkgs.git
+          pkgs.jq
+          pkgs.coreutils
+          pkgs.gnugrep
+        ];
+        text = builtins.readFile ./ci-promote.sh;
+      };
+
       packages.sync-upstream = pkgs.writeShellApplication {
         name = "sync-upstream";
         runtimeInputs = [

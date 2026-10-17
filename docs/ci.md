@@ -6,11 +6,12 @@ What the GitHub Actions workflows do, and what a fork sets so they run.
 
 1. **Keep `develop`**: untick "Copy the main branch only" when forking, or create `develop` from `main`. Work lands on `develop`, then reaches `main` through a PR.
 2. **Enable the workflows**: GitHub disables them on forks. Open the Actions tab and enable them.
-3. **Bot GitHub App**: the release PR and the weekly lock and upstream PRs need an App token, since PRs opened with `GITHUB_TOKEN` trigger no workflow. [Create a GitHub App](https://github.com/settings/apps/new) with webhooks off and the repository permissions **Contents** and **Pull requests** set to read and write, generate a private key, install the App on your fork, then set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key. One App serves all your repositories.
+3. **Bot GitHub App**: the release PR and the weekly lock and upstream PRs need an App token, since PRs opened with `GITHUB_TOKEN` trigger no workflow. [Create a GitHub App](https://github.com/settings/apps/new) with webhooks off and the repository permissions **Contents** and **Pull requests** set to read and write, and preferably **Workflows** too (see [below](#validated-versions-per-machine)), generate a private key, install the App on your fork, then set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key. One App serves all your repositories.
 4. **Allow auto-merge and merge commits**: Settings, General, "Allow auto-merge" (the lock PR) and "Allow merge commits" (the upstream PRs).
 5. **Ruleset on `main`**: require a pull request and the `ci-ok` status check. Without a required check, auto-merge merges at once.
 6. **Ruleset on `develop`**: block deletions and force pushes, or "Automatically delete head branches" deletes `develop` when a `develop` into `main` PR merges.
-7. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. Every job pulls from it; only pushes to `main` and `develop` write what they built, except sources and images (SD card, ISO, disk, VM). A PR reads the cache but never gets the token, so code under review, such as an upstream sync PR, cannot poison it; the push after the merge builds and uploads what the PR built. Without it, every run builds every check and PRs never build kernels.
+7. **Leave `deploy/*` out of every ruleset**: the `promote` job pushes these branches with the App token, without force. A ruleset that matches them, or a pattern such as `*` with "Restrict updates", refuses the push unless the App is on its bypass list.
+8. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. Every job pulls from it; only pushes to `main` and `develop` write what they built, except sources and images (SD card, ISO, disk, VM). A PR reads the cache but never gets the token, so code under review, such as an upstream sync PR, cannot poison it; the push after the merge builds and uploads what the PR built. Without it, every run builds every check and PRs never build kernels.
 
 Scheduled workflows and Dependabot only run from the default branch, so they start once the workflows are on `main`.
 
@@ -18,7 +19,7 @@ Scheduled workflows and Dependabot only run from the default branch, so they sta
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `check` | every PR, push to `main` and `develop` | Lints the flake, plans the build with `ci-plan` (checks already in the binary cache are skipped), builds each remaining check on a runner of its system (`ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`), retrying a VM test once, computes the package diff ([nvd](https://git.sr.ht/~khumba/nvd)) per system on a PR, and writes one readable report ([below](#the-ci-report)). `ci-ok` sums up the result. |
+| `check` | every PR, push to `main` and `develop` | Lints the flake, plans the build with `ci-plan` (checks already in the binary cache are skipped), builds each remaining check on a runner of its system (`ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`), retrying a VM test once, computes the package diff ([nvd](https://git.sr.ht/~khumba/nvd)) per system on a PR, and writes one readable report ([below](#the-ci-report)). `ci-ok` sums up the result. On a push to `main`, `promote` moves `deploy/<host>` to the pushed commit for every machine whose checks all passed ([below](#validated-versions-per-machine)). |
 | `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR updating `flake.lock` against `main`, with auto-merge on. |
 | `sync-develop` | push to `main` | Merges `main` into `develop`. |
 | `sync-upstream` | Monday 07:00 UTC, or by hand, forks only | Opens a PR merging the starter's latest release, for you to review and merge ([updates.md](updates.md)). |
@@ -47,6 +48,23 @@ Line by line:
 
 A comment over 64 KiB is cut and points to the run summary, which holds up to 1 MiB.
 
+## Validated versions per machine
+
+Each machine has a branch `deploy/<host>` that points to the last commit of `main` on which every check of that machine passed. A machine follows its own branch rather than `main`, so a commit that breaks one machine never reaches it, while the others still move on.
+
+The `promote` job runs after every push to `main`, once the builds ended, even when some failed or hit their time limit; a cancelled run promotes nothing. It reads the exact list of checks of each machine from `nix eval --json .#ci.hostChecks`, never a name prefix, so `example-server-boots` failing never holds `deploy/example` back. A check counts as passed when its result is `passed` or `unstable`, or when the plan skipped it because the binary cache already holds it. A check without a result (its job was cancelled or hit its time limit) or skipped for any other reason keeps the branch where it is.
+
+`ci-promote` prints one line per machine:
+
+- `deploy/<host> -> <short sha>`: the branch moved to the pushed commit.
+- `deploy/<host> kept: <check> <outcome>`: a check of that machine did not pass, the branch stays.
+- `deploy/<host> refused: not a fast-forward`: the pushed commit does not descend from the branch, for instance after a force push on `main`. The branch stays, the job fails and needs a look; `ci-ok` is not affected.
+
+- `deploy/<host> already at or past <short sha>`: the branch already holds the pushed commit, for instance when an older run is rerun after a newer one promoted the machine. Nothing moves and the job stays green.
+- `deploy/<host> refused: <reason>`: the remote declined the push, with git's reason, for instance a ruleset matching `deploy/*`.
+
+The job is skipped when `BOT_CLIENT_ID` is not set. Its token takes the permissions the App installation grants. GitHub may refuse to move a branch across commits that change `.github/workflows/` unless the App has the **Workflows** permission; `ci-promote` then prints the refusal reason, the branch stays, and granting the permission fixes the next run.
+
 ## Checks
 
 Every host gets its checks from the registry, so a new host reaches CI without touching YAML.
@@ -67,6 +85,7 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 | `options-doc` | always | `docs/options.md` matches the registry options |
 | `init` | while the `example` host exists | `nix run .#init -- --yes` on a copy of the flake writes a host and a person that parse, with the answers and features asked, removes the examples, renames the example person in the hosts it keeps, refuses to overwrite a host or a person, and evaluates the `toplevel` of every host left with the flake's locked inputs; an unknown package in `--apps`, a person field of the wrong type and an unknown option in a person's `module` make it fail |
 | `example-hosts` | while an example host exists, on `x86_64-linux` | every example host has a line, enabled or commented out, for every registry field, profile, feature, hardware module and app of the starter, and the person the `example` host names has one for every person field |
+| `ci-promote` | always, on `x86_64-linux` | on local git repositories, `deploy/<host>` moves only when every check of that host passed, unstable or cached, stays on a failure, a missing result or a kernel skip, never follows another host sharing its name prefix, and is never moved backwards or sideways, says when it is already at or past the commit, and prints the reason the remote gives for a refusal |
 | `ci-report` | always, on `x86_64-linux` | `ci-build` keeps a clean log excerpt and retries a VM test once; `ci-report` turns sample runs into the right verdict, a table per host that never mixes two hosts, the cause of a failure, and a comment cut to fit |
 
 ## Running the CI scripts locally
@@ -82,5 +101,6 @@ The matrix and scripts live in Nix (`modules/flake/ci/`), so they run the same o
 | `nix eval --json .#ci.hostChecks` | the checks of each host, the exact list the report groups them by |
 | `nix eval --json .#ci.descriptions` | what each check proves, as the report says it |
 | `HOST_CHECKS=$(nix eval --json .#ci.hostChecks) DESCRIPTIONS=$(nix eval --json .#ci.descriptions) RESULTS_DIR=results nix run .#ci-report` | write the report of the results in `results/` to stdout; `PLANNED`, `SKIPPED`, `HOST_CHECKS` and `DESCRIPTIONS` take the `checks`, `skipped`, `hostChecks` and `descriptions` JSON of `ci-plan`, `CACHE_OUTCOME`, `LINT_RESULT` and `PLAN_RESULT` the outcome of the cache step, the lint job and the plan job, `RUN_URL` the link to the run; `--comment` cuts it to fit a PR comment |
+| `HOST_CHECKS=$(nix eval --json .#ci.hostChecks) PLANNED='[...]' SKIPPED='[...]' nix run .#ci-promote -- results <sha>` | move each `deploy/<host>` of `origin` to `<sha>` when every check of that host in `results/` passed; `PLANNED` and `SKIPPED` take the `checks` and `skipped` JSON of `ci-plan` |
 | `nix run .#closure-diff -- <base rev or branch>` | package diff of the hosts in `nix eval --json .#ci.hosts` for the current platform |
 | `nix run .#sync-develop` | merge `main` into `develop` and push, from a checkout of `develop` |

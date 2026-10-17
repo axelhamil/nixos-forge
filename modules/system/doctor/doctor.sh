@@ -325,6 +325,7 @@ lost_files() {
     awk -F '\t' '
       FNR == NR { owned[$0] = 1; next }
       $1 == "l" && $2 ~ "^(/etc/static|/nix/store)/" { next }
+      $1 == "l" && $2 ~ "^(/|(\\.\\./)+)run/" { next }
       $3 in owned { next }
       { print $3 }
     ' <(activation_owned) - | sort || true

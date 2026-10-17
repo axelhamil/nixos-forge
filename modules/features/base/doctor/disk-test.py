@@ -11,6 +11,7 @@ machine.wait_for_unit("multi-user.target")
 report = doctor_report()
 assert re.search(r"\[\s*OK\]\s+Impermanence\s", report), "a fresh boot already loses files"
 assert re.search(r"\[\s*OK\]\s+Snapshots\s", report), "doctor does not see the btrbk snapshots"
+assert re.search(r"\[\s*OK\]\s+Boot\s", report), "doctor does not read the boot entries"
 
 machine.succeed(
     "touch /doctor-lost /persist/doctor-kept /var/lib/nixos/doctor-kept",

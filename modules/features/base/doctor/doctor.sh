@@ -1,15 +1,18 @@
 show_all=false
+show_history=false
 
 usage() {
-  echo "Usage: doctor [--all]"
+  echo "Usage: doctor [--all | --history]"
   echo "Checks this machine, one line per check: OK, WARN, FAIL or SKIP when it does not apply."
   echo "Run it with sudo for the checks that need root."
-  echo "  --all  list every file on / that the next boot erases"
+  echo "  --all      list every file on / that the next boot erases"
+  echo "  --history  list the last 10 runs of auto-upgrade"
 }
 
 case "${1:-}" in
 "") ;;
 --all) show_all=true ;;
+--history) show_history=true ;;
 -h | --help)
   usage
   exit 0
@@ -297,6 +300,111 @@ check_updates() {
   fi
 }
 
+short_date() {
+  date -d "$1" '+%Y-%m-%d %H:%M'
+}
+
+up_to_date_since() {
+  awk -F '\t' '
+    $2 == "upgraded" { since = $1 }
+    $2 == "up-to-date" && since == "" { since = $1 }
+    $2 == "rolled-back" { since = "" }
+    END { print since }
+  ' "$auto_upgrade_state/history.tsv" 2>/dev/null || true
+}
+
+check_upgrades() {
+  if [ -z "$auto_upgrade_state" ]; then
+    report SKIP "Upgrades" "auto-upgrade is off"
+    return
+  fi
+
+  local state_file=$auto_upgrade_state/state.json
+  if [ ! -r "$state_file" ]; then
+    report SKIP "Upgrades" "never ran yet"
+    return
+  fi
+
+  local fields time outcome message changes epoch
+  if ! fields=$(jq -r 'if (.time | type) == "string" and (.outcome | type) == "string" then .time, .outcome, .message // "", .changes // "" else error("missing fields") end' "$state_file" 2>/dev/null) ||
+    ! {
+      read -r time
+      read -r outcome
+      read -r message || true
+      read -r changes || true
+    } <<<"$fields" ||
+    ! epoch=$(date -d "$time" +%s 2>/dev/null); then
+    report WARN "Upgrades" "cannot read $state_file" "auto-upgrade writes it again at its next run: systemctl start auto-upgrade"
+    return
+  fi
+
+  local when
+  when=$(short_date "$time")
+
+  case $outcome in
+  upgraded | up-to-date) ;;
+  *)
+    report WARN "Upgrades" "$outcome on $when" "$message"
+    return
+    ;;
+  esac
+
+  local age=$((now - epoch))
+  if [ "$age" -gt $((14 * 86400)) ]; then
+    report WARN "Upgrades" "last run on $when, $(duration "$age") ago" "systemctl list-timers auto-upgrade, journalctl -u auto-upgrade"
+  elif [ "$outcome" = upgraded ]; then
+    report OK "Upgrades" "upgraded $when: ${changes:-$message}"
+  else
+    local since
+    since=$(up_to_date_since)
+    report OK "Upgrades" "up to date since $(short_date "${since:-$time}")"
+  fi
+}
+
+check_boot() {
+  if ! is_root; then
+    report SKIP "Boot" "needs root, run sudo doctor"
+    return
+  fi
+
+  local generation newest
+  read -r generation newest < <(bootctl list --json=short --no-pager 2>/dev/null | jq -r '
+    map(select((.version // "") | test("Generation [0-9]+")) | .generation = (.version | capture("Generation (?<number>[0-9]+)").number | tonumber))
+    | if length == 0 then empty else max_by(.generation) | "\(.generation) \(.path)" end
+  ' 2>/dev/null) || true
+
+  if [ -z "${newest:-}" ]; then
+    report SKIP "Boot" "no systemd-boot entries on this machine"
+  elif [[ $newest =~ \+0-[0-9]+\.(conf|efi)$ ]] && [ "$(readlink -f "/nix/var/nix/profiles/system-$generation-link")" != "$(readlink -f /run/current-system)" ]; then
+    local hint="journalctl -b -1 shows why"
+    if [ -n "$auto_upgrade_state" ]; then
+      hint="$hint, doctor --history lists the upgrades"
+    fi
+    report WARN "Boot" "the last update did not start, this machine went back to the previous version" "$hint"
+  else
+    report OK "Boot" "the newest generation started, or has tries left"
+  fi
+}
+
+show_upgrade_history() {
+  if [ -z "$auto_upgrade_state" ]; then
+    echo "auto-upgrade is off on this host"
+    return
+  fi
+
+  local history=$auto_upgrade_state/history.tsv
+  if [ ! -s "$history" ]; then
+    echo "auto-upgrade never ran yet"
+    return
+  fi
+
+  tail -n 10 "$history" | awk -F '\t' '
+    function cell(value) { return value == "" ? "-" : value }
+    BEGIN { printf "%-25s  %-11s  %-12s  %-12s  %s\n", "TIME", "OUTCOME", "FROM", "TO", "SOURCE" }
+    { printf "%-25s  %-11s  %-12s  %-12s  %s\n", $1, $2, cell(substr($3, 1, 12)), cell(substr($4, 1, 12)), cell($5) }
+  '
+}
+
 activation_owned() {
   local clean=()
   if [ -r /etc/.clean ]; then
@@ -373,6 +481,11 @@ check_impermanence() {
   detail_line "doctor --all lists every file"
 }
 
+if [ "$show_history" = true ]; then
+  show_upgrade_history
+  exit 0
+fi
+
 if ! is_root; then
   echo "Running without root: the checks that need it are skipped. Run sudo doctor for all of them."
   echo
@@ -384,6 +497,8 @@ check_snapshots
 check_space
 check_units
 check_updates
+check_upgrades
+check_boot
 check_impermanence
 
 echo

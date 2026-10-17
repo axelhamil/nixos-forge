@@ -1,23 +1,89 @@
+# A headless server, read top to bottom: uncomment a line to turn something on, comment it
+# out to turn it off. Every field is described in docs/options.md; the commented desktop
+# host in modules/hosts/example shows the same fields for a workstation.
 {
   configurations.nixos.example-server = {
+    # Platform: "x86_64-linux" for a PC, "aarch64-linux" for a Raspberry Pi (docs/raspberry-pi.md).
+    system = "x86_64-linux";
+
+    # NixOS release the machine was first installed with. Set it once, never change it.
     stateVersion = "26.05";
 
+    # Role of the machine (docs/performance.md): "desktop", "laptop" (desktop plus power
+    # saving), "server" (headless), "pi" (server tuned for a Raspberry Pi).
     profile = "server";
+
+    # What the machine turns on, by name. An unknown name stops the build with the known ones.
     features = [
-      "disk"
-      "wipe-home"
-      "ssh"
+      "disk" # LUKS and btrfs, `/` wiped at every boot; the disk is picked at install (docs/install.md)
+      # "secure-boot" # lanzaboote, then the TPM2 unlocks the disk (docs/install.md)
+      "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
+      # "hibernate" # hibernation to an encrypted swap file, for laptops, needs disk (docs/hibernate.md)
+      # "plymouth" # graphical boot splash and passphrase prompt (docs/desktop.md)
+      # "hyprland" # Hyprland with greetd, waybar, fuzzel, kitty, mako, hyprlock (docs/desktop.md)
+      # "greetd" # the tuigreet login screen alone, for another desktop (docs/desktop.md)
+      # "docker" # rootless Docker (docs/dev.md)
+      # "libvirt" # virtual machines with virt-manager (docs/dev.md)
+      # "nix-ld" # run binaries not built for NixOS (docs/dev.md)
+      # "direnv" # per-project dev shells with nix-direnv (docs/dev.md)
+      "ssh" # key-only SSH server (docs/services.md)
+      # "secrets" # sops-nix secrets (docs/services.md)
+      # "auto-upgrade" # rebuild from your fork every week, needs a flake reference in `flake` (docs/updates.md)
     ];
 
+    # Hardware: a module of the starter, or any nixos-hardware profile by name
+    # (https://github.com/NixOS/nixos-hardware), such as "common-cpu-amd".
+    hardware = [
+      # "common-pc-ssd" # nixos-hardware: weekly TRIM
+      # "firmware" # redistributable firmware and fwupd
+      # "audio" # PipeWire
+      # "bluetooth" # Bluetooth
+      # "nvidia" # NVIDIA GPU with the open kernel module
+      # "amd-gpu" # AMD GPU
+      # "intel-gpu" # Intel GPU with video decoding
+      # "raspberry-pi-4" # Raspberry Pi 4, aarch64-linux (docs/raspberry-pi.md)
+      # "raspberry-pi-5" # Raspberry Pi 5, aarch64-linux (docs/raspberry-pi.md)
+    ];
+
+    # Hardware report saved by the installer in /persist/facter.json: copy it next to this
+    # file and uncomment, nixpkgs then loads the drivers that machine needs (docs/install.md).
+    # facter = ./facter.json;
+
+    # Apps for every user: an app of modules/apps/<name> with its config, else any nixpkgs
+    # package by name ("htop", "tmux"); unfree ones are allowed.
+    apps = [
+      # "firefox" # Firefox with telemetry off, profile kept (docs/desktop.md)
+    ];
+
+    # Where the machine updates from (docs/updates.md): a flake reference such as
+    # "github:<you>/<fork>" for auto-upgrade, or a checkout on the machine for `update`.
+    # flake = "github:alice/nixos";
+
+    # timeZone = "UTC"; # such as "Europe/Paris"
+    # locale = "en_US.UTF-8"; # language and formats, such as "fr_FR.UTF-8"
+    # keyboard = "us"; # layout of the console, such as "fr"
+
+    # Accounts, by login name. The VM logs in with the password "test"; the installer asks
+    # for the real one.
     users.alice = {
-      fullName = "Alice Example";
-      sshKeys = [ ];
+      fullName = "Alice Example"; # git author name
+      # email = "alice@example.org"; # git author email
+      # admin = false; # true by default: may run sudo
+      sshKeys = [ ]; # public keys allowed to log in, such as "ssh-ed25519 AAAA..."
+      # home = [ "shell" "stow" ]; # home-manager modules, "shell" by default (docs/home.md)
+      # apps = [ "btop" ]; # apps for this user only
+      # groups = [ "wheel" ]; # extra groups
     };
 
+    # Any other NixOS setting, as plain config.
+    # module.services.fail2ban.enable = true;
+
+    # Python lines appended to this host's boot test, run against the `machine` node.
     testScript = ''
       machine.wait_for_open_port(22)
     '';
   };
 
+  # Hosts whose installer ISO CI installs and boots end to end (docs/install.md).
   installer.testedHosts = [ "example-server" ];
 }

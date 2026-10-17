@@ -43,6 +43,7 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 | `facter` | always, on `x86_64-linux` | a host with the registry field `facter` set to nixpkgs' sample report turns on nixpkgs' facter module |
 | `options-doc` | always | `docs/options.md` matches the registry options |
 | `init` | while the `example` host exists | `nix run .#init -- --yes` on a copy of the flake writes a host that parses, with the answers and features asked, removes the examples and refuses to overwrite a host |
+| `example-hosts` | while an example host exists, on `x86_64-linux` | every example host has a line, enabled or commented out, for every registry field, profile, feature, hardware module and app of the starter |
 
 ## Running the CI scripts locally
 

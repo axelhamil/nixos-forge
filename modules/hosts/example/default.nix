@@ -32,16 +32,17 @@
     ];
 
     # Hardware: a module of the starter, or any nixos-hardware profile by name
-    # (https://github.com/NixOS/nixos-hardware), such as "framework-13-7040-amd".
+    # (https://github.com/NixOS/nixos-hardware), such as "framework-13-7040-amd". Here a
+    # desktop PC: Intel Core Ultra 7 265K, GeForce RTX 5070 Ti, two NVMe SSDs.
     hardware = [
       "common-pc-ssd" # nixos-hardware: weekly TRIM
-      "common-cpu-intel-cpu-only" # nixos-hardware: Intel microcode
+      "common-cpu-intel-cpu-only" # nixos-hardware: Intel microcode, the screens are on the NVIDIA card
       # "firmware" # redistributable firmware and fwupd, already in desktop and laptop
       # "audio" # PipeWire, already in desktop and laptop
       # "bluetooth" # Bluetooth, already in desktop and laptop
-      # "nvidia" # NVIDIA GPU with the open kernel module
+      "nvidia" # NVIDIA GPU with the open kernel module, here a GeForce RTX 5070 Ti
       # "amd-gpu" # AMD GPU
-      # "intel-gpu" # Intel GPU with video decoding
+      # "intel-gpu" # Intel GPU with video decoding, for an Intel GPU that drives the screens
       # "raspberry-pi-4" # Raspberry Pi 4, aarch64-linux (docs/raspberry-pi.md)
       # "raspberry-pi-5" # Raspberry Pi 5, aarch64-linux (docs/raspberry-pi.md)
     ];
@@ -60,9 +61,9 @@
     # `update` pulls, or a flake reference such as "github:<you>/<fork>" for auto-upgrade.
     flake = "/home/alice/nixos";
 
-    timeZone = "UTC"; # such as "Europe/Paris"
-    locale = "en_US.UTF-8"; # language and formats, such as "fr_FR.UTF-8"
-    keyboard = "us"; # layout of the console and the desktop, such as "fr"
+    timeZone = "Europe/Paris"; # such as "UTC"
+    locale = "fr_FR.UTF-8"; # language and formats, such as "en_US.UTF-8"
+    keyboard = "fr"; # layout of the console and the desktop, such as "us"
 
     # Accounts, by login name. The VM logs in with the password "test"; the installer asks
     # for the real one.

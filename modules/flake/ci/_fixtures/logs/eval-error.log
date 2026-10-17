@@ -1,0 +1,6 @@
+error: undefined variable 'foo'
+       at /nix/store/7mrm3fhjw21r51vqrlpaalbxhg32brij-source/flake.nix:4:42:
+            3|     let
+            4|       hosts = { example = { features = [ foo ]; }; };
+             |                                          ^
+            5|     in

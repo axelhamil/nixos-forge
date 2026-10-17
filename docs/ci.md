@@ -51,8 +51,9 @@ The matrix and scripts live in Nix (`modules/flake/ci/`), so they run the same o
 
 | Command | What it does |
 |---|---|
-| `nix eval --json .#ci.matrix` | every check with its system and runner |
+| `nix eval --json .#ci.matrix` | every check with its system, runner and `retry` (true for a NixOS VM test) |
 | `nix run .#ci-plan -- pull_request` | plan a run as CI does (`pull_request` or `push`), skipping what your store or substituters hold |
 | `nix build -L .#checks.x86_64-linux.example-boots` | build one check |
+| `nix run .#ci-build -- x86_64-linux example-boots results --retry` | build one check as CI does: with `--retry`, a failure is rebuilt once and a pass on the second attempt is `unstable`; writes `results/example-boots.json` with the outcome, the attempts and an excerpt of the failing log |
 | `nix run .#closure-diff -- <base rev or branch>` | package diff of the hosts in `nix eval --json .#ci.hosts` for the current platform |
 | `nix run .#sync-develop` | merge `main` into `develop` and push, from a checkout of `develop` |

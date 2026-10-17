@@ -15,6 +15,7 @@ let
     map (check: {
       inherit check system;
       runner = runners.${system};
+      retry = config.flake.checks.${system}.${check} ? driver;
     }) (buildChecksOn system);
 
   kernelsOn =
@@ -60,6 +61,11 @@ in
           pkgs.coreutils
         ];
         text = builtins.readFile ./ci-plan.sh;
+      };
+
+      packages.ci-build = import ./_ci-build.nix {
+        inherit pkgs;
+        inherit (pkgs) nix;
       };
 
       packages.sync-upstream = pkgs.writeShellApplication {

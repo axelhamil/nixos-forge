@@ -15,6 +15,7 @@ let
     map (check: {
       inherit check system;
       runner = runners.${system};
+      retry = config.flake.checks.${system}.${check} ? driver;
     }) (buildChecksOn system);
 
   kernelsOn =
@@ -28,10 +29,22 @@ let
   hostNamesOn = system: lib.attrNames (hostsOn system);
 
   systemsWithHosts = lib.filter (system: hostsOn system != { }) config.systems;
+
+  checks = import ./_checks.nix { inherit lib; };
+
+  hostChecks = lib.mapAttrs (
+    name: host: checks.hostChecksOf config.flake.checks.${host.system} name
+  ) config.configurations.nixos;
+
+  matrix = lib.concatMap jobsOn config.systems;
+
+  descriptions = lib.genAttrs (lib.unique (map (job: job.check) matrix ++ [ "treefmt" ])) (
+    checks.describe hostChecks
+  );
 in
 {
   flake.ci = {
-    matrix = lib.concatMap jobsOn config.systems;
+    inherit matrix hostChecks descriptions;
     hosts = lib.genAttrs config.systems hostNamesOn;
     kernels = lib.genAttrs config.systems kernelsOn;
     closureMatrix = map (system: {
@@ -61,6 +74,13 @@ in
         ];
         text = builtins.readFile ./ci-plan.sh;
       };
+
+      packages.ci-build = import ./_ci-build.nix {
+        inherit pkgs;
+        inherit (pkgs) nix;
+      };
+
+      packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
 
       packages.sync-upstream = pkgs.writeShellApplication {
         name = "sync-upstream";

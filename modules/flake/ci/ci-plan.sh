@@ -3,6 +3,8 @@ event=$1
 kernels=$(nix eval --json .#ci.kernels)
 jobs=$(nix eval --json .#ci.matrix)
 closures=$(nix eval --json .#ci.closureMatrix)
+host_checks=$(nix eval --json .#ci.hostChecks)
+descriptions=$(nix eval --json .#ci.descriptions)
 
 evaluated=$(nix-eval-jobs --flake .#checks --force-recurse --check-cache-status --workers "$(nproc)" --max-memory-size 3072 | jq -s .)
 
@@ -43,4 +45,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
 fi
 
 echo "checks=$(jq -c .checks <<<"$plan")"
+echo "skipped=$(jq -c .skipped <<<"$plan")"
 echo "closures=$(jq -c .closures <<<"$plan")"
+echo "hostChecks=$(jq -c . <<<"$host_checks")"
+echo "descriptions=$(jq -c . <<<"$descriptions")"

@@ -28,10 +28,15 @@ jobs:
     outputs:
       checks: ${{ steps.plan.outputs.checks }}
       closures: ${{ steps.plan.outputs.closures }}
+      skipped: ${{ steps.plan.outputs.skipped }}
+      hostChecks: ${{ steps.plan.outputs.hostChecks }}
+      descriptions: ${{ steps.plan.outputs.descriptions }}
+      cache: ${{ steps.cachix.outcome }}
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
-      - uses: cachix/cachix-action@v17
+      - id: cachix
+        uses: cachix/cachix-action@v17
         if: vars.CACHIX_CACHE != ''
         continue-on-error: true
         with:
@@ -65,7 +70,14 @@ jobs:
           authToken: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
           useDaemon: false
           pushFilter: (-source$|-nixos-image-|\.img$|\.iso$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
-      - run: nix build -L .#checks.${{ matrix.system }}.${{ matrix.check }}
+      - run: nix run .#ci-build -- ${{ matrix.system }} ${{ matrix.check }} results ${{ matrix.retry && '--retry' || '' }}
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: result-${{ matrix.system }}-${{ matrix.check }}
+          path: results/${{ matrix.system }}-${{ matrix.check }}.json
+          if-no-files-found: ignore
+          retention-days: 7
 
   closure:
     needs: plan
@@ -96,22 +108,45 @@ jobs:
           name: closure-${{ matrix.system }}
           path: closure-${{ matrix.system }}.md
 
-  comment:
-    needs: closure
-    if: ${{ !cancelled() && needs.closure.result != 'skipped' }}
+  report:
+    if: ${{ !cancelled() }}
+    needs: [lint, plan, build, closure]
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: write
+    env:
+      RESULTS_DIR: results
+      PLANNED: ${{ needs.plan.outputs.checks }}
+      SKIPPED: ${{ needs.plan.outputs.skipped }}
+      CACHE_OUTCOME: ${{ needs.plan.outputs.cache }}
+      LINT_RESULT: ${{ needs.lint.result }}
+      PLAN_RESULT: ${{ needs.plan.result }}
+      HOST_CHECKS: ${{ needs.plan.outputs.hostChecks }}
+      DESCRIPTIONS: ${{ needs.plan.outputs.descriptions }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: result-*
+          path: results
+          merge-multiple: true
       - uses: actions/download-artifact@v8
         with:
           pattern: closure-*
+          path: results
           merge-multiple: true
-      - run: cat closure-*.md 2>/dev/null | tee diff.md >> "$GITHUB_STEP_SUMMARY"
+      - run: nix run .#ci-report > report.md
+      - run: cat report.md >> "$GITHUB_STEP_SUMMARY"
       - if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file diff.md --edit-last --create-if-none
+        run: nix run .#ci-report -- --comment | gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file - --edit-last --create-if-none
 
   ci-ok:
     if: always()

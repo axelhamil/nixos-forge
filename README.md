@@ -1,10 +1,10 @@
 <div align="center">
 
-# nixos-starter
+# nixos-forge
 
 **A NixOS base to fork: one file per machine, every host booted in CI, a shell and a desktop ready on first login.**
 
-[![check](https://github.com/axelhamil/nixos-starter/actions/workflows/check.yml/badge.svg)](https://github.com/axelhamil/nixos-starter/actions/workflows/check.yml)
+[![check](https://github.com/axelhamil/nixos-forge/actions/workflows/check.yml/badge.svg)](https://github.com/axelhamil/nixos-forge/actions/workflows/check.yml)
 [![NixOS unstable](https://img.shields.io/badge/NixOS-unstable-5277C3?logo=nixos&logoColor=white)](https://nixos.org)
 [![flake-parts](https://img.shields.io/badge/built%20with-flake--parts-7EBAE4)](https://flake.parts)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)

@@ -43,7 +43,7 @@ let
           type = types.deferredModule;
           default = { };
           apply = module: {
-            key = "nixos-starter/users/${name}";
+            key = "nixos-forge/users/${name}";
             _class = "homeManager";
             imports = [ module ];
           };

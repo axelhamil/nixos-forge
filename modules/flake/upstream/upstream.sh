@@ -1,4 +1,4 @@
-starter=https://github.com/axelhamil/nixos-starter.git
+starter=https://github.com/axelhamil/nixos-forge.git
 
 usage() {
   cat <<'EOF'
@@ -10,7 +10,7 @@ chore/sync-upstream-<tag> branch made from origin/main, pushes that branch to or
 opens a pull request against main with gh when it is logged in, or prints the gh command.
 
 The starter is the argument, else the git remote named upstream, else
-https://github.com/axelhamil/nixos-starter.git. OWNER/REPO means a GitHub repository.
+https://github.com/axelhamil/nixos-forge.git. OWNER/REPO means a GitHub repository.
 
   --yes        prepare the branch without asking
   -h, --help   show this help

@@ -2,7 +2,7 @@ template_dir=modules/hosts/example
 template=$template_dir/default.nix
 example_person=alice
 person_template=modules/users/$example_person/default.nix
-upstream=${UPSTREAM:-axelhamil/nixos-starter}
+upstream=${UPSTREAM:-axelhamil/nixos-forge}
 profiles=(desktop laptop server pi)
 systems=(x86_64-linux aarch64-linux)
 

@@ -3,7 +3,7 @@
 How a change reaches your machines: every Monday your fork gets a PR for new inputs, you merge the starter's releases when you choose, CI proves both, then each machine pulls your fork.
 
 ```text
-nixos-starter release ──┐ `nix run .#upstream`: a branch and a PR
+nixos-forge release ──┐ `nix run .#upstream`: a branch and a PR
 nixpkgs and inputs ─────┤ for your review; Monday PR: inputs merge
                         │ once ci-ok is green
                         ▼
@@ -21,7 +21,7 @@ Your fork decides when it takes the starter. In your checkout, with no uncommitt
 $ nix run .#upstream
 ```
 
-It reads the starter's latest release tag (`git ls-remote`, no GitHub login needed) and, when the `main` branch of your `origin` does not hold it yet, prints what changed since your last merge: the breaking changes first (a `!` commit or a `BREAKING CHANGE` footer), then the new lines of the starter's `CHANGELOG.md`. It then asks `Prepare branch chore/sync-upstream-<tag>? [y/N]`; on yes it creates that branch from `origin/main` (never from the branch you are on, so unreleased work on `develop` stays out of it), merges the tag with a merge commit, pushes it to `origin` and opens a PR against `main` of `origin` with `gh` when it is logged in, or prints the `gh pr create --repo <owner>/<repo>` command to run. `--yes` skips the question. The starter is the argument (a git URL or a GitHub `owner/repo`), else your `upstream` remote, else `https://github.com/axelhamil/nixos-starter.git`. A fork already holding the tag gets `Already up to date with <tag>.`
+It reads the starter's latest release tag (`git ls-remote`, no GitHub login needed) and, when the `main` branch of your `origin` does not hold it yet, prints what changed since your last merge: the breaking changes first (a `!` commit or a `BREAKING CHANGE` footer), then the new lines of the starter's `CHANGELOG.md`. It then asks `Prepare branch chore/sync-upstream-<tag>? [y/N]`; on yes it creates that branch from `origin/main` (never from the branch you are on, so unreleased work on `develop` stays out of it), merges the tag with a merge commit, pushes it to `origin` and opens a PR against `main` of `origin` with `gh` when it is logged in, or prints the `gh pr create --repo <owner>/<repo>` command to run. `--yes` skips the question. The starter is the argument (a git URL or a GitHub `owner/repo`), else your `upstream` remote, else `https://github.com/axelhamil/nixos-forge.git`. A fork already holding the tag gets `Already up to date with <tag>.`
 
 It never merges into `main` on its own: the starter's code reaches your machines only once you have read the diff. Adapt your hosts on the branch if needed, wait for `ci-ok`, then merge with a merge commit, never a squash, so the next merge starts from there. On a conflict it names the files, aborts the merge, deletes the branch, returns to where you started and exits 1: create the branch from `origin/main` and merge the tag there by hand, as its error says (`git switch -c chore/sync-upstream-<tag> origin/main && git merge --no-ff <tag>`), resolve and commit, push the branch and open its PR against `main`. A fork that shares no history with the starter (made by copying it, or with "Use this template") gets git's `refusing to merge unrelated histories` and the same clean exit.
 

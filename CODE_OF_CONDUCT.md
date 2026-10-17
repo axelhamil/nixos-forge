@@ -4,4 +4,4 @@ This project follows the [Contributor Covenant v2.1](https://www.contributor-cov
 
 ## Reporting
 
-Report unacceptable behavior in a [GitHub issue](https://github.com/axelhamil/nixos-starter/issues), or privately through [a security advisory](https://github.com/axelhamil/nixos-starter/security/advisories/new) when it should not be public. Reports are handled with discretion.
+Report unacceptable behavior in a [GitHub issue](https://github.com/axelhamil/nixos-forge/issues), or privately through [a security advisory](https://github.com/axelhamil/nixos-forge/security/advisories/new) when it should not be public. Reports are handled with discretion.

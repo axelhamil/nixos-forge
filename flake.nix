@@ -56,7 +56,7 @@
     };
 
     migration-base = {
-      url = "github:axelhamil/nixos-starter/main";
+      url = "github:axelhamil/nixos-forge/main";
       flake = false;
     };
   };

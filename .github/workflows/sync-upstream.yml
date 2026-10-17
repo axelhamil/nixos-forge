@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   sync:
-    if: github.repository != 'axelhamil/nixos-starter' && vars.SYNC_UPSTREAM == 'true'
+    if: github.repository != 'axelhamil/nixos-forge' && vars.SYNC_UPSTREAM == 'true'
     runs-on: ubuntu-latest
     steps:
       - id: bot
@@ -26,5 +26,5 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
-          UPSTREAM: ${{ vars.UPSTREAM || 'axelhamil/nixos-starter' }}
+          UPSTREAM: ${{ vars.UPSTREAM || 'axelhamil/nixos-forge' }}
         run: nix run .#upstream -- --yes "$UPSTREAM"

@@ -26,7 +26,7 @@
       # "nix-ld" # run binaries not built for NixOS (docs/dev.md)
       "ssh" # key-only SSH server (docs/services.md)
       # "secrets" # sops-nix secrets (docs/services.md)
-      # "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, rolls back a generation that does not start (docs/updates.md)
+      # "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, no automatic rollback on a Pi (docs/raspberry-pi.md)
     ];
 
     # Hardware: a module of the starter, or any nixos-hardware profile by name

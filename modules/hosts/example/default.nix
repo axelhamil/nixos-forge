@@ -23,7 +23,7 @@
       # "greetd" # the tuigreet login screen alone, for another desktop (docs/desktop.md)
       "docker" # rootless Docker (docs/dev.md)
       # "libvirt" # virtual machines with virt-manager (docs/dev.md)
-      "nix-ld" # run binaries not built for NixOS (docs/dev.md)
+      "nix-ld" # run binaries not built for NixOS, and AppImages (docs/dev.md)
       "ssh" # key-only SSH server (docs/services.md)
       # "secrets" # sops-nix secrets (docs/services.md)
       "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, rolls back a generation that does not start (docs/updates.md)
@@ -35,7 +35,7 @@
     hardware = [
       "common-pc-ssd" # nixos-hardware: weekly TRIM
       "common-cpu-intel-cpu-only" # nixos-hardware: Intel microcode, the screens are on the NVIDIA card
-      # "firmware" # redistributable firmware and fwupd, already in desktop and laptop
+      # "firmware" # redistributable firmware, CPU microcode and fwupd, already in desktop and laptop
       # "audio" # PipeWire, already in desktop and laptop
       # "bluetooth" # Bluetooth, already in desktop and laptop
       "nvidia" # NVIDIA GPU with the open kernel module, here a GeForce RTX 5070 Ti

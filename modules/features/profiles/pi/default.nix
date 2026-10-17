@@ -16,7 +16,7 @@ in
 
       systemd.settings.Manager.RuntimeWatchdogSec = lib.mkDefault "15s";
 
-      services.journald.settings.Journal.SystemMaxUse = lib.mkDefault "100M";
+      services.journald.settings.Journal.SystemMaxUse = lib.mkOverride 900 "100M";
 
       documentation.nixos.enable = lib.mkDefault false;
 

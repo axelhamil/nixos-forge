@@ -109,6 +109,10 @@
         boot.loader.systemd-boot = {
           enable = lib.mkDefault true;
           editor = false;
+          bootCounting = {
+            enable = true;
+            tries = 3;
+          };
         };
         boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
 

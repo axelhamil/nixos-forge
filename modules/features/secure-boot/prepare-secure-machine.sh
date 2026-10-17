@@ -1,7 +1,7 @@
 state_dir=$1
 mkdir -p "$state_dir/swtpm"
 
-cp --no-preserve=mode "$FIRMWARE_VARS" "$state_dir/vars.fd"
+cp --no-preserve=mode --update=none "$FIRMWARE_VARS" "$state_dir/vars.fd"
 
 swtpm socket \
   --tpmstate dir="$state_dir/swtpm" \

@@ -162,3 +162,17 @@ From any NixOS installer ISO, with your fork cloned in `~/nixos`:
    ```
 
    On a host without `secure-boot`, nothing is enrolled automatically: run the same command without `--tpm2-with-pin=yes` yourself, knowing PCR 7 does not protect against another boot chain there, so the TPM only protects a disk taken out of the machine.
+
+## Going back to the previous generation
+
+A host with `disk` writes every new generation to the boot menu with 3 tries ([Automatic Boot Assessment](https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/): `boot.loader.systemd-boot.bootCounting`, or `boot.lanzaboote.bootCounting.initialTries` with `secure-boot`). Each boot of that entry spends a try; once the boot reaches `boot-complete.target`, `systemd-bless-boot` marks it good and it keeps no counter. An entry whose 3 tries are spent is marked bad, and systemd-boot starts the newest generation that is not bad instead, usually the one before. An entry whose content changes when a new generation is installed (the first one gains the `machine-id` after the first boot) is written again with 3 tries, and blessed again the next time it starts.
+
+With `auto-upgrade`, `boot-complete.target` also requires `systemd-boot-check-no-failures.service`: a boot where a unit failed by the time `multi-user.target` was reached is not blessed. Without `auto-upgrade`, nothing waits for `multi-user.target`: a boot counts as good once its local file systems are mounted. See where an entry stands:
+
+```sh
+bootctl list
+```
+
+An entry whose file name (`source`) ends in `+<left>-<done>` is still being tried, `+0-<done>` is bad and skipped, and one with no `+` is good. A bad generation stays in the menu: pick it by hand to look at its journal (`journalctl -b -1`), then fix the cause and let the next upgrade replace it.
+
+`feature-rollback` and `feature-rollback-secure-boot` prove it: they install a machine, add a generation with a failing service in `boot` mode, and check that 3 failed boots take the machine back to the generation before.

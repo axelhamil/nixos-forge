@@ -18,6 +18,7 @@
         pkiBundle = "/var/lib/sbctl";
         autoGenerateKeys.enable = true;
         autoEnrollKeys.enable = true;
+        bootCounting.initialTries = 3;
       };
 
       systemd.services.fwupd-efi = lib.mkIf config.services.fwupd.enable {

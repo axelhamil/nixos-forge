@@ -59,7 +59,7 @@ configurations.nixos.my-server = {
 
 It fetches over https without credentials: a private fork needs a mirror the machine can read without a login. Every source, `mirrors` included, is trusted as much as the fork itself, since whoever can push `deploy/<host>` to one of them chooses what the machine builds as root.
 
-It applies the new version with `nixos-rebuild boot`: the machine keeps running what it runs, and starts the new version at the next reboot. Set `autoUpgrade.operation = "switch"` in the host's `module` to start it right away. On a Raspberry Pi (`pi` profile) it builds nothing itself (`autoUpgrade.allowLocalBuild = false`): it substitutes everything from the binary cache and its remote builders, so a Pi upgrades only to a version CI built and cached (`<host>-toplevel`); one the cache does not hold yet waits for the next run.
+It applies the new version with `nixos-rebuild boot`: the machine keeps running what it runs, and starts the new version at the next reboot. Set `autoUpgrade.operation = "switch"` in the host's `module` to start it right away. On a host with `disk`, a new version that does not start is abandoned on its own after 3 tries ([install.md](install.md#going-back-to-the-previous-generation)). On a Raspberry Pi (`pi` profile) it builds nothing itself (`autoUpgrade.allowLocalBuild = false`): it substitutes everything from the binary cache and its remote builders, so a Pi upgrades only to a version CI built and cached (`<host>-toplevel`); one the cache does not hold yet waits for the next run.
 
 It never replaces a system it cannot place in the history of `deploy/<host>`:
 

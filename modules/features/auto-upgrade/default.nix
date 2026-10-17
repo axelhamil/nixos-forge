@@ -63,6 +63,9 @@
 
       environment.systemPackages = [ pkgs.nvd ];
 
+      systemd.additionalUpstreamSystemUnits = [ "systemd-boot-check-no-failures.service" ];
+      systemd.targets.boot-complete.requires = [ "systemd-boot-check-no-failures.service" ];
+
       systemd.services.auto-upgrade = {
         description = "Pull the version CI validated for this machine and apply it";
         restartIfChanged = false;

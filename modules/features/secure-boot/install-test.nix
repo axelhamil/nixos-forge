@@ -25,7 +25,6 @@
         "-m 1024"
         "-machine q35,smm=on"
         "-global driver=cfi.pflash01,property=secure,value=on"
-        "-virtfs local,path=/nix/store,security_model=none,mount_tag=nix-store"
         "-drive if=pflash,format=raw,unit=0,readonly=on,file=${firmware.firmware}"
         "-tpmdev emulator,id=tpm0,chardev=chrtpm"
         "-device tpm-tis,tpmdev=tpm0"

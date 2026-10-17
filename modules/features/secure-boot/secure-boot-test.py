@@ -17,6 +17,7 @@ subprocess.run([prepare_secure_machine, state], check=True)
 machine = create_machine(
     start_command=" ".join([
         secure_machine,
+        "-virtfs local,path=/nix/store,security_model=none,mount_tag=nix-store",
         *disks(installer, 1),
         f"-drive if=pflash,format=raw,unit=1,file={state}/vars.fd",
         f"-chardev socket,id=chrtpm,path={state}/swtpm/socket.ctrl",

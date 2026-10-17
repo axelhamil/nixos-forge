@@ -15,11 +15,14 @@ assert re.search(r"\[\s*OK\]\s+Snapshots\s", report), "doctor does not see the b
 machine.succeed(
     "touch /doctor-lost /persist/doctor-kept /var/lib/nixos/doctor-kept",
     "mkdir -p /srv/doctor && echo state > /srv/doctor/state",
+    "ln -s ../run/doctor-runtime /var/doctor-runtime",
+    "ln -s /run /var/doctor-runtime-root",
 )
 report = doctor_report()
 assert re.search(r"\[\s*WARN\]\s+Impermanence\s", report), "doctor does not warn about files lost at boot"
 assert "/doctor-lost" in report and "/srv/doctor/state" in report, "doctor misses a file written to /"
 assert "doctor-kept" not in report, "doctor lists a persisted file"
+assert "doctor-runtime" not in report, "doctor lists a link into /run that tmpfiles recreates at boot"
 
 machine.execute("/run/current-system/bin/switch-to-configuration test")
 summary = machine.succeed("doctor 2>&1 || true")

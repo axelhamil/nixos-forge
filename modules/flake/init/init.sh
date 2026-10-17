@@ -1,5 +1,7 @@
 template_dir=modules/hosts/example
 template=$template_dir/default.nix
+example_person=alice
+person_template=modules/users/$example_person/default.nix
 profiles=(desktop laptop server pi)
 systems=(x86_64-linux aarch64-linux)
 
@@ -7,13 +9,14 @@ usage() {
   cat <<'EOF'
 Usage: nix run .#init -- [options]
 
-Writes modules/hosts/<host>/default.nix from the commented example host, removes the
-example hosts and stages the result. Asks for every answer not given as an option.
+Writes modules/hosts/<host>/default.nix from the commented example host and
+modules/users/<login>/default.nix from the example person, removes the examples and stages
+the result. Asks for every answer not given as an option.
 
   --host NAME            host name: 1 to 63 letters, digits, - and _, starting and ending with a letter or digit
   --system SYSTEM        x86_64-linux (default) or aarch64-linux
   --profile PROFILE      desktop, laptop, server or pi
-  --login LOGIN          your login name
+  --login LOGIN          your login name, and the name of your person in modules/users
   --full-name NAME       your full name
   --email EMAIL          your email, used by git; empty for none
   --time-zone ZONE       such as Europe/Paris (default: this machine's)
@@ -90,6 +93,7 @@ root=$(git rev-parse --show-toplevel 2>/dev/null) || die "run it inside a git ch
 cd "$root"
 
 [[ -f $template ]] || die "$template is missing: init starts from the example host, which a previous run already replaced"
+[[ -f $person_template ]] || die "$person_template is missing: init starts from the example person, which a previous run already replaced"
 
 list_block() {
   awk -v block="$1" '
@@ -142,6 +146,10 @@ check_profile() {
 check_login() {
   [[ $1 =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || {
     echo "a login has at most 32 lowercase letters, digits, - and _, and starts with a letter or _"
+    return 1
+  }
+  [[ $1 == "$example_person" || ! -e modules/users/$1 ]] || {
+    echo "modules/users/$1 already exists: pick another login, init never overwrites a person"
     return 1
   }
 }
@@ -364,16 +372,18 @@ nix_attribute() {
 
 target_dir=modules/hosts/$host
 target=$target_dir/default.nix
+person_dir=modules/users/$login
+person=$person_dir/default.nix
+login_attribute=$(nix_attribute "$login")
 generated=$(mktemp)
-trap 'rm -f "$generated"' EXIT
+generated_person=$(mktemp)
+trap 'rm -f "$generated" "$generated_person"' EXIT
 
 HOST_ATTRIBUTE=$(nix_attribute "$host") \
   SYSTEM=$system \
   PROFILE=$profile \
   LOGIN=$login \
-  LOGIN_ATTRIBUTE=$(nix_attribute "$login") \
-  FULL_NAME=$(nix_string "$full_name") \
-  EMAIL=$(nix_string "$email") \
+  LOGIN_ATTRIBUTE=$login_attribute \
   TIME_ZONE=$time_zone \
   KEYBOARD=$keyboard \
   LOCALE=$locale \
@@ -429,25 +439,40 @@ HOST_ATTRIBUTE=$(nix_attribute "$host") \
     /^    locale = "/ { print set_string($0, ENVIRON["LOCALE"]); next }
     /^    keyboard = "/ { print set_string($0, ENVIRON["KEYBOARD"]); next }
     /^    users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
-    /^      fullName = "/ { print set_string($0, ENVIRON["FULL_NAME"]); next }
-    /^      email = "/ {
-      if (ENVIRON["EMAIL"] == "") { sub(/email/, "# email"); print }
-      else print set_string($0, ENVIRON["EMAIL"])
-      next
-    }
 
     { print }
   ' "$template" >"$generated"
 
-mkdir -p "$target_dir"
-cp "$generated" "$target"
-chmod 644 "$target"
+LOGIN=$login \
+  LOGIN_ATTRIBUTE=$login_attribute \
+  FULL_NAME=$(nix_string "$full_name") \
+  EMAIL=$(nix_string "$email") \
+  awk '
+    function set_string(line, value,    start, rest) {
+      start = index(line, "\"")
+      rest = substr(line, start + 1)
+      return substr(line, 1, start) value substr(rest, index(rest, "\""))
+    }
+
+    /^  users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
+    /^    fullName = "/ { print set_string($0, ENVIRON["FULL_NAME"]); next }
+    /^    email = "/ {
+      if (ENVIRON["EMAIL"] == "") { sub(/email/, "# email"); gsub(/alice/, ENVIRON["LOGIN"]); print }
+      else print set_string($0, ENVIRON["EMAIL"])
+      next
+    }
+
+    { gsub(/users\.alice/, "users." ENVIRON["LOGIN_ATTRIBUTE"]); gsub(/alice/, ENVIRON["LOGIN"]); print }
+  ' "$person_template" >"$generated_person"
+
+install -D -m 644 "$generated" "$target"
+install -D -m 644 "$generated_person" "$person"
 
 if command -v nix >/dev/null; then
-  nix fmt -- "$target" >/dev/null 2>&1 || echo "init: nix fmt failed, run it yourself" >&2
+  nix fmt -- "$target" "$person" >/dev/null 2>&1 || echo "init: nix fmt failed, run it yourself" >&2
 fi
 
-git add -- "$target"
+git add -- "$target" "$person"
 
 removed=(example)
 [[ $keep_server == yes ]] || removed+=(example-server)
@@ -457,10 +482,19 @@ for example in "${removed[@]}"; do
   git rm -r -q -- "modules/hosts/$example"
 done
 
+if [[ $login != "$example_person" ]]; then
+  for example in modules/hosts/example-server modules/hosts/example-pi; do
+    [[ -f $example/default.nix ]] || continue
+    sed -i "s/^    users\.$example_person = {\$/    users.$login_attribute = {/" "$example/default.nix"
+    git add -- "$example/default.nix"
+  done
+  git rm -r -q -- "modules/users/$example_person"
+fi
+
 cat <<EOF
 
-$target is ready and staged; the example hosts you did not keep are removed.
-Read it top to bottom: every line you may want is there, commented out.
+$target and $person are ready and staged; the example hosts you did not
+keep are removed. Read them top to bottom: every line you may want is there, commented out.
 
 Next steps:
   nix develop          installs the pre-push hook

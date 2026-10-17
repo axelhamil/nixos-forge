@@ -9,12 +9,20 @@ One folder that publishes up to two parts:
 - `apps.<name>.nixos`: the system side, such as a PAM service, a login shell or fonts.
 - `apps.<name>.homeManager`: the user side, through [home-manager](https://nix-community.github.io/home-manager/): the program and its settings.
 
-A host names it in `apps` (every user of the machine gets it) or in `users.<you>.apps` (you only). An app that brings others imports them with `helpers.appPart`, so an app reached twice, such as `shell` and `zsh`, is imported once.
+Three places name apps:
+
+- a host's `apps`: every user of that machine gets it;
+- your person's `apps`, in `modules/users/<you>/default.nix`: it follows you on every machine (`[ "shell" ]` by default);
+- a host's `users.<you>.apps`: you get it on that machine only, on top of your person's.
+
+Wherever it is named, an app's NixOS part is on for the whole machine; only its home-manager part is per user.
 
 ```nix
-apps = [ "hyprland" "direnv" "firefox" ];
-users.alice.apps = [ "shell" "stow" ];
+apps = [ "hyprland" "direnv" "firefox" ]; # in modules/hosts/<host>
+users.alice.apps = [ "shell" "stow" ]; # in modules/users/alice
 ```
+
+An app that brings others imports them with `helpers.appPart`, so an app reached twice, such as `shell` and `zsh`, is imported once.
 
 ## Starter apps
 
@@ -48,30 +56,25 @@ A `check.nix` with `config.helpers.appCheck "<name>" { testScripts = [ ./test.py
 
 ## Change a starter default
 
-Every setting an app writes goes through `helpers.mkDefaults`: set the same option yourself and yours wins, with no `mkForce`. Its `enable` flags do not: to drop an app, remove it from `apps`. Put your settings in an app of your own, `modules/users/<you>/default.nix`, and list it next to `shell`:
+Every setting an app writes goes through `helpers.mkDefaults`: set the same option yourself and yours wins, with no `mkForce`. Its `enable` flags do not: to drop an app, remove it from `apps`. Your own settings go in your person's `module`, the home-manager config that follows you on every machine that gives you an account:
 
 ```nix
 {
-  apps.<you>.homeManager = {
+  users.<you>.module = {
     programs.starship.presets = [ ];
-    programs.git.settings.user = {
-      name = "Your Name";
-      email = "you@example.org";
-    };
+    programs.git.settings.alias.st = "status";
     programs.kitty.settings.font_size = 12;
   };
 }
 ```
 
-```nix
-users.<you>.apps = [ "shell" "<you>" ];
-```
+It grows with you: any other file of `modules/users/<you>`, such as `git.nix` or `neovim.nix`, may set its own part of `users.<you>.module`, and the parts merge. Settings you want on several people, or on a host's users, belong in an app instead.
 
 ## The shell
 
-- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. Its NixOS part makes it the login shell of a user whose apps (or the host's) contain `zsh` or `shell`, completes system commands and skips the global `compinit`, so completion is initialised once, by home-manager. That switch is system-wide: another zsh user of the host needs home-manager's zsh too, or gets no completion.
+- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. The registry makes it the login shell of a user whose apps (or the host's) name `zsh` or `shell`; an app of your own that brings zsh through `helpers.appPart` does not count, so list `zsh` too. Its NixOS part completes system commands and skips the global `compinit`, so completion is initialised once, by home-manager. That switch is system-wide: another zsh user of the host needs home-manager's zsh too, or gets no completion.
 - **starship** prompt with plain text symbols, readable on a console without a Nerd Font. Once you have one: `programs.starship.presets = [ ];`.
-- **git** with the settings git's own developers use: `main` as first branch, recent branches first, `push.autoSetupRemote`, pruned fetches, histogram diffs with moved lines highlighted, the diff shown while writing a commit, `zdiff3` conflicts, `rerere`, rebases that autostash and update stacked branches, autocorrect on prompt. Diffs and blame page through [delta](https://github.com/dandavison/delta). The host's `fullName` and `email` are the author. To sign with your SSH key:
+- **git** with the settings git's own developers use: `main` as first branch, recent branches first, `push.autoSetupRemote`, pruned fetches, histogram diffs with moved lines highlighted, the diff shown while writing a commit, `zdiff3` conflicts, `rerere`, rebases that autostash and update stacked branches, autocorrect on prompt. Diffs and blame page through [delta](https://github.com/dandavison/delta). Your person's `fullName` and `email` are the author. To sign with your SSH key:
 
   ```nix
   programs.git.signing = {
@@ -88,7 +91,7 @@ Files follow the XDG layout: zsh in `~/.config/zsh`, its history in `~/.local/st
 
 ## Keep your dotfiles with stow
 
-`stow` is optional, for a dotfiles repository you keep. Add it next to `shell`, clone the repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live; a new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
+`stow` is optional, for a dotfiles repository you keep. Add it to your person's apps next to `shell`, clone the repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live; a new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
 
 ```nix
 users.<you>.apps = [ "shell" "stow" ];

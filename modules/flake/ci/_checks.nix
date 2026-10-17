@@ -40,10 +40,10 @@ let
     treefmt = "the code is formatted";
     facter = "a hardware report from the installer configures the machine";
     options-doc = "docs/options.md matches the host options";
-    init = "`nix run .#init` writes a valid first host";
+    init = "`nix run .#init` writes a first host and person whose system evaluates";
     ci-report = "the CI report reads every result correctly";
-    example-hosts = "every example host lists every option the starter ships";
-    wrong-namespace = "a name of another registry field stops the build with the field's own names";
+    example-hosts = "every example host and the example person list every option the starter ships";
+    wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
     apps-once = "an app reached twice is imported once";
     flake-modules = "no name is published by two namespaces";
   };

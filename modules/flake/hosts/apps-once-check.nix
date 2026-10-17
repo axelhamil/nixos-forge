@@ -1,12 +1,15 @@
 {
   lib,
   inputs,
+  config,
   options,
   ...
 }:
 
 let
   hostType = options.configurations.nixos.type.nestedTypes.elemType;
+
+  people = lib.attrNames config.users;
 
   machine =
     hostApps: userApps:
@@ -17,7 +20,7 @@ let
             _module.args.name = "apps-once";
             stateVersion = "26.05";
             apps = hostApps;
-            users.tester.apps = userApps;
+            users.${lib.head people}.apps = userApps;
             module = {
               fileSystems."/" = {
                 device = "/dev/disk/by-label/apps-once";
@@ -39,18 +42,15 @@ let
   once = machine [ "hyprland" ] [ "shell" ];
   twice = machine [ "shell" "zsh" "hyprland" "lock" ] [ "shell" "zsh" "git" ];
 
-  hyprlockServices = lib.filter (name: name == "hyprlock") (
-    lib.attrNames twice.security.pam.services
-  );
 in
 {
   perSystem =
     { pkgs, system, ... }:
-    lib.mkIf (system == "x86_64-linux") {
+    lib.mkIf (system == "x86_64-linux" && people != [ ]) {
       checks.apps-once =
         assert lib.assertMsg (
-          lib.length hyprlockServices == 1
-        ) "apps-once: expected one hyprlock pam service, got ${toString (lib.length hyprlockServices)}";
+          twice.security.pam.services ? hyprlock
+        ) "apps-once: hyprland and lock give no hyprlock PAM service";
         assert lib.assertMsg (
           once.system.build.toplevel.drvPath == twice.system.build.toplevel.drvPath
         ) "apps-once: an app reached twice (shell and zsh, hyprland and lock) changes the system";

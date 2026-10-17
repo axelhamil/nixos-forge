@@ -28,7 +28,7 @@ If your fork enables avahi, also set `MulticastDNS = false` there, so the two do
 
 Add `ssh` to the features of a host you log into remotely. It allows public keys only (no password, no keyboard-interactive, no root login) and keeps a single ED25519 host key, in `/persist/etc/ssh` when `/` is wiped at boot so clients do not see a new key after every reboot. Key exchange is limited to the post-quantum `mlkem768x25519-sha256` and `sntrup761x25519-sha512` and to `curve25519-sha256`: the finite-field Diffie-Hellman that OpenSSH 10 stopped offering by default is refused. OpenSSH's own `PerSourcePenalties` already slows down clients that keep failing, so fail2ban is not needed.
 
-Add your public key to your user before the first remote login:
+Add your public key to your person, in `modules/users/<you>/default.nix`, before the first remote login; it then opens every machine that gives you an account:
 
 ```nix
 users.<you>.sshKeys = [ "ssh-ed25519 AAAA... you@laptop" ];

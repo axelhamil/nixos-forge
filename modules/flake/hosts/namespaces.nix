@@ -38,15 +38,15 @@ in
         types.submodule {
           options = {
             nixos = mkOption {
-              type = types.deferredModule;
-              default = { };
-              description = "NixOS part of the app, imported once by every host that names it.";
+              type = types.nullOr types.deferredModule;
+              default = null;
+              description = "NixOS part of the app, imported once by every host that names it; `null` when the app has none.";
             };
 
             homeManager = mkOption {
-              type = types.deferredModule;
-              default = { };
-              description = "home-manager part of the app, imported once for every user who gets it.";
+              type = types.nullOr types.deferredModule;
+              default = null;
+              description = "home-manager part of the app, imported once for every user who gets it; `null` when the app has none.";
             };
           };
         }

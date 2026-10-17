@@ -12,7 +12,7 @@ features = [ "plymouth" ];
 apps = [ "hyprland" ];
 ```
 
-`hyprland` pulls in the `greetd` feature and the `lock`, `waybar`, `fuzzel`, `kitty` and `mako` apps; named in the host's `apps`, every user of the host gets the Hyprland session, named in `users.<you>.apps`, only you ([apps.md](apps.md)). `plymouth` is independent: import it on any host, with or without a desktop.
+`hyprland` pulls in the `greetd` feature and the `lock`, `waybar`, `fuzzel`, `kitty` and `mako` apps; named in the host's `apps`, every user of the host gets the Hyprland session, named in your person's `apps` or in the host's `users.<you>.apps`, only you get its home config, while its NixOS part (greetd, Hyprland, fonts) is on for the whole machine ([apps.md](apps.md)). `plymouth` is independent: import it on any host, with or without a desktop.
 
 ## What is in it
 
@@ -48,7 +48,7 @@ The keyboard layout comes from the host's `keyboard` field (`services.xserver.xk
 
 ## Make it yours
 
-Every value is a default: set the same option in your own app to change it ([apps.md](apps.md#change-a-starter-default)).
+Every value is a default: set the same option in your person's `module` to change it ([apps.md](apps.md#change-a-starter-default)).
 
 ```nix
 programs.kitty.settings.font_size = 12;

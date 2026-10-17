@@ -3,7 +3,11 @@
 let
   inherit (config.helpers) appPart;
 
-  appParts = part: lib.mapAttrs (name: _: appPart name part) config.apps;
+  appParts =
+    part:
+    lib.mapAttrs (name: _: appPart name part) (
+      lib.filterAttrs (_: app: app.${part} != null) config.apps
+    );
 
   namespaces = {
     base.base = config.base;

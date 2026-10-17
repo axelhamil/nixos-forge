@@ -29,10 +29,19 @@ In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a
     timeZone = "Europe/Paris";
     keyboard = "fr";
 
-    users.alice = {
-      fullName = "Alice Example";
-      email = "alice@example.org";
-    };
+    users.alice = { };
+  };
+}
+```
+
+`users.alice` gives an account to a person defined once, in `modules/users/alice/default.nix`, with her name, email, SSH keys, apps and own home-manager config; every machine that names her gets the same person.
+
+```nix
+{
+  users.alice = {
+    fullName = "Alice Example";
+    email = "alice@example.org";
+    apps = [ "shell" "stow" ];
   };
 }
 ```
@@ -60,7 +69,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests and the VM.
 
 1. **Fork and clone** the repo.
-2. **Make it yours** with `nix run .#init`: it asks for your host name, profile, login, name, email, time zone, keyboard, locale, features, hardware and apps, writes `modules/hosts/<host>/default.nix` from the commented [example host](modules/hosts/example/default.nix), removes the examples you do not keep and stages the result (`--help` lists a flag for every answer, `--yes` asks nothing). To do it by hand, copy the example host to `modules/hosts/<host>`, rename `example` and `alice`, uncomment what you want, and `git add` it: a flake only sees what git tracks.
+2. **Make it yours** with `nix run .#init`: it asks for your host name, profile, login, name, email, time zone, keyboard, locale, features, hardware and apps, writes `modules/hosts/<host>/default.nix` from the commented [example host](modules/hosts/example/default.nix) and `modules/users/<login>/default.nix` from the commented [example person](modules/users/alice/default.nix), removes the examples you do not keep and stages the result (`--help` lists a flag for every answer, `--yes` asks nothing). To do it by hand, copy the example host to `modules/hosts/<host>` and the example person to `modules/users/<login>`, rename `example` and `alice`, uncomment what you want, and `git add` them: a flake only sees what git tracks.
 3. **Check it and boot it** in a VM:
 
    ```sh
@@ -86,12 +95,14 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | `features` | any NixOS module by name: `disk` (the encrypted layout, on the disk picked at install), `secure-boot`, `wipe-home`, `plymouth`, `docker`, `libvirt`, `nix-ld`, `ssh`, `secrets`, yours |
 | `apps` | an app of `modules/apps/<name>` with its config (`hyprland`, `direnv`, `firefox`, `stow`, ...), else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
 | `hardware` | a starter module (`nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
-| `users.<name>` | `fullName`, `email`, `admin`, `sshKeys`, `groups` and its own `apps` (`shell` by default) |
+| `users.<name>` | an account for the person of `modules/users/<name>`: `admin`, `groups` and `apps` on this machine, added to the person's |
 | `facter` | the hardware report the installer saves in `/persist/facter.json`, copied next to the host file: `./facter.json` |
 | `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
 | `module` | anything else, as plain NixOS config |
 
-An unknown name stops the evaluation with the list of known ones; in `apps`, a name that is no app and no nixpkgs package.
+A person (`modules/users/<name>`, every field in [docs/options.md](docs/options.md#person-options)) has `fullName`, `email`, `sshKeys`, `apps` that follow them on every machine (`shell` by default) and `module`, their own home-manager config.
+
+An unknown name stops the evaluation with the list of known ones; in `apps`, a name that is no app and no nixpkgs package; in `users`, a person with no folder in `modules/users`.
 
 **Add a feature.** Publish `features.<name>` from a file under `modules/features/<name>` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as an app, a sibling of `hyprland`.
 
@@ -105,7 +116,9 @@ An unknown name stops the evaluation with the list of known ones; in `apps`, a n
 }
 ```
 
-**Add your home config.** An app of your own, `apps.<you>.homeManager` in `modules/users/<you>/default.nix`, listed in your `apps` (`[ "shell" "<you>" ]`). Every value the starter sets is a default you override there without `mkForce`.
+**Add your home config.** `users.<you>.module` in `modules/users/<you>`, home-manager config that follows you on every machine ([docs/apps.md](docs/apps.md#change-a-starter-default)). Every setting a starter app writes, its `enable` flags aside, is a default you override there without `mkForce`.
+
+**Change your system.** Edit the checkout, try it with `nh os test`, switch with `nh os switch`, then commit and push so your other machines follow ([docs/updates.md](docs/updates.md#the-edit-loop)).
 
 ## Layout
 
@@ -121,8 +134,8 @@ modules/
 │              nix-ld, greetd, plymouth, ...
 ├── apps/      everything a user runs, with its config: hyprland, waybar, fuzzel, kitty, mako,
 │              lock, the shell bundle (zsh, starship, git, neovim, cli), direnv, stow, firefox
-├── users/     your own home config, when you need one
-└── hosts/     one file per machine
+├── users/     one folder per person: name, email, SSH keys, apps and home config
+└── hosts/     one file per machine, giving accounts to people
 ```
 
 ## Releases

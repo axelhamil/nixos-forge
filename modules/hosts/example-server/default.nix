@@ -75,15 +75,13 @@
     # locale = "en_US.UTF-8"; # language and formats, such as "fr_FR.UTF-8"
     # keyboard = "us"; # layout of the console, such as "fr"
 
-    # Accounts, by login name. The VM logs in with the password "test"; the installer asks
-    # for the real one.
+    # Accounts, by login name: each one is a person of modules/users/<name>, who brings
+    # name, SSH keys, apps and own config. Only what differs on this machine goes here. The
+    # VM logs in with the password "test"; the installer asks for the real one.
     users.alice = {
-      fullName = "Alice Example"; # git author name
-      # email = "alice@example.org"; # git author email
       # admin = false; # true by default: may run sudo
-      sshKeys = [ ]; # public keys allowed to log in, such as "ssh-ed25519 AAAA..."
-      # apps = [ "shell" "stow" "btop" ]; # apps for this user only, "shell" by default; "stow" links your dotfiles (docs/apps.md)
-      # groups = [ "wheel" ]; # extra groups
+      # apps = [ "tmux" ]; # apps for this user on this machine only, added to the person's
+      # groups = [ "docker" ]; # extra groups
     };
 
     # Any other NixOS setting, as plain config.

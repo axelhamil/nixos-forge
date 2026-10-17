@@ -360,7 +360,7 @@ string
 
 
 
-Accounts of the machine, by login name\. Each one gets home-manager with the host’s ` apps ` and its own\.
+Accounts of the machine, by login name: each one is a person of ` modules/users/<name> ` (the ` users ` of the flake), with their identity, apps and home-manager ` module `, plus the host’s ` apps `\. The fields below are what changes from one machine to another\.
 
 
 
@@ -402,7 +402,7 @@ true
 
 
 
-Apps for this user only: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` shell `, the default, brings zsh as login shell, starship, git, neovim and CLI tools), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\.
+Apps for this user on this machine only, added to the person’s ` apps `: an app of ` modules/apps/<name> `, else the nixpkgs package of that name\. Unfree packages named here are allowed\.
 
 
 
@@ -414,9 +414,7 @@ list of string
 *Default:*
 
 ```nix
-[
-  "shell"
-]
+[ ]
 ```
 
 
@@ -425,68 +423,9 @@ list of string
 
 ```nix
 [
-  "shell"
   "stow"
-  "obsidian"
+  "kdePackages.kate"
 ]
-```
-
-
-
-## users\.\<name>\.email
-
-
-
-Email used as git author email\.
-
-
-
-*Type:*
-null or string
-
-
-
-*Default:*
-
-```nix
-null
-```
-
-
-
-*Example:*
-
-```nix
-"alice@example.org"
-```
-
-
-
-## users\.\<name>\.fullName
-
-
-
-Full name, shown by the greeter and used as git author name\.
-
-
-
-*Type:*
-string
-
-
-
-*Default:*
-
-```nix
-""
-```
-
-
-
-*Example:*
-
-```nix
-"Alice Example"
 ```
 
 
@@ -522,11 +461,140 @@ list of string
 
 
 
-## users\.\<name>\.sshKeys
+# Person options
+
+Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the person a host gives an account with `users.<person>`. Generated from [`modules/flake/hosts/users.nix`](../modules/flake/hosts/users.nix).
+
+## apps
+
+Apps that follow the person on every host: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` shell `, the default, brings zsh as login shell, starship, git, neovim and CLI tools), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\. A host adds its own with ` users.<name>.apps `\.
 
 
 
-Public SSH keys allowed to log in as this user\.
+*Type:*
+list of string
+
+
+
+*Default:*
+
+```nix
+[
+  "shell"
+]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  "shell"
+  "stow"
+  "obsidian"
+]
+```
+
+
+
+## email
+
+
+
+Email used as git author email\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+
+```nix
+null
+```
+
+
+
+*Example:*
+
+```nix
+"alice@example.org"
+```
+
+
+
+## fullName
+
+
+
+Full name, shown by the greeter and used as git author name\.
+
+
+
+*Type:*
+string
+
+
+
+*Default:*
+
+```nix
+""
+```
+
+
+
+*Example:*
+
+```nix
+"Alice Example"
+```
+
+
+
+## module
+
+
+
+The person’s own home-manager config, on every host that gives them an account\. Several files under ` modules/users/<name> ` may each set part of it\.
+
+
+
+*Type:*
+module
+
+
+
+*Default:*
+
+```nix
+{ }
+```
+
+
+
+*Example:*
+
+```nix
+{ pkgs, ... }:
+{
+  home.packages = [ pkgs.gimp ];
+  programs.git.settings.alias.st = "status";
+}
+
+```
+
+
+
+## sshKeys
+
+
+
+Public SSH keys allowed to log in as this person, on every host that gives them an account\.
 
 
 

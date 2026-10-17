@@ -27,7 +27,7 @@ Gotchas:
 
 ## `libvirt` (opt-in)
 
-libvirtd with unprivileged QEMU, UEFI firmware, swtpm (for guests that need a TPM, such as Windows 11), virtiofs, USB redirection and virt-manager. Add your user to `libvirtd` and start the NAT network once:
+libvirtd with unprivileged QEMU, UEFI firmware, swtpm (for guests that need a TPM, such as Windows 11), virtiofs, USB redirection and virt-manager. Add your user to `libvirtd` in the host and start the NAT network once:
 
 ```nix
 users.<you>.groups = [ "libvirtd" ];

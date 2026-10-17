@@ -39,14 +39,14 @@ let
   appModules = part: names: map (name: appPart name part) (configuredApps names);
 
   package =
-    host: field: pkgs: name:
-    lib.attrByPath (lib.splitString "." name) (fail host field
-      "unknown name \"${name}\": neither an app of modules/apps (${known apps}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\"."
-    ) pkgs;
+    where: pkgs: name:
+    lib.attrByPath (lib.splitString "." name)
+      (throw "${where}: unknown name \"${name}\": neither an app of modules/apps (${known apps}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\".")
+      pkgs;
 
   unfreeName =
-    host: field: system: name:
-    lib.getName (package host field inputs.nixpkgs.legacyPackages.${system} name);
+    where: system: name:
+    lib.getName (package where inputs.nixpkgs.legacyPackages.${system} name);
 
   bringsZsh = lib.any (
     name:
@@ -56,44 +56,28 @@ let
     ]
   );
 
-  userOptions = {
+  person =
+    host: name:
+    config.users.${name} or (fail host "users"
+      "unknown person \"${name}\": no modules/users/${name}. Known: ${known config.users}."
+    );
+
+  accountOptions = {
     options = {
-      fullName = mkOption {
-        type = types.str;
-        default = "";
-        example = "Alice Example";
-        description = "Full name, shown by the greeter and used as git author name.";
-      };
-
-      email = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        example = "alice@example.org";
-        description = "Email used as git author email.";
-      };
-
       admin = mkOption {
         type = types.bool;
         default = true;
         description = "Whether the user may run `sudo` (member of `wheel`).";
       };
 
-      sshKeys = mkOption {
-        type = types.listOf types.str;
-        default = [ ];
-        example = [ "ssh-ed25519 AAAA... alice@laptop" ];
-        description = "Public SSH keys allowed to log in as this user.";
-      };
-
       apps = mkOption {
         type = types.listOf types.str;
-        default = [ "shell" ];
+        default = [ ];
         example = [
-          "shell"
           "stow"
-          "obsidian"
+          "kdePackages.kate"
         ];
-        description = "Apps for this user only: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`shell`, the default, brings zsh as login shell, starship, git, neovim and CLI tools), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed.";
+        description = "Apps for this user on this machine only, added to the person's `apps`: an app of `modules/apps/<name>`, else the nixpkgs package of that name. Unfree packages named here are allowed.";
       };
 
       groups = mkOption {
@@ -106,7 +90,7 @@ let
   };
 
   userModule =
-    host: hostApps: system: name: user:
+    host: hostApps: system: name: account:
     {
       lib,
       pkgs,
@@ -114,27 +98,41 @@ let
       ...
     }:
     let
-      field = "users.${name}.apps";
-      packages = packagedApps user.apps;
+      user = person host name;
+      userApps = user.apps ++ account.apps;
+      packages =
+        lib.concatMap (origin: map (app: origin // { inherit app; }) (packagedApps origin.apps))
+          [
+            {
+              where = "users.${name}.apps (modules/users/${name})";
+              inherit (user) apps;
+            }
+            {
+              where = "configurations.nixos.${host}.users.${name}.apps";
+              inherit (account) apps;
+            }
+          ];
     in
     {
-      imports = appModules "nixos" user.apps;
+      imports = appModules "nixos" userApps;
 
       users.users.${name} = {
         isNormalUser = true;
         description = user.fullName;
         extraGroups =
-          lib.optional user.admin "wheel"
+          lib.optional account.admin "wheel"
           ++ lib.optional config.networking.networkmanager.enable "networkmanager"
-          ++ user.groups;
-        shell = lib.mkIf (bringsZsh (hostApps ++ user.apps)) pkgs.zsh;
+          ++ account.groups;
+        shell = lib.mkIf (bringsZsh (hostApps ++ userApps)) pkgs.zsh;
         openssh.authorizedKeys.keys = user.sshKeys;
         hashedPasswordFile =
           lib.mkIf config.environment.persistence."/persist".enable
             "/persist/passwords/${name}";
       };
 
-      nixpkgs.config.allowUnfreePackages = map (unfreeName host field system) packages;
+      nixpkgs.config.allowUnfreePackages = map (
+        origin: unfreeName origin.where system origin.app
+      ) packages;
 
       virtualisation.vmVariant.users.users.${name} = {
         hashedPasswordFile = lib.mkForce null;
@@ -142,9 +140,9 @@ let
       };
 
       home-manager.users.${name} = {
-        imports = appModules "homeManager" user.apps;
+        imports = appModules "homeManager" userApps ++ [ user.module ];
         home.stateVersion = config.system.stateVersion;
-        home.packages = map (package host field pkgs) packages;
+        home.packages = map (origin: package origin.where pkgs origin.app) packages;
         programs.git.settings.user = lib.mkIf (user.email != null) {
           name = lib.mkDefault user.fullName;
           email = lib.mkDefault user.email;
@@ -202,9 +200,9 @@ let
         };
 
         users = mkOption {
-          type = types.attrsOf (types.submodule userOptions);
+          type = types.attrsOf (types.submodule accountOptions);
           default = { };
-          description = "Accounts of the machine, by login name. Each one gets home-manager with the host's `apps` and its own.";
+          description = "Accounts of the machine, by login name: each one is a person of `modules/users/<name>` (the `users` of the flake), with their identity, apps and home-manager `module`, plus the host's `apps`. The fields below are what changes from one machine to another.";
         };
 
         hardware = mkOption {
@@ -285,9 +283,9 @@ let
           services.xserver.xkb.layout = lib.mkDefault host.keyboard;
           console.keyMap = lib.mkDefault host.keyboard;
 
-          environment.systemPackages = map (package name "apps" pkgs) packages;
+          environment.systemPackages = map (package "configurations.nixos.${name}.apps" pkgs) packages;
           home-manager.sharedModules = appModules "homeManager" host.apps;
-          nixpkgs.config.allowUnfreePackages = map (unfreeName name "apps" host.system) packages;
+          nixpkgs.config.allowUnfreePackages = map (unfreeName "configurations.nixos.${name}.apps" host.system) packages;
 
           system.stateVersion = host.stateVersion;
         };

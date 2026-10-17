@@ -77,14 +77,12 @@
     locale = "fr_FR.UTF-8"; # language and formats, such as "en_US.UTF-8"
     keyboard = "fr"; # layout of the console and the desktop, such as "us"
 
-    # Accounts, by login name. The VM logs in with the password "test"; the installer asks
-    # for the real one.
+    # Accounts, by login name: each one is a person of modules/users/<name>, who brings
+    # name, keys, apps and own config. Only what differs on this machine goes here. The VM
+    # logs in with the password "test"; the installer asks for the real one.
     users.alice = {
-      fullName = "Alice Example"; # shown by the greeter, git author name
-      email = "alice@example.org"; # git author email
       # admin = false; # true by default: may run sudo
-      # sshKeys = [ "ssh-ed25519 AAAA..." ]; # public keys allowed to log in
-      # apps = [ "shell" "stow" "obsidian" ]; # apps for this user only, "shell" by default; "stow" links your dotfiles (docs/apps.md)
+      # apps = [ "obsidian" ]; # apps for this user on this machine only, added to the person's
       # groups = [ "libvirtd" ]; # extra groups
     };
 

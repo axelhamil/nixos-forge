@@ -2,6 +2,7 @@
 
 let
   hostOptions = options.configurations.nixos.type.getSubOptions [ ];
+  personOptions = options.users.type.getSubOptions [ ];
 in
 {
   perSystem =
@@ -18,9 +19,18 @@ in
 
       '';
 
+      personHeader = pkgs.writeText "person-options-header.md" ''
+
+        # Person options
+
+        Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the person a host gives an account with `users.<person>`. Generated from [`modules/flake/hosts/users.nix`](../modules/flake/hosts/users.nix).
+
+      '';
+
       body =
+        fields:
         (pkgs.nixosOptionsDoc {
-          options = hostOptions;
+          options = fields;
           transformOptions =
             option:
             option
@@ -30,7 +40,9 @@ in
             };
         }).optionsCommonMark;
 
-      reference = pkgs.runCommand "options.md" { } "cat ${header} ${body} > $out";
+      reference = pkgs.runCommand "options.md" { } ''
+        cat ${header} ${body hostOptions} ${personHeader} ${body personOptions} > $out
+      '';
     in
     {
       packages.options-doc = pkgs.writeShellApplication {

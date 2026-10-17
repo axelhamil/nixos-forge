@@ -29,10 +29,10 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 | `firefox` | the Firefox profile |
 | `wipe-home` | `~/.local/share/systemd/timers` (missed user timers still catch up) |
 
-Declare yours in your own app ([apps.md](apps.md#change-a-starter-default)), relative to your home:
+Declare yours in your person's `module` ([apps.md](apps.md#change-a-starter-default)), relative to your home:
 
 ```nix
-apps.<you>.homeManager = {
+users.<you>.module = {
   home.persistence."/persist" = {
     directories = [
       "projects"

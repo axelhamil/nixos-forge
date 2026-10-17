@@ -73,14 +73,12 @@
     # locale = "en_US.UTF-8"; # language and formats, such as "fr_FR.UTF-8"
     # keyboard = "us"; # layout of the console, such as "fr"
 
-    # Accounts, by login name. A Pi starts headless and SSH refuses passwords: give your user
-    # a key, it is the only way in (docs/raspberry-pi.md).
+    # Accounts, by login name: each one is a person of modules/users/<name>. A Pi starts
+    # headless and SSH refuses passwords: set `sshKeys` in the person file, they are the
+    # only way in (docs/raspberry-pi.md). Only what differs on this machine goes here.
     users.alice = {
-      fullName = "Alice Example"; # git author name
-      # email = "alice@example.org"; # git author email
       # admin = false; # true by default: may run sudo, without a password on a Pi
-      sshKeys = [ ]; # public keys allowed to log in, such as "ssh-ed25519 AAAA..."
-      # apps = [ "shell" "stow" "btop" ]; # apps for this user only, "shell" by default; "stow" links your dotfiles (docs/apps.md)
+      # apps = [ "tmux" ]; # apps for this user on this machine only, added to the person's
       # groups = [ "gpio" ]; # extra groups
     };
 

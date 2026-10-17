@@ -30,58 +30,45 @@ let
       host.apps = [ "disk" ];
       message = "configurations.nixos.wrong-apps.apps: unknown name \"disk\": neither an app of modules/apps (${known "apps"}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\".";
     };
+
+    wrong-users = {
+      host.users.firefox = { };
+      message = "configurations.nixos.wrong-users.users: unknown person \"firefox\": no modules/users/firefox. Known: ${known "users"}.";
+    };
   };
+
+  json = value: "builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON value)}";
 
   registry =
     pkgs:
     pkgs.writeText "registry.nix" ''
       hostName:
-      let
+      (import ${./_registry.nix} {
         lib = import ${inputs.nixpkgs}/lib;
-        empty = names: lib.genAttrs names (_: { });
-
-        flake = lib.evalModules {
-          specialArgs.inputs = {
-            nixos-hardware.nixosModules = { };
-            nixpkgs.legacyPackages = { };
-          };
-          modules = [
-            ${./options.nix}
-            ${./namespaces.nix}
-            ${../helpers/default.nix}
-            ${../helpers/apps.nix}
-            {
-              options.systems = lib.mkOption { default = [ "x86_64-linux" ]; };
-              config = {
-                profiles = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "profiles"))});
-                features = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "features"))});
-                hardware = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "hardware"))});
-                apps = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "apps"))});
-                configurations.nixos = builtins.fromJSON ${
-                  lib.strings.escapeNixString (
-                    builtins.toJSON (lib.mapAttrs (_: wrong: wrong.host // { stateVersion = "26.05"; }) wrongHosts)
-                  )
-                };
-              };
-            }
-          ];
+        names = ${
+          json (
+            lib.genAttrs [
+              "profiles"
+              "features"
+              "hardware"
+              "apps"
+              "users"
+            ] names
+          )
         };
-
-        nixos = lib.evalModules {
-          specialArgs.pkgs = { };
-          modules = [
-            flake.config.configurations.nixos.''${hostName}.module
-            {
-              options.environment.systemPackages = lib.mkOption { default = [ ]; };
-              config._module.check = false;
-            }
-          ];
-        };
-      in
-      {
-        options = builtins.attrNames nixos.config;
-        packages = nixos.config.environment.systemPackages;
-      }
+        modules = [
+          ${./options.nix}
+          ${./namespaces.nix}
+          ${./users.nix}
+          ${../helpers/default.nix}
+          ${../helpers/apps.nix}
+          {
+            configurations.nixos = ${
+              json (lib.mapAttrs (_: wrong: wrong.host // { stateVersion = "26.05"; }) wrongHosts)
+            };
+          }
+        ];
+      }).host hostName
     '';
 in
 {
@@ -102,7 +89,7 @@ in
             for index in "''${!hosts[@]}"; do
               host=''${hosts[$index]}
               if nix-instantiate --eval --strict --expr "import ${registry pkgs} \"$host\"" 2> "$TMPDIR/$host.err"; then
-                echo "$host evaluated although its registry names a name of another field"
+                echo "$host evaluated although its registry names an unknown name"
                 exit 1
               fi
               if ! grep -qF -- "''${messages[$index]}" "$TMPDIR/$host.err"; then

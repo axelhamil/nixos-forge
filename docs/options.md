@@ -4,7 +4,7 @@ Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.ni
 
 ## apps
 
-Apps for every user of the machine: an app of ` modules/apps/<name> ` when there is one, else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
+Apps for every user of the machine: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` hyprland ` is the desktop), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
 
 
 
@@ -25,6 +25,7 @@ list of string
 
 ```nix
 [
+  "hyprland"
   "firefox"
   "vlc"
 ]
@@ -65,7 +66,7 @@ null
 
 
 
-NixOS modules the machine turns on, by name: the features of ` modules/features/<name> ` (` disk `, ` secure-boot `, ` wipe-home `, ` hyprland `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\. ` disk ` is the encrypted btrfs layout with ` / ` wiped at boot; the disk it erases is chosen at install (installer ISO, ` disko-install --disk main `, or ` disk.device ` in ` module `), never in the registry\.
+NixOS modules the machine turns on, by name: the features of ` modules/features/<name> ` (` disk `, ` secure-boot `, ` wipe-home `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\. ` disk ` is the encrypted btrfs layout with ` / ` wiped at boot; the disk it erases is chosen at install (installer ISO, ` disko-install --disk main `, or ` disk.device ` in ` module `), never in the registry\.
 
 
 
@@ -88,7 +89,6 @@ list of string
 [
   "disk"
   "secure-boot"
-  "hyprland"
   "docker"
 ]
 ```
@@ -360,7 +360,7 @@ string
 
 
 
-Accounts of the machine, by login name\. Each one gets home-manager with the ` home ` modules it lists\.
+Accounts of the machine, by login name\. Each one gets home-manager with the host’s ` apps ` and its own\.
 
 
 
@@ -402,7 +402,7 @@ true
 
 
 
-Apps for this user only: an app of ` modules/apps/<name> ` when there is one, else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\.
+Apps for this user only: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` shell `, the default, brings zsh as login shell, starship, git, neovim and CLI tools), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\.
 
 
 
@@ -414,7 +414,9 @@ list of string
 *Default:*
 
 ```nix
-[ ]
+[
+  "shell"
+]
 ```
 
 
@@ -423,7 +425,8 @@ list of string
 
 ```nix
 [
-  "firefox"
+  "shell"
+  "stow"
   "obsidian"
 ]
 ```
@@ -514,40 +517,6 @@ list of string
 ```nix
 [
   "libvirtd"
-]
-```
-
-
-
-## users\.\<name>\.home
-
-
-
-home-manager modules the user imports, by name: the starter’s (` modules/home/<name> `) or your own, such as ` flake.modules.homeManager.<user> ` in ` modules/users/<user> `\.
-
-
-
-*Type:*
-list of string
-
-
-
-*Default:*
-
-```nix
-[
-  "shell"
-]
-```
-
-
-
-*Example:*
-
-```nix
-[
-  "shell"
-  "stow"
 ]
 ```
 

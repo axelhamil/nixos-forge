@@ -29,10 +29,10 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 | `firefox` | the Firefox profile |
 | `wipe-home` | `~/.local/share/systemd/timers` (missed user timers still catch up) |
 
-Declare yours in your user's home config, relative to your home:
+Declare yours in your own app ([apps.md](apps.md#change-a-starter-default)), relative to your home:
 
 ```nix
-flake.modules.homeManager.<you> = {
+apps.<you>.homeManager = {
   home.persistence."/persist" = {
     directories = [
       "projects"
@@ -49,7 +49,7 @@ flake.modules.homeManager.<you> = {
 - Prefer directories to files: a persisted file is a bind mount, so an app that saves by renaming a new file over it fails.
 - `mode` only applies when the directory is first created in `/persist`.
 - Without `wipe-home` these lines do nothing, so the same user works on hosts that keep their home.
-- Packages installed with `nix profile add` are lost at reboot: list them in your home config.
+- Packages installed with `nix profile add` are lost at reboot: name them in your `apps` ([apps.md](apps.md)).
 
 ## Find what is missing
 

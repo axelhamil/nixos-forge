@@ -20,12 +20,10 @@
       "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
       # "hibernate" # hibernation to an encrypted swap file, for laptops, needs disk (docs/hibernate.md)
       # "plymouth" # graphical boot splash and passphrase prompt (docs/desktop.md)
-      # "hyprland" # Hyprland with greetd, waybar, fuzzel, kitty, mako, hyprlock (docs/desktop.md)
       # "greetd" # the tuigreet login screen alone, for another desktop (docs/desktop.md)
       # "docker" # rootless Docker (docs/dev.md)
       # "libvirt" # virtual machines with virt-manager (docs/dev.md)
       # "nix-ld" # run binaries not built for NixOS (docs/dev.md)
-      # "direnv" # per-project dev shells with nix-direnv (docs/dev.md)
       "ssh" # key-only SSH server (docs/services.md)
       # "secrets" # sops-nix secrets (docs/services.md)
       # "auto-upgrade" # rebuild from your fork every week, needs a flake reference in `flake` (docs/updates.md)
@@ -52,7 +50,21 @@
     # Apps for every user: an app of modules/apps/<name> with its config, else any nixpkgs
     # package by name ("htop", "tmux"); unfree ones are allowed.
     apps = [
+      # "hyprland" # Hyprland with greetd, waybar, fuzzel, kitty, mako, hyprlock (docs/desktop.md)
+      # "waybar" # the status bar alone, already in hyprland (docs/desktop.md)
+      # "fuzzel" # the app launcher alone, already in hyprland (docs/desktop.md)
+      # "kitty" # the terminal alone, already in hyprland (docs/desktop.md)
+      # "mako" # the notification daemon alone, already in hyprland (docs/desktop.md)
+      # "lock" # hyprlock and hypridle alone, already in hyprland (docs/desktop.md)
+      # "direnv" # per-project dev shells with nix-direnv (docs/dev.md)
       # "firefox" # Firefox with telemetry off, profile kept (docs/desktop.md)
+      # "shell" # zsh, starship, git, neovim, CLI tools; every user has it by default (docs/apps.md)
+      # "zsh" # zsh alone as login shell, already in shell (docs/apps.md)
+      # "starship" # the starship prompt alone, already in shell (docs/apps.md)
+      # "git" # git with delta alone, already in shell (docs/apps.md)
+      # "neovim" # neovim as $EDITOR alone, already in shell (docs/apps.md)
+      # "cli" # fzf, zoxide, eza, bat, ripgrep, fd, btop, jq alone, already in shell (docs/apps.md)
+      # "stow" # links your dotfiles repository into your home (docs/apps.md)
     ];
 
     # Where the machine updates from (docs/updates.md): a flake reference such as
@@ -70,8 +82,7 @@
       # email = "alice@example.org"; # git author email
       # admin = false; # true by default: may run sudo
       sshKeys = [ ]; # public keys allowed to log in, such as "ssh-ed25519 AAAA..."
-      # home = [ "shell" "stow" ]; # home-manager modules, "shell" by default (docs/home.md)
-      # apps = [ "btop" ]; # apps for this user only
+      # apps = [ "shell" "stow" "btop" ]; # apps for this user only, "shell" by default; "stow" links your dotfiles (docs/apps.md)
       # groups = [ "wheel" ]; # extra groups
     };
 

@@ -43,6 +43,7 @@ init --yes \
   --locale fr_FR.UTF-8 \
   --features disk,docker \
   --hardware 'nvidia framework-13-7040-amd' \
+  --apps firefox,vlc \
   --keep-pi
 
 host_file=modules/hosts/my-box/default.nix
@@ -63,13 +64,15 @@ has_line '      fullName = "Bob \\"the\\" Builder \\\$\{x\}";.*'
 has_line '      email = "bob@example\.net";.*'
 has_line '      "disk" # .*'
 has_line '      "docker" # .*'
-has_line '      # "hyprland" # .*'
 has_line '      # "secure-boot" # .*'
 has_line '      # "libvirt" # .*'
 has_line '      "nvidia" # .*'
 has_line '      "framework-13-7040-amd"'
 has_line '      # "common-pc-ssd" # .*'
 has_line '      "firefox" # .*'
+has_line '      "vlc"'
+has_line '      # "hyprland" # .*'
+has_line '      # "direnv" # .*'
 if grep -q alice "$host_file"; then
   fail "$host_file still names the example user"
 fi
@@ -107,6 +110,7 @@ has_line '      "ssh" # .*'
 has_line '      # "disk" # .*'
 has_line '      "raspberry-pi-5" # .*'
 has_line '      # "firefox" # .*'
+has_line '      # "hyprland" # .*'
 has_line '      # email = "alice@example\.org";.*'
 [[ ! -e modules/hosts/example-pi ]] || fail "example-pi left without --keep-pi"
 
@@ -119,5 +123,8 @@ host_file=modules/hosts/rec/default.nix
 "$NIX_INSTANTIATE" --parse "$host_file" >/dev/null || fail "$host_file does not parse"
 has_line '  configurations\.nixos\."rec" = \{'
 has_line '    users\."in" = \{'
+has_line '      "hyprland" # .*'
+has_line '      "direnv" # .*'
+has_line '      "nix-ld" # .*'
 
 echo "init-test: all assertions passed"

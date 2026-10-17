@@ -7,8 +7,6 @@
 
 let
   inherit (lib) mkOption types;
-  inherit (config.flake.modules) homeManager;
-  inherit (config.flake.modules.nixos) zsh;
   inherit (config.helpers) appPart;
   inherit (config)
     systems
@@ -41,14 +39,22 @@ let
   appModules = part: names: map (name: appPart name part) (configuredApps names);
 
   package =
-    host: pkgs: name:
-    lib.attrByPath (lib.splitString "." name) (fail host "apps"
-      "unknown name \"${name}\": no modules/apps/${name} and no pkgs.${name}."
+    host: field: pkgs: name:
+    lib.attrByPath (lib.splitString "." name) (fail host field
+      "unknown name \"${name}\": neither an app of modules/apps (${known apps}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\"."
     ) pkgs;
 
   unfreeName =
-    host: system: name:
-    lib.getName (package host inputs.nixpkgs.legacyPackages.${system} name);
+    host: field: system: name:
+    lib.getName (package host field inputs.nixpkgs.legacyPackages.${system} name);
+
+  bringsZsh = lib.any (
+    name:
+    lib.elem name [
+      "shell"
+      "zsh"
+    ]
+  );
 
   userOptions = {
     options = {
@@ -79,24 +85,15 @@ let
         description = "Public SSH keys allowed to log in as this user.";
       };
 
-      home = mkOption {
+      apps = mkOption {
         type = types.listOf types.str;
         default = [ "shell" ];
         example = [
           "shell"
           "stow"
-        ];
-        description = "home-manager modules the user imports, by name: the starter's (`modules/home/<name>`) or your own, such as `flake.modules.homeManager.<user>` in `modules/users/<user>`.";
-      };
-
-      apps = mkOption {
-        type = types.listOf types.str;
-        default = [ ];
-        example = [
-          "firefox"
           "obsidian"
         ];
-        description = "Apps for this user only: an app of `modules/apps/<name>` when there is one, else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed.";
+        description = "Apps for this user only: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`shell`, the default, brings zsh as login shell, starship, git, neovim and CLI tools), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed.";
       };
 
       groups = mkOption {
@@ -109,7 +106,7 @@ let
   };
 
   userModule =
-    host: system: name: user:
+    host: hostApps: system: name: user:
     {
       lib,
       pkgs,
@@ -117,11 +114,11 @@ let
       ...
     }:
     let
-      usesZsh = lib.elem "shell" user.home || lib.elem "zsh" user.home;
+      field = "users.${name}.apps";
       packages = packagedApps user.apps;
     in
     {
-      imports = lib.optional usesZsh zsh ++ appModules "nixos" user.apps;
+      imports = appModules "nixos" user.apps;
 
       users.users.${name} = {
         isNormalUser = true;
@@ -130,14 +127,14 @@ let
           lib.optional user.admin "wheel"
           ++ lib.optional config.networking.networkmanager.enable "networkmanager"
           ++ user.groups;
-        shell = lib.mkIf usesZsh pkgs.zsh;
+        shell = lib.mkIf (bringsZsh (hostApps ++ user.apps)) pkgs.zsh;
         openssh.authorizedKeys.keys = user.sshKeys;
         hashedPasswordFile =
           lib.mkIf config.environment.persistence."/persist".enable
             "/persist/passwords/${name}";
       };
 
-      nixpkgs.config.allowUnfreePackages = map (unfreeName host system) packages;
+      nixpkgs.config.allowUnfreePackages = map (unfreeName host field system) packages;
 
       virtualisation.vmVariant.users.users.${name} = {
         hashedPasswordFile = lib.mkForce null;
@@ -145,10 +142,9 @@ let
       };
 
       home-manager.users.${name} = {
-        imports =
-          map (pick host "users.${name}.home" homeManager) user.home ++ appModules "homeManager" user.apps;
+        imports = appModules "homeManager" user.apps;
         home.stateVersion = config.system.stateVersion;
-        home.packages = map (package host pkgs) packages;
+        home.packages = map (package host field pkgs) packages;
         programs.git.settings.user = lib.mkIf (user.email != null) {
           name = lib.mkDefault user.fullName;
           email = lib.mkDefault user.email;
@@ -189,26 +185,26 @@ let
           example = [
             "disk"
             "secure-boot"
-            "hyprland"
             "docker"
           ];
-          description = "NixOS modules the machine turns on, by name: the features of `modules/features/<name>` (`disk`, `secure-boot`, `wipe-home`, `hyprland`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...). `disk` is the encrypted btrfs layout with `/` wiped at boot; the disk it erases is chosen at install (installer ISO, `disko-install --disk main`, or `disk.device` in `module`), never in the registry.";
+          description = "NixOS modules the machine turns on, by name: the features of `modules/features/<name>` (`disk`, `secure-boot`, `wipe-home`, `plymouth`, `docker`, `libvirt`, `ssh`, `secrets`, ...). `disk` is the encrypted btrfs layout with `/` wiped at boot; the disk it erases is chosen at install (installer ISO, `disko-install --disk main`, or `disk.device` in `module`), never in the registry.";
         };
 
         apps = mkOption {
           type = types.listOf types.str;
           default = [ ];
           example = [
+            "hyprland"
             "firefox"
             "vlc"
           ];
-          description = "Apps for every user of the machine: an app of `modules/apps/<name>` when there is one, else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
+          description = "Apps for every user of the machine: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`hyprland` is the desktop), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
         };
 
         users = mkOption {
           type = types.attrsOf (types.submodule userOptions);
           default = { };
-          description = "Accounts of the machine, by login name. Each one gets home-manager with the `home` modules it lists.";
+          description = "Accounts of the machine, by login name. Each one gets home-manager with the host's `apps` and its own.";
         };
 
         hardware = mkOption {
@@ -279,7 +275,7 @@ let
           ++ map (pick name "features" features) host.features
           ++ map (hardwareModule name) host.hardware
           ++ appModules "nixos" host.apps
-          ++ lib.mapAttrsToList (userModule name host.system) host.users;
+          ++ lib.mapAttrsToList (userModule name host.apps host.system) host.users;
 
           networking.hostName = name;
           update.flake = host.flake;
@@ -289,9 +285,9 @@ let
           services.xserver.xkb.layout = lib.mkDefault host.keyboard;
           console.keyMap = lib.mkDefault host.keyboard;
 
-          environment.systemPackages = map (package name pkgs) packages;
+          environment.systemPackages = map (package name "apps" pkgs) packages;
           home-manager.sharedModules = appModules "homeManager" host.apps;
-          nixpkgs.config.allowUnfreePackages = map (unfreeName name host.system) packages;
+          nixpkgs.config.allowUnfreePackages = map (unfreeName name "apps" host.system) packages;
 
           system.stateVersion = host.stateVersion;
         };

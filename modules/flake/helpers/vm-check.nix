@@ -1,8 +1,8 @@
 { config, ... }:
 
 let
+  inherit (config.helpers) appPart;
   inherit (config)
-    apps
     base
     profiles
     features
@@ -49,20 +49,27 @@ in
     ];
 
   helpers.appCheck =
-    app: testScripts:
+    app:
+    {
+      machine ? { },
+      testScripts,
+    }:
     config.helpers.vmCheck "app-${app}" {
-      nodes.machine = {
-        imports = [
-          base
-          apps.${app}.nixos
-        ];
-        users.users.tester.isNormalUser = true;
-        home-manager.users.tester = {
-          imports = [ apps.${app}.homeManager ];
-          home.stateVersion = "26.05";
+      nodes.machine =
+        { lib, ... }:
+        {
+          imports = [
+            base
+            (appPart app "nixos")
+            machine
+          ];
+          users.users.tester.isNormalUser = true;
+          home-manager.users.tester = {
+            imports = [ (appPart app "homeManager") ];
+            home.stateVersion = "26.05";
+          };
+          virtualisation.memorySize = lib.mkDefault 2048;
         };
-        virtualisation.memorySize = 2048;
-      };
       inherit testScripts;
     };
 }

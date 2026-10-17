@@ -42,5 +42,7 @@ virsh -c qemu:///system net-start default
 
 ## `nix-ld` and `direnv` (opt-in)
 
+`nix-ld` is a feature, `direnv` an app: `features = [ "nix-ld" ]; apps = [ "direnv" ];`.
+
 - **`nix-ld`** runs dynamically linked binaries not built for NixOS (editor language servers, prebuilt npm or pip binaries, VS Code server). Add missing libraries to `programs.nix-ld.libraries`.
 - **`direnv`** with nix-direnv: `use flake` in a project's `.envrc` loads its dev shell on `cd`, cached.

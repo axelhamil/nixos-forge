@@ -29,12 +29,11 @@ let
   ];
 
   moduleLayers = [
-    "system"
+    "base"
+    "feature"
     "profile"
+    "hardware"
     "app"
-    "dev"
-    "home"
-    "desktop"
   ];
 
   otherChecks = {
@@ -44,6 +43,9 @@ let
     init = "`nix run .#init` writes a valid first host";
     ci-report = "the CI report reads every result correctly";
     example-hosts = "every example host lists every option the starter ships";
+    wrong-namespace = "a name of another registry field stops the build with the field's own names";
+    apps-once = "an app reached twice is imported once";
+    flake-modules = "no name is published by two namespaces";
   };
 
   provesOnHost =

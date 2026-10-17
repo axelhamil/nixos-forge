@@ -124,7 +124,7 @@ expect_rows all-green example "example-toplevel=passed example-boots=passed exam
 expect_rows all-green example-pi "example-pi-sd-image=passed"
 expect_line all-green '| `example-server-installer` | the USB installer installs it | passed |'
 expect_line all-green '| `example-disk` | it installs on an encrypted disk, wipes / at boot and restores a snapshot | passed |'
-expect_line all-green '| `system-ssh` | ssh works in a VM | passed |'
+expect_line all-green '| `feature-ssh` | ssh works in a VM | passed |'
 expect_line all-green '| `treefmt` | the code is formatted | passed |'
 expect_line all-green "<summary>Module checks: 3 passed</summary>"
 expect_line all-green "<summary>Package changes per machine</summary>"
@@ -163,18 +163,18 @@ expect_line cache-down "The binary cache was unreachable: everything was built f
 if grep -q "binary cache was unreachable" all-green.md; then fail "all-green: a working cache is reported unreachable"; fi
 
 pass_all kernel
-rm kernel/aarch64-linux-example-pi-sd-image.json kernel/x86_64-linux-system-ssh.json
-SKIPPED='[{"check":"example-pi-sd-image","system":"aarch64-linux","reason":"compiles a kernel"},{"check":"system-ssh","system":"x86_64-linux","reason":"cached"}]' \
-  PLANNED=$(jq -c 'map(select(.check != "example-pi-sd-image" and .check != "system-ssh"))' <<<"$PLANNED") \
+rm kernel/aarch64-linux-example-pi-sd-image.json kernel/x86_64-linux-feature-ssh.json
+SKIPPED='[{"check":"example-pi-sd-image","system":"aarch64-linux","reason":"compiles a kernel"},{"check":"feature-ssh","system":"x86_64-linux","reason":"cached"}]' \
+  PLANNED=$(jq -c 'map(select(.check != "example-pi-sd-image" and .check != "feature-ssh"))' <<<"$PLANNED") \
   report kernel
 expect_first_line kernel "**Everything works: every machine builds, boots and passed its tests.**"
 expect_line kernel "Checks that compile a kernel run after the merge."
 expect_line kernel "1 check was skipped: it already passed with the same code."
 expect_rows kernel example-pi "example-pi-sd-image=skipped:runsafterthemerge"
-expect_line kernel '| `system-ssh` | ssh works in a VM | skipped: already passed |'
+expect_line kernel '| `feature-ssh` | ssh works in a VM | skipped: already passed |'
 
 pass_all module-failed
-set_outcome module-failed system-ssh failed 1 "$LOGS/eval-error.log"
+set_outcome module-failed feature-ssh failed 1 "$LOGS/eval-error.log"
 LINT_RESULT=failure report module-failed
 expect_first_line module-failed "**2 checks failed: no machine is affected, but CI stays red until it is fixed.**"
 expect_line module-failed "<details open>"
@@ -210,7 +210,7 @@ if grep -q "Everything works" plan-failed.md; then fail "plan-failed: a flake th
 
 pass_all fence
 printf '    > ````markdown\n    > ``x``\nerror: builder failed\n' >fence.log
-set_outcome fence system-ssh failed 1 "$PWD/fence.log"
+set_outcome fence feature-ssh failed 1 "$PWD/fence.log"
 report fence
 expect_line fence "\`\`\`\`markdown"
 expect_line fence "\`\`\`\`\`"
@@ -242,13 +242,13 @@ set_outcome no-space example-toplevel failed 1 "$PWD/no-space.log"
 report no-space
 expect_line no-space "- Cause: the CI runner ran out of disk."
 
-two_systems=$(jq -c '. + [{ check: "system-ssh", system: "aarch64-linux" }]' <<<"$PLANNED")
+two_systems=$(jq -c '. + [{ check: "feature-ssh", system: "aarch64-linux" }]' <<<"$PLANNED")
 PLANNED=$two_systems pass_all two-systems
-PLANNED=$two_systems set_outcome two-systems system-ssh failed 1 "$LOGS/eval-error.log" aarch64-linux
+PLANNED=$two_systems set_outcome two-systems feature-ssh failed 1 "$LOGS/eval-error.log" aarch64-linux
 PLANNED=$two_systems report two-systems
-expect_line two-systems '| `system-ssh` (x86_64-linux) | ssh works in a VM | passed |'
-expect_line two-systems '| `system-ssh` (aarch64-linux) | ssh works in a VM | failed |'
-expect_line two-systems '#### `system-ssh` (aarch64-linux)'
+expect_line two-systems '| `feature-ssh` (x86_64-linux) | ssh works in a VM | passed |'
+expect_line two-systems '| `feature-ssh` (aarch64-linux) | ssh works in a VM | failed |'
+expect_line two-systems '#### `feature-ssh` (aarch64-linux)'
 expect_first_line two-systems "**1 check failed: no machine is affected, but CI stays red until it is fixed.**"
 
 pass_all long

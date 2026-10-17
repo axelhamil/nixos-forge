@@ -25,6 +25,11 @@ let
       host.hardware = [ "disk" ];
       message = "configurations.nixos.wrong-hardware.hardware: unknown name \"disk\": neither a module of modules/features/hardware (${known "hardware"}) nor a nixos-hardware profile (https://github.com/NixOS/nixos-hardware).";
     };
+
+    wrong-apps = {
+      host.apps = [ "disk" ];
+      message = "configurations.nixos.wrong-apps.apps: unknown name \"disk\": neither an app of modules/apps (${known "apps"}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\".";
+    };
   };
 
   registry =
@@ -47,16 +52,11 @@ let
             ${../helpers/apps.nix}
             {
               options.systems = lib.mkOption { default = [ "x86_64-linux" ]; };
-              options.flake = lib.mkOption {
-                default.modules = {
-                  nixos.zsh = { };
-                  homeManager = { };
-                };
-              };
               config = {
                 profiles = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "profiles"))});
                 features = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "features"))});
                 hardware = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "hardware"))});
+                apps = empty (builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON (names "apps"))});
                 configurations.nixos = builtins.fromJSON ${
                   lib.strings.escapeNixString (
                     builtins.toJSON (lib.mapAttrs (_: wrong: wrong.host // { stateVersion = "26.05"; }) wrongHosts)
@@ -71,11 +71,17 @@ let
           specialArgs.pkgs = { };
           modules = [
             flake.config.configurations.nixos.''${hostName}.module
-            { _module.check = false; }
+            {
+              options.environment.systemPackages = lib.mkOption { default = [ ]; };
+              config._module.check = false;
+            }
           ];
         };
       in
-      builtins.attrNames nixos.config
+      {
+        options = builtins.attrNames nixos.config;
+        packages = nixos.config.environment.systemPackages;
+      }
     '';
 in
 {

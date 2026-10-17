@@ -21,6 +21,7 @@ example hosts and stages the result. Asks for every answer not given as an optio
   --locale LOCALE        such as fr_FR.UTF-8 (default: en_US.UTF-8)
   --features LIST        features to turn on, comma or space separated (default: picked for the profile)
   --hardware LIST        hardware modules or nixos-hardware profiles (default: raspberry-pi-5 for pi, else none)
+  --apps LIST            apps for every user: starter apps or nixpkgs packages (default: picked for the profile)
   --keep-server          keep the example-server host
   --keep-pi              keep the example-pi host
   --yes                  ask nothing: use the defaults, fail on a missing answer
@@ -37,6 +38,7 @@ host="" system="" profile="" login="" full_name="" time_zone="" keyboard="" loca
 email="" email_set=false
 features="" features_set=false
 hardware="" hardware_set=false
+apps="" apps_set=false
 keep_server="" keep_pi="" yes=false
 
 while (($# > 0)); do
@@ -51,7 +53,7 @@ while (($# > 0)); do
   shift
 
   case $option in
-  --host | --system | --profile | --login | --full-name | --email | --time-zone | --keyboard | --locale | --features | --hardware)
+  --host | --system | --profile | --login | --full-name | --email | --time-zone | --keyboard | --locale | --features | --hardware | --apps)
     if [[ $has_value == false ]]; then
       (($# > 0)) || die "$option needs a value"
       value=$1
@@ -72,6 +74,7 @@ while (($# > 0)); do
   --locale) locale=$value ;;
   --features) features=$value features_set=true ;;
   --hardware) hardware=$value hardware_set=true ;;
+  --apps) apps=$value apps_set=true ;;
   --keep-server) keep_server=yes ;;
   --keep-pi) keep_pi=yes ;;
   --yes) yes=true ;;
@@ -174,11 +177,11 @@ check_features() {
   done
 }
 
-check_hardware() {
+check_names() {
   local item
   for item in $(words "$1"); do
     check_word "$item" >/dev/null || {
-      echo "\"$item\" is not a module name"
+      echo "\"$item\" is not a module or package name"
       return 1
     }
   done
@@ -257,7 +260,7 @@ detected_locale() {
 default_features() {
   local wanted=() feature
   case $1 in
-  desktop | laptop) wanted=(disk plymouth hyprland nix-ld direnv) ;;
+  desktop | laptop) wanted=(disk plymouth nix-ld) ;;
   server) wanted=(disk ssh) ;;
   pi) wanted=(ssh) ;;
   esac
@@ -271,17 +274,23 @@ default_features() {
   done
 }
 
-show_features() {
-  local chosen name description mark
-  mapfile -t chosen < <(words "$1")
-  echo "Features (each one is described in $template):" >&2
+default_apps() {
+  case $1 in
+  desktop | laptop) printf 'hyprland direnv firefox' ;;
+  esac
+}
+
+show_list() {
+  local block=$1 title=$2 chosen name description mark
+  mapfile -t chosen < <(words "$3")
+  echo "$title (each one is described in $template):" >&2
   while IFS=$'\t' read -r name description; do
     mark=" "
     if contains "$name" "${chosen[@]}"; then
       mark=x
     fi
     printf '  [%s] %-14s %s\n' "$mark" "$name" "$description" >&2
-  done < <(list_block features)
+  done < <(list_block "$block")
 }
 
 ask host host "Host name" "" check_host
@@ -310,25 +319,32 @@ if [[ $features_set == true ]]; then
 elif [[ $yes == true ]]; then
   features=$suggested_features
 else
-  show_features "$suggested_features"
+  show_list features Features "$suggested_features"
   ask features features "Features, space separated (blank keeps the ones marked)" "$suggested_features" check_features true
 fi
 
 suggested_hardware=""
 [[ $profile == pi ]] && suggested_hardware=raspberry-pi-5
 if [[ $hardware_set == true ]]; then
-  ask hardware hardware "" "" check_hardware set
+  ask hardware hardware "" "" check_names set
 elif [[ $yes == true ]]; then
   hardware=$suggested_hardware
 else
-  ask hardware hardware "Hardware: starter modules or nixos-hardware profiles, space separated (blank for none)" "$suggested_hardware" check_hardware true
+  ask hardware hardware "Hardware: starter modules or nixos-hardware profiles, space separated (blank for none)" "$suggested_hardware" check_names true
+fi
+
+suggested_apps=$(default_apps "$profile")
+if [[ $apps_set == true ]]; then
+  ask apps apps "" "" check_names set
+elif [[ $yes == true ]]; then
+  apps=$suggested_apps
+else
+  show_list apps Apps "$suggested_apps"
+  ask apps apps "Apps for every user: starter apps or nixpkgs packages, space separated (blank keeps the ones marked)" "$suggested_apps" check_names true
 fi
 
 [[ -d modules/hosts/example-server ]] && ask_yes_no keep_server "Keep the example-server host"
 [[ -d modules/hosts/example-pi ]] && ask_yes_no keep_pi "Keep the example-pi host"
-
-apps=""
-[[ $profile == desktop || $profile == laptop ]] && apps=firefox
 
 nix_string() {
   local text=$1
@@ -363,7 +379,7 @@ HOST_ATTRIBUTE=$(nix_attribute "$host") \
   LOCALE=$locale \
   FEATURES=$(words "$features" | tr '\n' ' ') \
   HARDWARE=$(words "$hardware" | tr '\n' ' ') \
-  APPS=$apps \
+  APPS=$(words "$apps" | tr '\n' ' ') \
   awk '
     function set_string(line, value,    start, rest) {
       start = index(line, "\"")

@@ -21,6 +21,18 @@ esac
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 touch "$work/excerpt"
+mkdir -p "$out"
+
+write_result() {
+  jq -n \
+    --arg check "$check" \
+    --arg system "$system" \
+    --arg outcome "$outcome" \
+    --argjson attempts "$attempts" \
+    --rawfile excerpt "$work/excerpt" \
+    '{ check: $check, system: $system, outcome: $outcome, attempts: $attempts, excerpt: ($excerpt | split("\n") | map(select(. != ""))) }' \
+    >"$out/$system-$check.json"
+}
 
 outcome=failed
 attempts=0
@@ -34,16 +46,9 @@ while [ "$attempts" -lt "$allowed" ]; do
   fi
 
   awk -f "$EXCERPT" "$work/log" >"$work/excerpt"
+  write_result
 done
 
-mkdir -p "$out"
-jq -n \
-  --arg check "$check" \
-  --arg system "$system" \
-  --arg outcome "$outcome" \
-  --argjson attempts "$attempts" \
-  --rawfile excerpt "$work/excerpt" \
-  '{ check: $check, system: $system, outcome: $outcome, attempts: $attempts, excerpt: ($excerpt | split("\n") | map(select(. != ""))) }' \
-  >"$out/$check.json"
+write_result
 
 [ "$outcome" != failed ]

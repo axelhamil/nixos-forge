@@ -27,3 +27,4 @@ Each lot builds and boots on its own before the next starts, and keeps a guardra
 | **18. Init**: commented example host read top to bottom, `nix run .#init` writes a fork's first host and drops the examples, every example host commented | `init`, `example-hosts` |
 | **19. Hibernate**: opt-in `hibernate`, swap file in LUKS on its own subvolume, resume through systemd before the `/` rollback, suspend-then-hibernate | `system-hibernate` |
 | **20. Doctor**: `doctor` on every machine, Secure Boot, TPM2, snapshots, failed units, updates, and the files the next boot erases | `system-doctor`, `<host>-disk` |
+| **21. CI report**: one report per run in the run summary and a single PR comment, a table per machine saying what each check proves, the likely cause of a failure and what to do, a flaky VM test retried once and marked unstable | `ci-report` |

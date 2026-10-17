@@ -13,17 +13,13 @@ function emit(line) {
   }
 
   seen[line] = 1
-  print line
-
-  if (++printed == 20) {
-    exit
-  }
+  kept[++count] = line
 }
 
 {
   line = clean($0)
 
-  if (line ~ /AssertionError|RequestedAssertionFailed|^error:|Traceback|timed out|Timeout|hash mismatch|No space left/) {
+  if (line ~ /AssertionError|RequestedAssertionFailed|(^|: )error:|Traceback|timed out|Timeout|hash mismatch|No space left/) {
     emit(older)
     emit(previous)
     emit(line)
@@ -31,4 +27,10 @@ function emit(line) {
 
   older = previous
   previous = line
+}
+
+END {
+  for (i = count > 20 ? count - 19 : 1; i <= count; i++) {
+    print kept[i]
+  }
 }

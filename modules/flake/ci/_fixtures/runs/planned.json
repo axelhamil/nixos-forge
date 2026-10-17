@@ -1,0 +1,79 @@
+[
+  {
+    "check": "example-toplevel",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": false,
+    "timeout": 60
+  },
+  {
+    "check": "example-boots",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": true,
+    "timeout": 60
+  },
+  {
+    "check": "example-disk",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": true,
+    "timeout": 60
+  },
+  {
+    "check": "example-wipe-home",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": true,
+    "timeout": 60
+  },
+  {
+    "check": "example-server-toplevel",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": false,
+    "timeout": 60
+  },
+  {
+    "check": "example-server-boots",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": true,
+    "timeout": 60
+  },
+  {
+    "check": "example-server-disk",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": true,
+    "timeout": 60
+  },
+  {
+    "check": "example-server-installer",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": true,
+    "timeout": 60
+  },
+  {
+    "check": "system-ssh",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": true,
+    "timeout": 60
+  },
+  {
+    "check": "init",
+    "system": "x86_64-linux",
+    "runner": "ubuntu-24.04",
+    "retry": false,
+    "timeout": 60
+  },
+  {
+    "check": "example-pi-sd-image",
+    "system": "aarch64-linux",
+    "runner": "ubuntu-24.04-arm",
+    "retry": false,
+    "timeout": 60
+  }
+]

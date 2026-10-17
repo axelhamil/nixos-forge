@@ -1,6 +1,6 @@
 # Raspberry Pi
 
-A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modules, plus a board module and the `pi` profile. Board support comes from [nixos-raspberrypi](https://github.com/nvmd/nixos-raspberrypi) (vendor kernel, firmware, `config.txt`, bootloader), since nixpkgs has no official Pi 5 support. The host builds an SD card image, and CI builds it on an `aarch64-linux` runner for every PR.
+A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modules, plus a board module and the `pi` profile. Board support comes from [nixos-raspberrypi](https://github.com/nvmd/nixos-raspberrypi) (vendor kernel, firmware, `config.txt`, bootloader). The host builds an SD card image.
 
 ## Use it
 
@@ -10,12 +10,12 @@ A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modul
 users.<you>.sshKeys = [ "ssh-ed25519 AAAA... you@laptop" ];
 ```
 
-A fork without a Pi deletes `modules/hosts/example-pi` and the `nixos-raspberrypi` input: every evaluation of a Pi host fetches nixos-raspberrypi's own nixpkgs, which its library is built on.
+A fork without a Pi deletes `modules/hosts/example-pi` and the `nixos-raspberrypi` input, which otherwise fetches its own nixpkgs at every evaluation.
 
 ## What is in it
 
-- **Board modules** `raspberry-pi-4` and `raspberry-pi-5`: the nixos-raspberrypi board module and the SD card layout (firmware partition on `/boot/firmware`, ext4 root grown to the card at first boot, `noatime`), plus `rpi-eeprom-update` for the bootloader EEPROM. The Pi 5 boots its kernel straight from the firmware with one boot entry per generation, the Pi 4 through U-Boot. The kernel and firmware are built from this flake's nixpkgs with nixos-raspberrypi's overlays, so they follow the weekly lock update like the rest of the system. ZFS is left out: it does not build against the vendor kernel.
-- **`pi` profile**: the `server` profile, builds sent to the remote builders you list (`nix.distributedBuilds` turns on with `nix.buildMachines`, and builders fetch from caches themselves), `sudo` without a password for `wheel` (the only way in is an SSH key, and the Pi has no password store), a 15 s hardware watchdog that reboots a hung Pi, the journal capped at 100 MB, and no NixOS manual to build.
+- **Board modules** `raspberry-pi-4` and `raspberry-pi-5`: firmware partition on `/boot/firmware`, ext4 root grown to the card at first boot, and the `raspberrypi-eeprom` tools. The kernel and firmware are built from this flake's nixpkgs, so they follow the lock updates. ZFS does not build against the vendor kernel.
+- **`pi` profile**: the `server` profile, builds sent to the builders in `nix.buildMachines`, passwordless `sudo` for `wheel` (the only way in is an SSH key), a 15 s hardware watchdog, the journal capped at 100 MB, and no NixOS manual.
 
 The Pi has no `disk`: no LUKS, btrfs or wiped `/` on an SD card. `ssh`, `secrets`, `audio` and the home modules work as on any host.
 
@@ -34,7 +34,7 @@ nix build .#nixosConfigurations.example-pi.config.system.build.sdImage
 zstdcat result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
-The first build compiles the vendor kernel, which is slow under emulation. A native `aarch64-linux` machine as builder makes it faster, and a cache on your own machine ([harmonia](https://github.com/nix-community/harmonia), `services.harmonia`) makes later builds a download. nixos-raspberrypi's cache does not help: its kernels come from its own nixpkgs pin.
+The first build compiles the vendor kernel, which is slow under emulation: a native `aarch64-linux` builder is faster. nixos-raspberrypi's binary cache has no hit for it.
 
 To boot from NVMe on a Pi 5, write the same image to the drive and put NVMe first in the EEPROM boot order (`sudo rpi-eeprom-config --edit`, `BOOT_ORDER=0xf416`).
 
@@ -74,8 +74,4 @@ nix.buildMachines = [
 ];
 ```
 
-## Tests
-
-- `<host>-sd-image` builds the SD card image on an `ubuntu-24.04-arm` runner, in place of `<host>-toplevel` and `<host>-boots`: the image contains the system, and the vendor kernel only boots on the board. Compiling the kernel takes more than an hour, so a PR never does it: it builds the image when the binary cache already holds its kernel and only evaluates it otherwise, and the push to `develop` or `main` after the merge builds it and fills the cache ([ci.md](ci.md)).
-- `profile-pi` checks the `server` settings, the remote builder in `/etc/nix/machines` with `builders-use-substitutes`, passwordless `sudo` for `wheel`, the watchdog and the journal cap.
-- The PR package diff covers `aarch64-linux` hosts in a job on the arm runner, once their kernel is in the binary cache.
+CI builds the image on an arm runner ([ci.md](ci.md)).

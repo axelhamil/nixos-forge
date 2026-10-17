@@ -1,70 +1,58 @@
 # CI and repository settings
 
-How the GitHub Actions workflows work, and what to configure on your fork so they run.
+What the GitHub Actions workflows do, and what a fork sets so they run.
+
+## Turn CI on in your fork
+
+1. **Keep `develop`**: untick "Copy the main branch only" when forking, or create `develop` from `main`. Work lands on `develop`, then reaches `main` through a PR.
+2. **Enable the workflows**: GitHub disables them on forks. Open the Actions tab and enable them.
+3. **Bot GitHub App**: the release PR and the weekly lock and upstream PRs need an App token, since PRs opened with `GITHUB_TOKEN` trigger no workflow. [Create a GitHub App](https://github.com/settings/apps/new) with webhooks off and the repository permissions **Contents** and **Pull requests** set to read and write, generate a private key, install the App on your fork, then set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key. One App serves all your repositories.
+4. **Allow auto-merge and merge commits**: Settings, General, "Allow auto-merge" (the lock PR) and "Allow merge commits" (the upstream PRs).
+5. **Ruleset on `main`**: require a pull request and the `ci-ok` status check. Without a required check, auto-merge merges at once.
+6. **Ruleset on `develop`**: block deletions and force pushes, or "Automatically delete head branches" deletes `develop` when a `develop` into `main` PR merges.
+7. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. Every job pulls from it; only pushes to `main` and `develop` write what they built, except sources and images (SD card, ISO, disk, VM). A PR reads the cache but never gets the token, so code under review, such as an upstream sync PR, cannot poison it; the push after the merge builds and uploads what the PR built. Without it, every run builds every check and PRs never build kernels.
+
+Scheduled workflows and Dependabot only run from the default branch, so they start once the workflows are on `main`.
 
 ## Workflows
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `check` | every PR, push to `main` and `develop` | Lints the flake and checks `flake.lock` health, then plans the build: `ci-plan` evaluates every flake check and asks the binary cache which ones are already built, and only the others get a job (host builds, VM boot tests, the SD card image instead of the host build and boot test for Raspberry Pi hosts, and for hosts importing `disk` an install test on a blank disk that reboots and checks `/` is wiped and that a btrbk snapshot lands in `@snapshots`, and, with `wipe-home` added on hosts that lack it (`<host>-wipe-home`), that `/home` starts empty while declared paths survive, then for `x86_64-linux` hosts importing `secure-boot` boots it under OVMF with an emulated TPM and checks the disk unlocks with the TPM alone; for the hosts in `installer.testedHosts` (`example-server` upstream), `<host>-installer` boots the installer ISO next to a blank disk, runs the assistant without questions, boots the installed disk and logs in; each module with a `check.nix` adds a `profile-<name>`, `system-<name>`, `dev-<name>`, `home-<name>`, `desktop-<name>` or `app-<name>` VM test; `options-doc` fails when `docs/options.md` no longer matches the host options; every `x86_64-linux` host without NVIDIA also evaluates with the `nvidia` module and builds the NVIDIA open kernel module against its kernel), on a runner of the host's system: `ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`. A check that would compile a kernel is only evaluated in a PR and built on the push to `main` or `develop` after the merge (240 minutes allowed, 60 for the rest); the weekly lock PR therefore merges with a new Raspberry Pi kernel evaluated but not compiled, and a kernel that fails to build shows up on `main` right after. An SD card image check is a small file listing the image, so it is cached while the image itself stays out of the binary cache. On a PR, it also builds each host on the PR and on its base, one job per system, and posts the package diff ([nvd](https://git.sr.ht/~khumba/nvd)) as a PR comment and in the job summary; a system whose kernel is not cached yet gets a note instead. The `ci-ok` job sums up the result. |
-| `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR that updates `flake.lock` against `main` and enables auto-merge on it. |
+| `check` | every PR, push to `main` and `develop` | Lints the flake, plans the build with `ci-plan` (checks already in the binary cache are skipped), builds each remaining check on a runner of its system (`ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`), and on a PR posts the package diff ([nvd](https://git.sr.ht/~khumba/nvd)) per system. `ci-ok` sums up the result. |
+| `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR updating `flake.lock` against `main`, with auto-merge on. |
 | `sync-develop` | push to `main` | Merges `main` into `develop`. |
-| `release` | push to `main` | Runs [release-please](https://github.com/googleapis/release-please): keeps a release PR open that bumps the version and updates `CHANGELOG.md` from Conventional Commits. Merging that PR tags the version and publishes the GitHub Release. Weekly lock updates (`chore`) do not release. |
-| Dependabot | weekly | Updates the GitHub Actions versions, with PRs against `develop`. |
+| `sync-upstream` | Monday 07:00 UTC, or by hand, forks only | Opens a PR merging the starter's latest release, for you to review and merge ([updates.md](updates.md)). |
+| `release` | push to `main`, starter only | Runs [release-please](https://github.com/googleapis/release-please): a release PR bumps the version and `CHANGELOG.md` from Conventional Commits; merging it tags and publishes the GitHub Release. |
+| Dependabot | weekly | Updates GitHub Actions versions, with PRs against `develop`. |
 
-The repo uses two long-lived branches: work lands on `develop`, then reaches `main` through a PR. When you fork, keep the `develop` branch (untick "Copy the main branch only"), or create it from `main`.
+A check that compiles a kernel is only evaluated in a PR and built on the push to `develop` or `main` after the merge.
 
-## Settings on your fork
+## Checks
 
-1. **Enable the workflows**: GitHub disables them on forks. Open the Actions tab and enable them.
-2. **Bot GitHub App**: the release PR and the weekly lock PR are opened with a GitHub App token, because PRs opened with the default `GITHUB_TOKEN` do not trigger workflows, so CI and auto-merge would never run on them. [Create a GitHub App](https://github.com/settings/apps/new) on your account with webhooks off and the repository permissions **Contents** and **Pull requests** set to read and write, generate a private key, and install the App on your fork. Then set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key. One App serves all your repositories.
-3. **Allow auto-merge**: Settings, General, "Allow auto-merge".
-4. **Ruleset on `main`**: require a pull request and require the `ci-ok` status check. Without a required check, auto-merge has nothing to wait for and merges at once.
-5. **Ruleset on `develop`**: block deletions and force pushes. Without it, "Automatically delete head branches" deletes `develop` as soon as a `develop` into `main` PR merges.
-6. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache (free for open source), set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. Every job then pulls from it and pushes what it built, leaving out what cache.nixos.org already serves (Cachix's upstream cache) and large files that are cheap to rebuild from cached parts: sources, SD card, ISO and disk images, VMs. What is left is mostly kernels and test results, sized for the free plan's 5 GB; when full, Cachix drops the least recently used paths. A failed push never fails a job (`continue-on-error`, `useDaemon: false` to push in one blocking step). Without the cache, every run builds every check and kernels are never built in PRs.
+Every host gets its checks from the registry, so a new host reaches CI without touching YAML.
 
-Scheduled workflows and Dependabot only run from the default branch: the weekly update and Dependabot start once the workflows are on `main`.
+| Check | When | What it proves |
+|---|---|---|
+| `<host>-toplevel` | every host without an SD image | the system builds |
+| `<host>-boots` | every host without an SD image | the VM reaches `multi-user.target` and every `home-manager-<user>` service |
+| `<host>-sd-image` | Raspberry Pi hosts, in place of the two above | the SD card image builds |
+| `<host>-disk` | hosts with `disk` | install on a blank disk, reboot, `/` wiped, btrbk snapshot taken; Secure Boot and TPM2 unlock on `x86_64-linux` hosts with `secure-boot`; the swap file, with a 1G size, on hosts with `hibernate` |
+| `<host>-wipe-home` | hosts with `disk` but not `wipe-home` | the install test with `wipe-home` added |
+| `<host>-installer` | hosts in `installer.testedHosts` | the installer ISO installs without questions and the installed disk boots |
+| `profile-*`, `system-*`, `dev-*`, `home-*`, `desktop-*`, `app-*` | modules with a `check.nix` | the module's own VM test |
+| `facter` | always, on `x86_64-linux` | a host with the registry field `facter` set to nixpkgs' sample report turns on nixpkgs' facter module |
+| `options-doc` | always | `docs/options.md` matches the registry options |
+| `init` | while the `example` host exists | `nix run .#init -- --yes` on a copy of the flake writes a host that parses, with the answers and features asked, removes the examples and refuses to overwrite a host |
+| `example-hosts` | while an example host exists, on `x86_64-linux` | every example host has a line, enabled or commented out, for every registry field, profile, feature, hardware module and app of the starter |
 
 ## Running the CI scripts locally
 
-The CI matrix and scripts are defined in Nix (`modules/flake/ci/`), so they run the same way on your machine.
+The matrix and scripts live in Nix (`modules/flake/ci/`), so they run the same on your machine.
 
-List every check the `build` job may run, with its system and runner (everything except `treefmt`, which the `lint` job covers):
-
-```sh
-nix eval --json .#ci.matrix
-```
-
-One entry per check:
-
-```json
-{"check":"example-boots","runner":"ubuntu-24.04","system":"x86_64-linux"}
-```
-
-Plan a run as CI does, for a `pull_request` or a `push` (it skips what your store or the configured substituters already hold):
-
-```sh
-nix run .#ci-plan -- pull_request
-```
-
-It prints the `checks` to build and the `closures` to diff, and in CI writes the skipped checks to the job summary.
-
-Build one of them as CI does:
-
-```sh
-nix build -L .#checks.x86_64-linux.example-boots
-```
-
-Print the package diff between a base revision and the current tree:
-
-```sh
-nix run .#closure-diff -- <base rev or branch>
-```
-
-It diffs the hosts listed for the current platform in `nix eval --json .#ci.hosts`.
-
-Merge `main` into `develop` and push, as the `sync-develop` workflow does (run it from a checkout of `develop`):
-
-```sh
-nix run .#sync-develop
-```
+| Command | What it does |
+|---|---|
+| `nix eval --json .#ci.matrix` | every check with its system and runner |
+| `nix run .#ci-plan -- pull_request` | plan a run as CI does (`pull_request` or `push`), skipping what your store or substituters hold |
+| `nix build -L .#checks.x86_64-linux.example-boots` | build one check |
+| `nix run .#closure-diff -- <base rev or branch>` | package diff of the hosts in `nix eval --json .#ci.hosts` for the current platform |
+| `nix run .#sync-develop` | merge `main` into `develop` and push, from a checkout of `develop` |

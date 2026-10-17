@@ -32,6 +32,35 @@ list of string
 
 
 
+## facter
+
+
+
+Hardware report of the machine from nixos-facter, which the installer ISO saves in ` /persist/facter.json `\. Copy it next to the host file: nixpkgs’ facter module then turns on the kernel modules, graphics, network and virtualisation support that machine needs\.
+
+
+
+*Type:*
+null or absolute path
+
+
+
+*Default:*
+
+```nix
+null
+```
+
+
+
+*Example:*
+
+```nix
+./facter.json
+```
+
+
+
 ## features
 
 
@@ -62,6 +91,35 @@ list of string
   "hyprland"
   "docker"
 ]
+```
+
+
+
+## flake
+
+
+
+Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:alice/nixos `, which the ` auto-upgrade ` feature needs\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+
+```nix
+null
+```
+
+
+
+*Example:*
+
+```nix
+"/home/alice/nixos"
 ```
 
 

@@ -11,7 +11,7 @@
 
 </div>
 
-In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a readable starting point, not a framework. Every piece is a module you turn on by name, read in one file and drop by deleting it. The `example` host turns on every feature that needs neither a secret nor specific hardware, `example-server` shows `wipe-home` and `example-pi` a Raspberry Pi, so you see the whole starter; your fork keeps what it wants.
+In the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a readable starting point, not a framework. Every piece is a module you turn on by name, read in one file and drop by deleting it. The commented `example` host lists every profile, feature, hardware module and app, one line each to uncomment, `example-server` shows `wipe-home` and `example-pi` a Raspberry Pi, so you see the whole starter; your fork keeps what it wants.
 
 ## A machine is one file
 
@@ -41,26 +41,26 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 
 ## What you get
 
-**A disk that forgets, and opens on its own.** [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), only declared state kept in `/persist`, hourly btrbk snapshots, and an opt-in empty `/home` at every boot (`wipe-home`). With `secure-boot`, [lanzaboote](https://github.com/nix-community/lanzaboote) enrolls its own keys, then the first boot with Secure Boot enforced enrolls the TPM2 on its own: the disk opens with no passphrase, bound to the Secure Boot state, the passphrase kept as a fallback. `nix build .#installer-<host>` makes an ISO that installs the host offline: pick a disk, type a passphrase and the passwords, reboot. [docs/install.md](docs/install.md)
-
-**A shell worth logging into.** zsh with autosuggestions, highlighting and a shared history, the starship prompt, git with its own developers' defaults and delta, neovim left for your config, and fzf, zoxide, eza, bat, ripgrep, fd, btop, all through home-manager in the XDG layout. Bring your dotfiles as a mirror of your home or as [stow](https://www.gnu.org/software/stow/) packages. [docs/home.md](docs/home.md)
-
-**A desktop to start from.** A Plymouth splash, greetd with tuigreet, and [Hyprland](https://hypr.land) started by UWSM with waybar, fuzzel, kitty, mako, hyprlock, hypridle and cliphist, JetBrainsMono Nerd Font as monospace, each tool with its own look so your theme starts from a clean slate. Firefox ships with telemetry and sponsored content off. [docs/desktop.md](docs/desktop.md)
-
-**Fast by default.** `desktop`, `laptop`, `server` and `pi` profiles tune the kernel, the sched-ext scheduler, power, zram and systemd-oomd, and `nix run .#bench` measures the difference on your own machine. [docs/performance.md](docs/performance.md)
-
-**Runs on your hardware.** Firmware and fwupd, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, every [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile by name, and Raspberry Pi 4 and 5 with an SD card image. [docs/raspberry-pi.md](docs/raspberry-pi.md)
-
-**Services and dev tools without a cloud.** systemd-resolved with no hidden fallback DNS, SSH with keys only and post-quantum key exchange, secrets with [sops-nix](https://github.com/Mic92/sops-nix), [nh](https://github.com/nix-community/nh) to switch with a package diff, offline `nix-locate` and `, <command>`, rootless Docker, libvirt with an emulated TPM, nix-ld and direnv. [docs/services.md](docs/services.md), [docs/dev.md](docs/dev.md)
-
-**Proved in CI, kept up to date.** Every x86_64 host builds and boots in a VM, Raspberry Pi hosts build their SD image, the modules with behavior have their own VM tests, the install test formats a blank disk, reboots, checks what was wiped and unlocks it with an emulated TPM under Secure Boot, and the installer ISO is booted and run on a blank disk. Each PR gets a package diff comment, `flake.lock` updates itself every Monday and merges once green, and a binary cache means CI only builds what changed. [docs/ci.md](docs/ci.md)
+| | |
+|---|---|
+| **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/install.md), [wipe-home](docs/wipe-home.md), [hibernate](docs/hibernate.md) |
+| **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback. [install](docs/install.md) |
+| **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
+| **Shell** | zsh, starship, git with delta, neovim, fzf, zoxide, eza, bat, ripgrep, fd, btop through home-manager in the XDG layout; your dotfiles with [stow](https://www.gnu.org/software/stow/). [home](docs/home.md) |
+| **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land) with waybar, fuzzel, kitty, mako, hyprlock and hypridle, Firefox with telemetry off. [desktop](docs/desktop.md) |
+| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd). [performance](docs/performance.md) |
+| **Hardware** | firmware, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
+| **Services and dev** | systemd-resolved, key-only SSH, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
+| **Updates** | every Monday your fork gets a PR with fresh inputs, merged once CI is green, and one with the starter's latest release for you to review; machines pull your fork with `update`, or weekly on their own with `auto-upgrade`. [updates](docs/updates.md) |
+| **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space and your checkout, and lists what the next boot erases from `/`. [doctor](docs/doctor.md) |
+| **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, `flake.lock` updates itself weekly, only what the cache lacks is built. [ci](docs/ci.md) |
 
 ## Quick start
 
 You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests and the VM.
 
 1. **Fork and clone** the repo.
-2. **Make the example yours** in [`modules/hosts/example/default.nix`](modules/hosts/example/default.nix): rename the folder and `example` to your host name, `alice` to your login, set your `hardware`, and drop the `features` and `apps` you do not want. Delete `example-server` and `example-pi` if you do not need them, and `git add` new files: a flake only sees what git tracks.
+2. **Make it yours** with `nix run .#init`: it asks for your host name, profile, login, name, email, time zone, keyboard, locale and features, writes `modules/hosts/<host>/default.nix` from the commented [example host](modules/hosts/example/default.nix), removes the examples you do not keep and stages the result (`--help` lists a flag for every answer, `--yes` asks nothing). To do it by hand, copy the example host to `modules/hosts/<host>`, rename `example` and `alice`, uncomment what you want, and `git add` it: a flake only sees what git tracks.
 3. **Check it and boot it** in a VM:
 
    ```sh
@@ -87,6 +87,8 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | `apps` | an app of `modules/apps/<name>` with its config, else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
 | `hardware` | a starter module (`nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
 | `users.<name>` | `fullName`, `email`, `admin`, `sshKeys`, its own `apps`, and `home`, the home-manager modules (`shell` by default) |
+| `facter` | the hardware report the installer saves in `/persist/facter.json`, copied next to the host file: `./facter.json` |
+| `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
 | `module` | anything else, as plain NixOS config |
 
 An unknown name stops the evaluation with the list of known ones.
@@ -112,7 +114,7 @@ Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) modul
 ```text
 modules/
 ├── flake/     flake wiring: host registry and its checks, installer ISO, formatter, dev shell,
-│              CI scripts, bench
+│              CI scripts
 ├── helpers/   functions shared by modules (config.helpers)
 ├── system/    the OS base: nix, home-manager, resolved; opt-in disk (with btrbk snapshots),
 │              wipe-home, secure-boot, ssh, secrets
@@ -128,7 +130,7 @@ modules/
 
 ## Releases
 
-Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x`, every release is marked as a pre-release, and `1.0.0` will be the first stable one, a deliberate decision: read the [release notes](https://github.com/axelhamil/nixos-starter/releases) before merging upstream into your fork. Shipped lots and the guardrail each one keeps are in [ROADMAP.md](ROADMAP.md).
+Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x` and every release is a pre-release, and your fork receives each one as a PR to review every Monday ([docs/updates.md](docs/updates.md)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

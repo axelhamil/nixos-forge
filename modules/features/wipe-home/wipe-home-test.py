@@ -7,3 +7,9 @@ machine.succeed("test -e /home/wipe-home-tester/kept/kept-marker")
 machine.succeed("test -e /persist/home/wipe-home-tester/kept/kept-marker")
 owner_and_mode = machine.succeed("stat -c '%U %a' /home/wipe-home-tester").strip()
 assert owner_and_mode == "wipe-home-tester 700", f"home directory is {owner_and_mode}"
+
+for kept in [".ssh/known_hosts", ".gnupg/pubring.kbx", ".config/gh/hosts.yml"]:
+    machine.succeed(f"test -e /home/wipe-home-tester/{kept}")
+for private in [".ssh", ".gnupg", ".config/gh"]:
+    owner_and_mode = machine.succeed(f"stat -c '%U %a' /home/wipe-home-tester/{private}").strip()
+    assert owner_and_mode == "wipe-home-tester 700", f"~/{private} is {owner_and_mode}"

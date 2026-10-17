@@ -50,7 +50,7 @@ Tell the host where it updates from, in its registry entry:
 configurations.nixos.my-laptop.flake = "/home/alice/nixos";
 ```
 
-**A checkout on the machine** (desktops, laptops): run `update`. It pulls your fork with `git pull --ff-only`, refusing a checkout that has diverged, then runs `nh os switch`, which builds, shows the package diff and switches. Extra arguments go to nh (`update --ask`). `nh os switch` alone works too, since `flake` is also its default.
+**A checkout on the machine** (desktops, laptops): run `update`. It pulls your fork with `git pull --ff-only`, refusing a checkout that has diverged, then runs `nh os switch`, which builds, shows the package diff and switches. Extra arguments go to nh (`update --ask`). `nh os switch` alone works too, since `flake` is also its default. The checkout survives a reboot on its own: in `/home/<you>/` it is kept in `/persist/home/<you>` when the host has `wipe-home`, owned by you; elsewhere on `/` (such as `/etc/nixos`) it is kept in `/persist`, owned by root. Do not list it again in your own `home.persistence` or `environment.persistence`: impermanence refuses a path declared twice. A checkout that is also your `stow.directory` is kept once, by `stow`. The path must be a directory of its own, written without `.`, `..` or a trailing `/`, and not `/`, `/home`, `/nix`, `/persist` or your home itself; the build stops naming `flake` otherwise.
 
 **A flake reference** (servers, Raspberry Pi): set `flake = "github:alice/nixos"` and run `update`, which builds your fork's `main` with no checkout to pull.
 

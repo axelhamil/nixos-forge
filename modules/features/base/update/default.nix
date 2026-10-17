@@ -6,10 +6,35 @@
       lib,
       pkgs,
       config,
+      options,
       ...
     }:
     let
       inherit (config.update) flake;
+
+      checkout = flake != null && lib.hasPrefix "/" flake;
+      segments = lib.tail (lib.splitString "/" flake);
+      reserved = [
+        "/"
+        "/home"
+        "/nix"
+        "/persist"
+      ];
+      homeItself = lib.length segments == 2 && lib.head segments == "home";
+      normalized = lib.all (segment: segment != "" && segment != "." && segment != "..") segments;
+      valid = checkout && normalized && !lib.elem flake reserved && !homeItself;
+
+      inHome = valid && lib.length segments > 2 && lib.head segments == "home";
+      owner = lib.elemAt segments 1;
+      inHomeOfOwner = lib.concatStringsSep "/" (lib.drop 2 segments);
+      onWipedRoot =
+        valid
+        && !lib.any (dir: lib.hasPrefix "${dir}/" flake) [
+          "/home"
+          "/nix"
+          "/persist"
+        ];
+      persisted = onWipedRoot || (inHome && config.impermanence.wipeHome);
     in
     {
       options.update = {
@@ -17,7 +42,7 @@
           type = lib.types.nullOr lib.types.str;
           default = null;
           example = "/home/alice/nixos";
-          description = "Flake the machine updates from: a git checkout on the machine, or a flake reference such as `github:alice/nixos`.";
+          description = "Flake the machine updates from: a git checkout on the machine, or a flake reference such as `github:alice/nixos`. A checkout is kept across boots on a wiped `/`, and in a wiped home.";
         };
 
         mirrors = lib.mkOption {
@@ -56,21 +81,59 @@
       config = lib.mkMerge [
         { system.configurationRevision = lib.mkDefault (self.rev or self.dirtyRev or null); }
 
-        (lib.mkIf (flake != null) {
-          programs.nh.flake = flake;
-
-          environment.systemPackages = [
-            (pkgs.writeShellApplication {
-              name = "update";
-              runtimeInputs = [
-                pkgs.git
-                config.programs.nh.package
+        (lib.mkIf (flake != null) (
+          lib.mkMerge [
+            {
+              assertions = [
+                {
+                  assertion = !checkout || valid;
+                  message = "flake = ${builtins.toJSON flake}: a checkout path must be normalized (no `.`, `..`, `//` or trailing `/`) and be a directory of its own, not ${lib.concatStringsSep ", " reserved} or a home itself (`/home/<user>`).";
+                }
               ];
-              runtimeEnv.FLAKE = flake;
-              text = builtins.readFile ./update.sh;
+
+              programs.nh.flake = flake;
+
+              environment.systemPackages = [
+                (pkgs.writeShellApplication {
+                  name = "update";
+                  runtimeInputs = [
+                    pkgs.git
+                    config.programs.nh.package
+                  ];
+                  runtimeEnv.FLAKE = flake;
+                  text = builtins.readFile ./update.sh;
+                })
+              ];
+            }
+
+            (lib.mkIf onWipedRoot { environment.persistence."/persist".directories = [ flake ]; })
+
+            (lib.mkIf inHome {
+              home-manager.sharedModules = [
+                (home: {
+                  home.persistence."/persist".directories = lib.mkIf (
+                    home.config.home.username == owner
+                    && !(home.options ? stow && lib.removeSuffix "/" home.config.stow.directory == flake)
+                  ) [ inHomeOfOwner ];
+                })
+              ];
             })
-          ];
-        })
+
+            (lib.optionalAttrs (options ? disko) {
+              disko.tests.extraChecks = lib.mkIf persisted (
+                lib.mkMerge [
+                  (lib.mkOrder 900 ''
+                    update_checkout = ${builtins.toJSON flake}
+                    checkout_owner = ${builtins.toJSON (if inHome then owner else "root")}
+                    machine.wait_for_unit("multi-user.target")
+                    machine.succeed(f"mkdir -p {update_checkout} && touch {update_checkout}/update-marker")
+                  '')
+                  (lib.mkOrder 1100 (builtins.readFile ./disk-test.py))
+                ]
+              );
+            })
+          ]
+        ))
       ];
     };
 }

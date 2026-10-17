@@ -17,7 +17,7 @@
     features = [
       "disk" # LUKS and btrfs, `/` wiped at every boot; the disk is picked at install (docs/install.md)
       "secure-boot" # lanzaboote, then the TPM2 unlocks the disk (docs/install.md)
-      # "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
+      "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
       # "hibernate" # hibernation to an encrypted swap file, for laptops, needs disk (docs/hibernate.md)
       "plymouth" # graphical boot splash and passphrase prompt (docs/desktop.md)
       # "greetd" # the tuigreet login screen alone, for another desktop (docs/desktop.md)

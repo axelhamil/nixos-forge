@@ -74,6 +74,25 @@ facter = ./facter.json;
 
 The prebuilt system boots on common hardware (SATA, NVMe and USB disks are in the default initrd); a machine that needs more, such as an unusual disk controller, needs the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`) and a new ISO. A host that imports `secrets` needs its age key before the first boot: use [disko-install](#by-hand-with-disko-install) for it, or create the key on the installed machine and rebuild ([services.md](services.md#secrets-secrets-opt-in)).
 
+## Try the install in a VM
+
+Before you touch real hardware, run the whole installer of a host in a local QEMU window, from your fork:
+
+```sh
+nix run .#try-install -- <host>
+```
+
+It builds `.#installer-<host>` and boots it in a machine that looks like a new one: UEFI firmware with Secure Boot in setup mode (the [OVMF](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) build the `<host>-disk` checks use), a software TPM2 ([swtpm](https://github.com/stefanberger/swtpm)) and a blank disk image. The assistant runs as on a USB stick: pick the only disk, type the passphrase and the passwords. At the first boot of the installed system, a host with `secure-boot` enrolls its keys and the TPM2; at the second, the disk unlocks without the passphrase.
+
+The disk image, the firmware variables and the TPM state are kept in `$XDG_STATE_HOME/try-install/<host>/` (`~/.local/state` by default), so running the command again boots the installed system: the disk comes first in the boot order, the ISO only boots while the disk is blank.
+
+| Option | Effect |
+|---|---|
+| `--disk-size 64G` | size of the disk image when it is created (default `32G`; it grows as it fills) |
+| `--reset` | erase the disk image, the firmware variables and the TPM, then install again from scratch |
+
+It needs a graphical session and KVM: it stops when `/dev/kvm` is missing or not writable, since an install with an emulated CPU takes hours. It runs on `x86_64-linux` only. It never takes a device: any argument starting with `/dev/` is refused, since it only installs on its own disk image.
+
 ## Remote install with nixos-anywhere
 
 [nixos-anywhere](https://github.com/nix-community/nixos-anywhere) installs over SSH on a machine booted on any Linux with root access, building on your machine. It has no flag for the device, so set it in the host first, with a stable name from `ls -l /dev/disk/by-id/` on the target (kernel names like `/dev/nvme0n1` can swap on a machine with several disks):

@@ -15,6 +15,16 @@
       github = if flake == null then null else lib.match "github:([^/?]+)/([^/?]+).*" flake;
       gitHttps = if flake == null then null else lib.match "git\\+(https://[^?#]+).*" flake;
 
+      encrypted =
+        url:
+        lib.any (pattern: lib.match pattern url != null) [
+          "(https|ssh|file)://.+"
+          "[^@/:]+@[^/:]+:.+"
+          "/.+"
+        ];
+
+      cleartextMirrors = lib.filter (url: !encrypted url) mirrors;
+
       primary =
         if github != null then
           [ "https://github.com/${lib.elemAt github 0}/${lib.elemAt github 1}.git" ]
@@ -48,6 +58,12 @@
     in
     {
       assertions = [
+        {
+          assertion = cleartextMirrors == [ ];
+          message = "update.mirrors: auto-upgrade fetches only over https://, ssh://, an scp-like user@host:path, file:// or an absolute path, so that no one on the network path can choose what this machine builds; got ${
+            lib.concatMapStringsSep ", " (url: "\"${url}\"") cleartextMirrors
+          }. http:// and git:// are not encrypted.";
+        }
         {
           assertion = !query;
           message = "auto-upgrade fetches the deploy/<host> branch of the repository in the host's `flake` field, which cannot carry a query such as `?host=` or `?dir=`; got \"${flake}\". Use a plain `github:<owner>/<repo>`, or the repository's URL in `mirrors`.";

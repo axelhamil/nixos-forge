@@ -13,6 +13,10 @@ machine.succeed(
 )
 a = machine.succeed("git -C /tmp/work rev-parse HEAD~1").strip()
 b = machine.succeed("git -C /tmp/work rev-parse HEAD").strip()
+waiting = (
+    "CI has not validated a version for this host yet; if this lasts, CI has not promoted it:"
+    " check that the bot App is set up (docs/ci.md) and that the host's checks pass"
+)
 
 
 def rebuild_calls():
@@ -31,7 +35,7 @@ def run(current, following=None, following_started=True):
 
 state = run(a)
 assert state["outcome"] == "waiting", state
-assert state["message"] == "CI has not validated a version for this host yet", state
+assert state["message"] == waiting, state
 
 machine.succeed("git -C /tmp/work push -q /srv/mirror.git main:deploy/machine")
 
@@ -140,6 +144,21 @@ state = desktop_run()
 assert state["outcome"] == "unreachable", state
 desktop.succeed("journalctl -u auto-upgrade.service | grep -F https://github.com/alice/nixos.git")
 
+def set_origin(url):
+    desktop.succeed(
+        "cp /home/bob/nixos/.git/config /tmp/origin-config",
+        f"git config --file /tmp/origin-config remote.origin.url {url}",
+        "cat /tmp/origin-config > /home/bob/nixos/.git/config",
+    )
+
+
+for cleartext in ["http://github.com/alice/nixos.git", "git://github.com/alice/nixos.git"]:
+    set_origin(cleartext)
+    state = desktop_run()
+    assert state["outcome"] == "refused", f"auto-upgrade fetched from the cleartext origin {cleartext}: {state}"
+    assert "not encrypted" in state["message"], state
+set_origin("git@github.com:alice/nixos.git")
+
 desktop.succeed(
     "mv /home/bob/nixos/.git /home/bob/real.git",
     "echo 'gitdir: /home/bob/real.git' > /home/bob/nixos/.git",
@@ -157,4 +176,4 @@ assert "plain .git folder" in state["message"], "auto-upgrade followed a .git sy
 desktop.succeed("rm /home/bob/nixos/.git", "git init -q --bare /srv/mirror.git")
 state = desktop_run()
 assert state["outcome"] == "waiting", "auto-upgrade did not go on with the mirrors for a checkout that has no .git yet"
-assert state["message"] == "CI has not validated a version for this host yet", state
+assert state["message"] == waiting, state

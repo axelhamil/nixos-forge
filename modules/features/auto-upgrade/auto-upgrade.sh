@@ -88,6 +88,10 @@ if [[ -n $CHECKOUT && -d $CHECKOUT ]]; then
     exec {config_fd}<"$config"
     trusted "/proc/self/fd/$config_fd" || refuse_checkout
     if origin=$(git config --file "/dev/fd/$config_fd" --get remote.origin.url); then
+      if [[ $origin =~ ^(http|git):// ]]; then
+        finish refused "the origin remote of $CHECKOUT uses http:// or git://, which is not encrypted: anyone on the network path could choose what this machine builds; set it to an https or ssh URL"
+        exit 0
+      fi
       sources+=("$(over_https "$origin")")
     fi
   fi
@@ -116,7 +120,7 @@ for index in "${!sources[@]}"; do
 done
 
 if [[ -z $source && $answered == true ]]; then
-  finish waiting "CI has not validated a version for this host yet"
+  finish waiting "CI has not validated a version for this host yet; if this lasts, CI has not promoted it: check that the bot App is set up (docs/ci.md) and that the host's checks pass"
   exit 0
 fi
 

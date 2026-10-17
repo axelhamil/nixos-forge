@@ -24,7 +24,7 @@
           type = lib.types.listOf lib.types.str;
           default = [ ];
           example = [ "https://codeberg.org/alice/nixos.git" ];
-          description = "Extra git URLs of the fork, tried in order when the first one is unreachable.";
+          description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted.";
         };
       };
 

@@ -43,6 +43,7 @@ let
     init = "`nix run .#init` writes a first host and person whose system evaluates";
     ci-report = "the CI report reads every result correctly";
     ci-promote = "a machine's deploy branch moves only once every check of that machine passed";
+    feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";
     example-hosts = "every example host and the example person list every option the starter ships";
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";

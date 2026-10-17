@@ -1,7 +1,12 @@
 { lib, config, ... }:
 
 let
-  inherit (config.helpers) installerSystem installerHostsOn hasDisk;
+  inherit (config.helpers)
+    installerSystem
+    installerHostsOn
+    hasDisk
+    testRevision
+    ;
   inherit (config.installer) testedHosts;
 
   untestable = lib.filter (
@@ -14,6 +19,7 @@ let
       imports = [
         "${modulesPath}/testing/test-instrumentation.nix"
         "${modulesPath}/profiles/qemu-guest.nix"
+        testRevision
       ];
     };
 in

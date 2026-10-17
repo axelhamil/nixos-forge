@@ -99,7 +99,7 @@ list of string
 
 
 
-Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:alice/nixos `, which the ` auto-upgrade ` feature needs\.
+Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:alice/nixos `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\.
 
 
 
@@ -210,6 +210,37 @@ string
 
 ```nix
 "fr_FR.UTF-8"
+```
+
+
+
+## mirrors
+
+
+
+Extra git URLs of the fork, tried in order when the first one is unreachable: ` https:// `, ` ssh:// `, an scp-like ` user@host:path `, ` file:// ` or an absolute path\. ` http:// ` and ` git:// ` are refused, since they are not encrypted\.
+
+
+
+*Type:*
+list of string
+
+
+
+*Default:*
+
+```nix
+[ ]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  "https://codeberg.org/alice/nixos.git"
+]
 ```
 
 

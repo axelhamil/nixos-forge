@@ -6,7 +6,12 @@
 }:
 
 let
-  inherit (config.helpers) hostsOn hasDisk;
+  inherit (config.helpers)
+    hostsOn
+    hasDisk
+    testRevision
+    storeOnDiskTest
+    ;
   inherit (config) base features;
 
   hostConfig = name: config.flake.nixosConfigurations.${name};
@@ -24,25 +29,9 @@ let
       };
     in
     {
+      imports = [ storeOnDiskTest ];
+
       disko.tests.extraConfig = {
-        fileSystems."/nix/store" = lib.mkOverride 40 {
-          device = "nix-store";
-          fsType = "9p";
-          neededForBoot = true;
-          options = [
-            "trans=virtio"
-            "version=9p2000.L"
-            "cache=loose"
-            "nofail"
-          ];
-        };
-
-        boot.initrd.systemd.services.initrd-find-nixos-closure = {
-          wants = [ "sysroot-nix-store.mount" ];
-          after = [ "sysroot-nix-store.mount" ];
-          unitConfig.RequiresMountsFor = lib.mkForce "/sysroot/nix";
-        };
-
         powerManagement.powerDownCommands = "systemctl --no-block stop backdoor.service";
         powerManagement.resumeCommands = "systemctl --no-block restart backdoor.service";
       };
@@ -51,7 +40,6 @@ let
         qemu = "${qemu.qemuBinary pkgs.qemu_test}"
         firmware = "${pkgs.OVMF.firmware}"
         firmware_vars = "${pkgs.OVMF.variables}"
-        cryptsetup = "${lib.getExe' pkgs.cryptsetup "cryptsetup"}"
         ${builtins.readFile ./resume-test.py}
       '';
     };
@@ -65,6 +53,7 @@ let
         features.hibernate
         testSwap
         resumeTest
+        testRevision
         {
           nixpkgs.hostPlatform = system;
           networking.hostName = "hibernate";
@@ -81,7 +70,12 @@ in
         lib.concatMapAttrs (name: _: {
           "${name}-disk" =
             lib.mkForce
-              ((hostConfig name).extendModules { modules = [ testSwap ]; }).config.system.build.installTest;
+              ((hostConfig name).extendModules {
+                modules = [
+                  testSwap
+                  testRevision
+                ];
+              }).config.system.build.installTest;
         }) (lib.filterAttrs (name: _: hibernatesOnDisk name) (hostsOn system))
         // lib.optionalAttrs (system == "x86_64-linux") {
           feature-hibernate = (hibernatingMachine system).config.system.build.installTest;

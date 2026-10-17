@@ -2,6 +2,7 @@ template_dir=modules/hosts/example
 template=$template_dir/default.nix
 example_person=alice
 person_template=modules/users/$example_person/default.nix
+upstream=${UPSTREAM:-axelhamil/nixos-starter}
 profiles=(desktop laptop server pi)
 systems=(x86_64-linux aarch64-linux)
 
@@ -435,6 +436,7 @@ HOST_ATTRIBUTE=$(nix_attribute "$host") \
     /^    system = "/ { print set_string($0, ENVIRON["SYSTEM"]); next }
     /^    profile = "/ { print set_string($0, ENVIRON["PROFILE"]); next }
     /^    flake = "\/home\/alice\// { print set_string($0, "/home/" ENVIRON["LOGIN"] "/nixos"); next }
+    /^    # mirrors = / { gsub(/alice/, ENVIRON["LOGIN"]); print; next }
     /^    timeZone = "/ { print set_string($0, ENVIRON["TIME_ZONE"]); next }
     /^    locale = "/ { print set_string($0, ENVIRON["LOCALE"]); next }
     /^    keyboard = "/ { print set_string($0, ENVIRON["KEYBOARD"]); next }
@@ -482,12 +484,46 @@ for example in "${removed[@]}"; do
   git rm -r -q -- "modules/hosts/$example"
 done
 
-if [[ $login != "$example_person" ]]; then
-  for example in modules/hosts/example-server modules/hosts/example-pi; do
-    [[ -f $example/default.nix ]] || continue
+fork_flake() {
+  local origin repo
+  origin=$(git remote get-url origin 2>/dev/null) || return 0
+  repo=${origin%/}
+  repo=${repo%.git}
+  if [[ $repo =~ ^(https://github\.com/|ssh://git@github\.com/|git@github\.com:)([^/]+/[^/]+)$ ]]; then
+    [[ ${BASH_REMATCH[2],,} == "${upstream,,}" ]] || printf 'github:%s' "${BASH_REMATCH[2]}"
+  elif [[ $origin =~ ^https://[^?#]+$ ]]; then
+    printf 'git+%s' "$origin"
+  fi
+}
+
+kept_flake=$(fork_flake)
+for example in modules/hosts/example-server modules/hosts/example-pi; do
+  [[ -f $example/default.nix && $example != "$target_dir" ]] || continue
+  if [[ $login != "$example_person" ]]; then
     sed -i "s/^    users\.$example_person = {\$/    users.$login_attribute = {/" "$example/default.nix"
-    git add -- "$example/default.nix"
-  done
+  fi
+  KEPT_FLAKE=$kept_flake awk '
+    function set_string(line, value,    start, rest) {
+      start = index(line, "\"")
+      rest = substr(line, start + 1)
+      return substr(line, 1, start) value substr(rest, index(rest, "\""))
+    }
+
+    /^    (# )?flake = "github:/ {
+      if (ENVIRON["KEPT_FLAKE"] != "") print set_string($0, ENVIRON["KEPT_FLAKE"])
+      else { sub(/^    (# )?/, "    # "); print }
+      next
+    }
+
+    ENVIRON["KEPT_FLAKE"] == "" && /^      "auto-upgrade" #/ { sub(/"auto-upgrade"/, "# \"auto-upgrade\""); print; next }
+
+    { print }
+  ' "$example/default.nix" >"$generated"
+  cat -- "$generated" >"$example/default.nix"
+  git add -- "$example/default.nix"
+done
+
+if [[ $login != "$example_person" ]]; then
   git rm -r -q -- "modules/users/$example_person"
 fi
 

@@ -26,7 +26,7 @@
       # "nix-ld" # run binaries not built for NixOS (docs/dev.md)
       "ssh" # key-only SSH server (docs/services.md)
       # "secrets" # sops-nix secrets (docs/services.md)
-      # "auto-upgrade" # rebuild from your fork every week, needs a flake reference in `flake` (docs/updates.md)
+      # "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, no automatic rollback on a Pi (docs/raspberry-pi.md)
     ];
 
     # Hardware: a module of the starter, or any nixos-hardware profile by name
@@ -66,8 +66,9 @@
     ];
 
     # Where the machine updates from (docs/updates.md): a flake reference such as
-    # "github:<you>/<fork>" for auto-upgrade, or a checkout on the machine for `update`.
+    # "github:<you>/<fork>", whose deploy/<host> branch auto-upgrade pulls once CI passed.
     # flake = "github:alice/nixos";
+    # mirrors = [ "https://codeberg.org/alice/nixos.git" ]; # other copies of your fork, tried in order when the first is unreachable
 
     # timeZone = "UTC"; # such as "Europe/Paris"
     # locale = "en_US.UTF-8"; # language and formats, such as "fr_FR.UTF-8"

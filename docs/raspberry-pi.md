@@ -40,7 +40,11 @@ To boot from NVMe on a Pi 5, write the same image to the drive and put NVMe firs
 
 ## Update it
 
-Build on your machine and push the result, so the Pi never builds anything:
+With the `auto-upgrade` feature, the Pi follows `deploy/<host>` on its own ([updates.md](updates.md#a-machine-upgrades-on-its-own)) without building anything: the `pi` profile turns local builds off, so it upgrades only to a version CI built and pushed to your binary cache (`<host>-toplevel`), and waits otherwise.
+
+A Pi has no automatic rollback: its boot loader does not count boot tries, which takes the `disk` feature with systemd-boot, so a new version that does not start stays the default. When it still answers over SSH, `sudo nixos-rebuild switch --rollback` goes back to the previous generation; otherwise write the SD image of a commit that worked. Then push a fix, which CI validates before the Pi takes it.
+
+By hand, build on your machine and push the result, so the Pi never builds anything:
 
 ```sh
 nh os switch --hostname example-pi --target-host alice@example-pi --elevation-strategy passwordless .

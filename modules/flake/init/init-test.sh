@@ -81,6 +81,7 @@ has_line '  configurations\.nixos\.my-box = \{'
 has_line '    system = "x86_64-linux";.*'
 has_line '    profile = "laptop";.*'
 has_line '    flake = "/home/bob/nixos";'
+has_line '    # mirrors = \[ "https://codeberg.org/bob/nixos.git" \]; # .*'
 has_line '    timeZone = "Europe/Paris";.*'
 has_line '    keyboard = "fr";.*'
 has_line '    locale = "fr_FR\.UTF-8";.*'
@@ -184,7 +185,34 @@ init --yes --host keeps-alice --login alice --full-name "Alice Fork" --email "" 
 person_file=modules/users/alice/default.nix
 person_has_line '    fullName = "Alice Fork";.*'
 grep -qxF '    users.alice = {' modules/hosts/example-server/default.nix || fail "example-server lost the account of alice"
+host_file=modules/hosts/example-server/default.nix
+has_line '      # "auto-upgrade" # .*'
+has_line '    # flake = "github:alice/nixos";'
 fork_evaluates '["example-server","keeps-alice"]'
+
+kept_flake() {
+  local dir=$1 origin=$2
+  fresh_fork "$dir"
+  cd "$dir"
+  git remote add origin "$origin"
+  init --yes --host box --login bob --full-name Bob --email "" --keep-server --keep-pi
+  host_file=modules/hosts/example-server/default.nix
+}
+
+kept_flake "$TMPDIR/sixth" git@github.com:bob/my-nixos.git
+has_line '      "auto-upgrade" # .*'
+has_line '    flake = "github:bob/my-nixos";'
+host_file=modules/hosts/example-pi/default.nix
+has_line '    # flake = "github:bob/my-nixos";'
+fork_evaluates '["box","example-pi","example-server"]'
+
+kept_flake "$TMPDIR/seventh" https://git.example.org/bob/nixos.git
+has_line '      "auto-upgrade" # .*'
+has_line '    flake = "git\+https://git\.example\.org/bob/nixos\.git";'
+
+kept_flake "$TMPDIR/eighth" https://github.com/axelhamil/nixos-starter.git
+has_line '      # "auto-upgrade" # .*'
+has_line '    # flake = "github:alice/nixos";'
 
 fifth=$TMPDIR/fifth
 fresh_fork "$fifth"

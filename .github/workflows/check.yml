@@ -148,6 +148,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: nix run .#ci-report -- --comment | gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file - --edit-last --create-if-none
 
+  promote:
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.plan.result == 'success' && vars.BOT_CLIENT_ID != '' }}
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    env:
+      PLANNED: ${{ needs.plan.outputs.checks }}
+      SKIPPED: ${{ needs.plan.outputs.skipped }}
+      HOST_CHECKS: ${{ needs.plan.outputs.hostChecks }}
+    steps:
+      - id: bot
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.bot.outputs.token }}
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: result-*
+          path: results
+          merge-multiple: true
+      - run: nix run .#ci-promote -- results "$GITHUB_SHA"
+
   ci-ok:
     if: always()
     needs: [lint, plan, build]

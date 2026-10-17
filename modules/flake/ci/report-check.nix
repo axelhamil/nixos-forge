@@ -29,20 +29,36 @@
 
       flakyNix = fakeNix ''
         if [ "$(wc -l < "$NIX_CALLS")" -eq 1 ]; then
-          cat ${./_fixtures/logs/timeout.log}
+          cat ${./_fixtures/logs/timeout.log} >&2
           exit 1
         fi
-        echo "built"
+        echo "built" >&2
       '';
 
       brokenNix = fakeNix ''
-        cat ${./_fixtures/logs/eval-error.log}
+        cat ${./_fixtures/logs/eval-error.log} >&2
         exit 1
+      '';
+
+      evidenceNix = fakeNix ''
+        mkdir -p "$PWD/check-output"
+        echo '{ "total": 7.04, "userspace": 3.0, "kernel": 0.4 }' > "$PWD/check-output/boot-time.json"
+        echo "png" > "$PWD/check-output/desktop.png"
+        mkdir -p "$PWD/log-output"
+        echo '{ "total": 99, "userspace": 99 }' > "$PWD/log-output/boot-time.json"
+        echo "$PWD/check-output"
+        echo "$PWD/log-output" >&2
+      '';
+
+      unreadableEvidenceNix = fakeNix ''
+        mkdir -p "$PWD/unreadable-output"
+        echo 'not json' > "$PWD/unreadable-output/boot-time.json"
+        echo "$PWD/unreadable-output"
       '';
 
       killedNix = fakeNix ''
         if [ "$(wc -l < "$NIX_CALLS")" -eq 1 ]; then
-          cat ${./_fixtures/logs/timeout.log}
+          cat ${./_fixtures/logs/timeout.log} >&2
           exit 1
         fi
         kill -KILL "$PPID"
@@ -67,6 +83,8 @@
           FLAKY_CI_BUILD = lib.getExe (ciBuildWith flakyNix);
           BROKEN_CI_BUILD = lib.getExe (ciBuildWith brokenNix);
           KILLED_CI_BUILD = lib.getExe (ciBuildWith killedNix);
+          EVIDENCE_CI_BUILD = lib.getExe (ciBuildWith evidenceNix);
+          UNREADABLE_EVIDENCE_CI_BUILD = lib.getExe (ciBuildWith unreadableEvidenceNix);
         };
         excludeShellChecks = [ "SC2016" ];
         text = builtins.readFile ./report-test.sh;

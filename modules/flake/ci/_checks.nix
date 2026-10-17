@@ -42,6 +42,7 @@ let
     options-doc = "docs/options.md matches the host options";
     init = "`nix run .#init` writes a first host and person whose system evaluates";
     ci-report = "the CI report reads every result correctly";
+    reproducibility = "`nix run .#reproducibility` reports an identical rebuild, and a differing one with its diffoscope summary";
     ci-promote = "a machine's deploy branch moves only once every check of that machine passed";
     feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";

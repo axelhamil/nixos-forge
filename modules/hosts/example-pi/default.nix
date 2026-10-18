@@ -19,6 +19,7 @@
       # "secure-boot" # lanzaboote, for a PC with UEFI (docs/install.md)
       # "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
       # "hibernate" # hibernation to an encrypted swap file, needs disk (docs/hibernate.md)
+      # "dual-boot" # Windows in the boot menu, Secure Boot kept, its disk read-only, needs disk (docs/dual-boot.md)
       # "plymouth" # graphical boot splash (docs/desktop.md)
       # "greetd" # the tuigreet login screen, which starts Hyprland by default when it is there (docs/desktop.md)
       # "docker" # rootless Docker (docs/dev.md)

@@ -37,6 +37,8 @@ let
           HOST_NAME = name;
           SYSTEM = target.config.system.build.toplevel;
           DISKO = lib.getExe chosenDisk.config.system.build.destroyFormatMount;
+          BESIDE_WINDOWS = lib.getExe target.config.system.build.installBesideWindows;
+          DUAL_BOOT = lib.boolToString (target.options ? dualBoot);
           TARGET_LINK = targetLink;
           PASSPHRASE_FILE = target.config.disk.passphraseFile;
           LUKS_NAME = target.config.disko.devices.disk.main.content.partitions.luks.content.name;

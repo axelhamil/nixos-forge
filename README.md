@@ -68,6 +68,7 @@ Every host in the registry gets its checks generated, so a machine you add is te
 | `<host>-installer` | The installer ISO installs the host without questions and the installed disk boots. |
 | `<host>-wipe-home` | The same install with `wipe-home` added, so `/home` starts empty at every boot. |
 | `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit` | A new generation whose health check fails, or whose service fails after boot, is never blessed: after 3 tries the machine boots the one before. |
+| `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot` | Windows on its own disk or installed beside NixOS starts from the systemd-boot menu, under Secure Boot or on plain systemd-boot, with or without BitLocker; its MSR, `C:` and recovery partition stay byte for byte the same. |
 | `feature-migration` | A machine installed from the base revision (the PR's base, or the commit before a push) upgrades to this one in place and keeps its state. |
 | `ci-promote`, `feature-auto-upgrade-signed` | `deploy/<host>` moves only once every check of that host passed, signed by CI, and a machine applies only a commit signed for it, never an older one replayed. |
 | `app-*`, `feature-*`, `profile-*`, `base-*` | Each module with a `check.nix` boots in its own VM test, from the Hyprland session to hibernate and resume. |
@@ -129,6 +130,7 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 |---|---|
 | **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/install.md), [wipe-home](docs/wipe-home.md), [hibernate](docs/hibernate.md) |
 | **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback. [install](docs/install.md) |
+| **Dual boot** | opt-in Windows in the systemd-boot menu, started by the firmware so Secure Boot and BitLocker stay intact, on its own disk or beside NixOS on the same disk, readable from NixOS read-only. [dual-boot](docs/dual-boot.md) |
 | **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
 | **Shell** | zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop through home-manager in the XDG layout, each its own app; your dotfiles with [stow](https://www.gnu.org/software/stow/). [apps](docs/apps.md) |
 | **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land), and as apps of their own waybar, fuzzel, kitty, mako, hyprlock with hypridle, Firefox with telemetry off: no app brings another, you list each one. [desktop](docs/desktop.md) |

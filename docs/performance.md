@@ -1,6 +1,6 @@
 # Performance
 
-What each profile tunes.
+What each profile tunes. A profile brings only what its role needs: firmware, audio and Bluetooth are hardware modules (`firmware`, `audio`, `bluetooth`) and printing is the `printing` feature ([services.md](services.md#printing-printing-opt-in)), each listed in the host.
 
 ## Profiles
 
@@ -11,8 +11,6 @@ What each profile tunes.
 | Power | power-profiles-daemon | power-profiles-daemon | tuned | tuned |
 | Out of memory | systemd-oomd on root and user slices, `nix-daemon` spared | same | kernel default | kernel default |
 | `/tmp` | tmpfs | tmpfs | on disk | on disk |
-| Printing | CUPS, driverless (IPP Everywhere), network printers found through Avahi | same | none | none |
-| Upgrades | a notification after each `auto-upgrade` (`upgrade-notify`) | same | none | none |
 
 `pi` extends `server` and adds a 15 s hardware watchdog and a 100 MB journal cap instead of 500 MB ([raspberry-pi.md](raspberry-pi.md)).
 

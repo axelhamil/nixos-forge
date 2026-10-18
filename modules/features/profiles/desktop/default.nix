@@ -1,20 +1,7 @@
-{ config, ... }:
-
-let
-  inherit (config) hardware;
-  inherit (config.helpers) appPart;
-in
 {
   profiles.desktop =
     { lib, pkgs, ... }:
     {
-      imports = [
-        hardware.firmware
-        hardware.audio
-        hardware.bluetooth
-        (appPart "upgrade-notify" "nixos")
-      ];
-
       networking.networkmanager.enable = true;
       boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
@@ -24,13 +11,6 @@ in
       };
 
       services.power-profiles-daemon.enable = true;
-
-      services.printing.enable = true;
-
-      services.avahi = {
-        enable = true;
-        nssmdns4 = true;
-      };
 
       systemd.oomd = {
         enableRootSlice = true;
@@ -48,9 +28,6 @@ in
 
       doctor.ephemeralPaths = [
         "/etc/wpa_supplicant/imperative.conf"
-        "/etc/printcap"
-        "/var/lib/cups"
-        "/var/cache/cups"
         "/var/lib/power-profiles-daemon"
       ];
     };

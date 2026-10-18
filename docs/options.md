@@ -4,7 +4,7 @@ Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.ni
 
 ## apps
 
-Apps for every user of the machine: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` hyprland ` is the desktop), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
+Apps for every user of the machine: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` hyprland ` is the window manager; its bar, launcher, terminal and lock screen are apps of their own), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
 
 
 
@@ -529,7 +529,7 @@ Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the per
 
 ## apps
 
-Apps that follow the person on every host: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` shell `, the default, brings zsh as login shell, starship, git, neovim and CLI tools), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\. A host adds its own with ` users.<name>.apps `\.
+Apps that follow the person on every host, none by default: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` zsh ` also becomes the login shell), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\. A host adds its own with ` users.<name>.apps `\.
 
 
 
@@ -541,9 +541,7 @@ list of string
 *Default:*
 
 ```nix
-[
-  "shell"
-]
+[ ]
 ```
 
 
@@ -552,9 +550,10 @@ list of string
 
 ```nix
 [
-  "shell"
-  "stow"
-  "obsidian"
+  "zsh"
+  "git"
+  "neovim"
+  "ripgrep"
 ]
 ```
 

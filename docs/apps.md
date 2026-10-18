@@ -12,30 +12,32 @@ One folder that publishes up to two parts:
 Three places name apps:
 
 - a host's `apps`: every user of that machine gets it;
-- your person's `apps`, in `modules/users/<you>/default.nix`: it follows you on every machine (`[ "shell" ]` by default);
+- your person's `apps`, in `modules/users/<you>/default.nix`: it follows you on every machine (none by default; the example person lists the shell tools);
 - a host's `users.<you>.apps`: you get it on that machine only, on top of your person's.
 
 Wherever it is named, an app's NixOS part is on for the whole machine; only its home-manager part is per user.
 
 ```nix
-apps = [ "hyprland" "direnv" "firefox" ]; # in modules/hosts/<host>
-users.alice.apps = [ "shell" "stow" ]; # in modules/users/alice
+apps = [ "hyprland" "waybar" "fuzzel" "kitty" "mako" "lock" "firefox" ]; # in modules/hosts/<host>
+users.alice.apps = [ "zsh" "starship" "git" "neovim" "ripgrep" "stow" ]; # in modules/users/alice
 ```
 
-An app that brings others imports them with `helpers.appPart`, so an app reached twice, such as `shell` and `zsh`, is imported once.
+No app brings another: each one works alone, and the list is the whole choice. An app adapts to its neighbours when they are there, by reading their home-manager option (`config.programs.fuzzel.enable`), never by importing them: Hyprland binds `Super + D` only when `fuzzel` is listed. An app named twice, by the host and by the person, is imported once.
 
 ## Starter apps
 
 | App | What it brings |
 |---|---|
-| `shell` | every user's by default: `zsh`, `starship`, `git`, `neovim`, `cli` |
-| `hyprland` | the desktop, with `greetd`, `waybar`, `fuzzel`, `kitty`, `mako` and `lock` ([desktop.md](desktop.md)) |
+| `hyprland` | the Hyprland window manager with uwsm, its portal and a polkit agent ([desktop.md](desktop.md)) |
+| `waybar`, `fuzzel`, `kitty`, `mako`, `lock` | a bar, a launcher, a terminal, notifications, a lock screen ([desktop.md](desktop.md)) |
+| `upgrade-notify` | a desktop notification after each `auto-upgrade` ([updates.md](updates.md#know-what-it-did)) |
 | `direnv` | per-project dev shells with nix-direnv ([dev.md](dev.md)) |
 | `firefox` | Firefox with telemetry off, its profile kept |
-| `upgrade-notify` | a desktop notification after each `auto-upgrade`, brought by the `desktop` and `laptop` profiles ([updates.md](updates.md#know-what-it-did)) |
+| `zsh`, `starship`, `git`, `delta`, `neovim` | the shell, its prompt, git, its diff pager, the editor ([below](#the-shell)) |
+| `fzf`, `zoxide`, `eza`, `bat`, `btop` | command line tools with their config ([below](#the-shell)) |
 | `stow` | links your dotfiles repository, for those who keep one ([below](#keep-your-dotfiles-with-stow)) |
 
-Each brought app also works alone: list `zsh` and `git` instead of `shell` to leave the rest out.
+Tools with nothing to configure, such as `ripgrep`, `fd` or `jq`, are plain nixpkgs names.
 
 ## Name any nixpkgs package
 
@@ -73,9 +75,9 @@ It grows with you: any other file of `modules/users/<you>`, such as `git.nix` or
 
 ## The shell
 
-- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. The registry makes it the login shell of a user whose apps (or the host's) name `zsh` or `shell`; an app of your own that brings zsh through `helpers.appPart` does not count, so list `zsh` too. Its NixOS part completes system commands and skips the global `compinit`, so completion is initialised once, by home-manager. That switch is system-wide: another zsh user of the host needs home-manager's zsh too, or gets no completion.
+- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. The registry makes it the login shell of a user whose apps (or the host's) name `zsh`. Its NixOS part completes system commands and skips the global `compinit`, so completion is initialised once, by home-manager. That switch is system-wide: another zsh user of the host needs home-manager's zsh too, or gets no completion.
 - **starship** prompt with plain text symbols, readable on a console without a Nerd Font. Once you have one: `programs.starship.presets = [ ];`.
-- **git** with the settings git's own developers use: `main` as first branch, recent branches first, `push.autoSetupRemote`, pruned fetches, histogram diffs with moved lines highlighted, the diff shown while writing a commit, `zdiff3` conflicts, `rerere`, rebases that autostash and update stacked branches, autocorrect on prompt. Diffs and blame page through [delta](https://github.com/dandavison/delta). Your person's `fullName` and `email` are the author. To sign with your SSH key:
+- **git** with the settings git's own developers use: `main` as first branch, recent branches first, `push.autoSetupRemote`, pruned fetches, histogram diffs with moved lines highlighted, the diff shown while writing a commit, `zdiff3` conflicts, `rerere`, rebases that autostash and update stacked branches, autocorrect on prompt. With `delta`, diffs and blame page through [delta](https://github.com/dandavison/delta). Your person's `fullName` and `email` are the author. To sign with your SSH key:
 
   ```nix
   programs.git.signing = {
@@ -86,16 +88,16 @@ It grows with you: any other file of `modules/users/<you>`, such as `git.nix` or
   ```
 
 - **neovim** as `$EDITOR` (`vi` and `vim` too), with the compiler, tree-sitter, ripgrep and fd most configurations expect. Its config is yours, in `~/.config/nvim` ([kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim), [LazyVim](https://www.lazyvim.org)). Language servers a plugin downloads (Mason) need the `nix-ld` feature ([dev.md](dev.md)).
-- **cli**: fzf (`Ctrl-R` history, `Ctrl-T` files, `Alt-C` directories, listed by fd so `.gitignore` is respected), zoxide (`z <part of a path>`), eza with git status (`ll`, `la`, `lt`), bat, ripgrep, fd, btop and jq.
+- **fzf**: `Ctrl-R` history, `Ctrl-T` files, `Alt-C` directories, listed by its own fd so `.gitignore` is respected. **zoxide**: `z <part of a path>`, its database kept. **eza** with git status as `ll`, `la`, `lt`, leaving `ls` alone. **bat** and **btop** with their defaults. The shell integrations of fzf, zoxide and starship turn on when `zsh` is listed.
 
 Files follow the XDG layout: zsh in `~/.config/zsh`, its history in `~/.local/state/zsh`, Nix profiles in `~/.local/state/nix`. The only file left in your home is `~/.zshenv`, which tells zsh where its config is.
 
 ## Keep your dotfiles with stow
 
-`stow` is optional, for a dotfiles repository you keep. Add it to your person's apps next to `shell`, clone the repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live; a new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
+`stow` is optional, for a dotfiles repository you keep. Add it to your person's apps, clone the repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live; a new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
 
 ```nix
-users.<you>.apps = [ "shell" "stow" ];
+users.<you>.apps = [ "zsh" "git" "neovim" "stow" ];
 ```
 
 Both common layouts work with no setting:

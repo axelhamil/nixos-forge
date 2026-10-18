@@ -48,13 +48,7 @@ let
     where: system: name:
     lib.getName (package where inputs.nixpkgs.legacyPackages.${system} name);
 
-  bringsZsh = lib.any (
-    name:
-    lib.elem name [
-      "shell"
-      "zsh"
-    ]
-  );
+  bringsZsh = lib.elem "zsh";
 
   person =
     host: name:
@@ -196,7 +190,7 @@ let
             "firefox"
             "vlc"
           ];
-          description = "Apps for every user of the machine: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`hyprland` is the desktop), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
+          description = "Apps for every user of the machine: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`hyprland` is the window manager; its bar, launcher, terminal and lock screen are apps of their own), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
         };
 
         users = mkOption {

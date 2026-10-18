@@ -14,15 +14,17 @@ in
         ];
       in
       {
-        imports = [ (appPart "shell" "nixos") ];
+        imports = [ (appPart "zsh" "nixos") ];
         users.users = lib.genAttrs users (_: {
           isNormalUser = true;
           shell = pkgs.zsh;
         });
         home-manager.users = lib.genAttrs users (_: {
-          imports = [
-            (appPart "shell" "homeManager")
-            (appPart "stow" "homeManager")
+          imports = map (app: appPart app "homeManager") [
+            "zsh"
+            "git"
+            "neovim"
+            "stow"
           ];
           home.stateVersion = "26.05";
         });

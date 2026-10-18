@@ -20,11 +20,12 @@
       "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
       # "hibernate" # hibernation to an encrypted swap file, for laptops, needs disk (docs/hibernate.md)
       # "plymouth" # graphical boot splash and passphrase prompt (docs/desktop.md)
-      # "greetd" # the tuigreet login screen alone, for another desktop (docs/desktop.md)
+      # "greetd" # the tuigreet login screen, which starts Hyprland by default when it is there (docs/desktop.md)
       # "docker" # rootless Docker (docs/dev.md)
       # "libvirt" # virtual machines with virt-manager (docs/dev.md)
       # "nix-ld" # run binaries not built for NixOS, and AppImages (docs/dev.md)
       "ssh" # key-only SSH server (docs/services.md)
+      # "printing" # CUPS with driverless network printers found through Avahi (docs/services.md)
       # "secrets" # sops-nix secrets (docs/services.md)
       "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, rolls back a generation that does not start (docs/updates.md)
     ];
@@ -34,8 +35,8 @@
     hardware = [
       # "common-pc-ssd" # nixos-hardware: weekly TRIM
       "firmware" # redistributable firmware, CPU microcode and fwupd
-      # "audio" # PipeWire
-      # "bluetooth" # Bluetooth
+      # "audio" # PipeWire with ALSA and PulseAudio support, and realtime scheduling
+      # "bluetooth" # Bluetooth, powered on at boot, paired devices kept
       # "nvidia" # NVIDIA GPU with the open kernel module
       # "amd-gpu" # AMD GPU
       # "intel-gpu" # Intel GPU with video decoding
@@ -48,23 +49,28 @@
     # facter = ./facter.json;
 
     # Apps for every user: an app of modules/apps/<name> with its config, else any nixpkgs
-    # package by name ("htop", "tmux"); unfree ones are allowed.
+    # package by name ("htop", "tmux"); unfree ones are allowed. Each app stands alone and
+    # brings no other: list every one you want. Shell tools usually go in the person's apps.
     apps = [
-      # "hyprland" # Hyprland with greetd, waybar, fuzzel, kitty, mako, hyprlock (docs/desktop.md)
-      # "waybar" # the status bar alone, already in hyprland (docs/desktop.md)
-      # "fuzzel" # the app launcher alone, already in hyprland (docs/desktop.md)
-      # "kitty" # the terminal alone, already in hyprland (docs/desktop.md)
-      # "mako" # the notification daemon alone, already in hyprland (docs/desktop.md)
-      # "lock" # hyprlock and hypridle alone, already in hyprland (docs/desktop.md)
-      # "upgrade-notify" # a desktop notification after each auto-upgrade, already in desktop and laptop (docs/updates.md)
+      # "hyprland" # the Hyprland window manager, with uwsm, its portal and a polkit agent (docs/desktop.md)
+      # "waybar" # a status bar (docs/desktop.md)
+      # "fuzzel" # an app launcher on Super+D, and the clipboard history on Super+C (docs/desktop.md)
+      # "kitty" # a terminal, the default one of Super+Return (docs/desktop.md)
+      # "mako" # a notification daemon (docs/desktop.md)
+      # "lock" # hyprlock and hypridle: a lock screen on Super+L and after 5 minutes idle (docs/desktop.md)
+      # "upgrade-notify" # a desktop notification after each auto-upgrade (docs/updates.md)
       # "direnv" # per-project dev shells with nix-direnv (docs/dev.md)
       # "firefox" # Firefox with telemetry off, profile kept (docs/desktop.md)
-      # "shell" # zsh, starship, git, neovim, CLI tools; every user has it by default (docs/apps.md)
-      # "zsh" # zsh alone as login shell, already in shell (docs/apps.md)
-      # "starship" # the starship prompt alone, already in shell (docs/apps.md)
-      # "git" # git with delta alone, already in shell (docs/apps.md)
-      # "neovim" # neovim as $EDITOR alone, already in shell (docs/apps.md)
-      # "cli" # fzf, zoxide, eza, bat, ripgrep, fd, btop, jq alone, already in shell (docs/apps.md)
+      # "zsh" # zsh, the login shell of whoever has it (docs/apps.md)
+      # "starship" # the starship prompt (docs/apps.md)
+      # "git" # git with sensible defaults (docs/apps.md)
+      # "delta" # delta, a pager for git diffs (docs/apps.md)
+      # "neovim" # neovim as $EDITOR (docs/apps.md)
+      # "fzf" # fuzzy finder on Ctrl+T, Ctrl+R, Alt+C (docs/apps.md)
+      # "zoxide" # `z` jumps to a directory you visited (docs/apps.md)
+      # "eza" # file listings with git status, as ll, la, lt (docs/apps.md)
+      # "bat" # `cat` with syntax highlighting (docs/apps.md)
+      # "btop" # a resource monitor (docs/apps.md)
       # "stow" # links your dotfiles repository into your home (docs/apps.md)
     ];
 

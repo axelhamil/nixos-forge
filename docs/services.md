@@ -67,6 +67,10 @@ Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipi
 
 The value is at `/run/secrets/wifi-password` (root only by default; `owner`, `mode` and `restartUnits` per secret). User passwords can move there too, instead of `/persist/passwords`: `sops.secrets.<you>-password.neededForUsers = true;` and `users.users.<you>.hashedPasswordFile = config.sops.secrets.<you>-password.path;`.
 
+## Printing: `printing` (opt-in)
+
+CUPS with driverless printing (IPP Everywhere): network printers are found through Avahi and its mDNS name resolution, with no driver to install. Their state starts fresh at every boot on a host with `disk`, so printers are found again rather than kept; `sudo doctor` does not report it as lost.
+
 ## Snapshots: btrbk
 
 Hosts with `disk` snapshot `/home` and `/persist` every hour into the `@snapshots` subvolume, mounted on `/.snapshots` (`modules/features/disk/snapshots`). A snapshot is only taken when the subvolume changed; every snapshot is kept for 2 days, then one per day for 14 days and one per week for 4 weeks. `/` is not snapshotted: it is rebuilt at every boot.

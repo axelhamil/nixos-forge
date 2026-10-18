@@ -1,0 +1,8 @@
+machine.wait_for_unit("multi-user.target")
+machine.wait_for_unit("avahi-daemon.service")
+machine.succeed("grep -q '^hosts:.*mdns4_minimal' /etc/nsswitch.conf")
+machine.wait_for_unit("cups.socket")
+machine.succeed("lpstat -r | grep -qx 'scheduler is running'")
+machine.wait_for_unit("cups.service")
+machine.fail("findmnt /var/lib/cups")
+machine.succeed("test -e /var/lib/cups/cupsd.conf")

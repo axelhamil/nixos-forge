@@ -1,7 +1,7 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) mkDefaults appPart;
+  inherit (config.helpers) mkDefaults;
 in
 {
   apps.hyprland.homeManager =
@@ -14,6 +14,10 @@ in
     }:
     let
       inherit (osConfig.services.xserver) xkb;
+      hasLauncher = config.programs.fuzzel.enable;
+      hasLock = config.programs.hyprlock.enable;
+      hasAudio = osConfig.services.pipewire.wireplumber.enable;
+      hasTerminal = config.xdg.terminal-exec.settings.default or [ ] != [ ];
 
       bindWith = flags: key: dispatcher: {
         _args = [
@@ -80,24 +84,24 @@ in
           ];
     in
     {
-      imports = map (app: appPart app "homeManager") [
-        "waybar"
-        "fuzzel"
-        "kitty"
-        "mako"
-        "lock"
-      ];
+      home.packages =
+        with pkgs;
+        [
+          screenshot
+          wl-clipboard
+          brightnessctl
+          playerctl
+        ]
+        ++ lib.optional hasLauncher clipboardHistory;
 
-      home.packages = with pkgs; [
-        screenshot
-        clipboardHistory
-        wl-clipboard
-        brightnessctl
-        playerctl
-      ];
+      xdg.terminal-exec.enable = lib.mkDefault true;
+
+      warnings =
+        lib.optional (!hasTerminal)
+          "hyprland: no default terminal is registered for xdg-terminal-exec, so Super+Return opens nothing; add an app such as \"kitty\" to the host's or the person's apps";
 
       services.hyprpolkitagent.enable = lib.mkDefault true;
-      services.cliphist.enable = lib.mkDefault true;
+      services.cliphist.enable = lib.mkDefault hasLauncher;
 
       home.pointerCursor = mkDefaults {
         enable = true;
@@ -162,28 +166,32 @@ in
           };
 
           bind = [
-            (bind "SUPER + Return" (run "kitty"))
-            (bind "SUPER + D" (run "fuzzel"))
+            (bind "SUPER + Return" (run "xdg-terminal-exec"))
             (bind "SUPER + Q" "hl.dsp.window.close()")
             (bind "SUPER + F" "hl.dsp.window.fullscreen()")
             (bind "SUPER + V" "hl.dsp.window.float({ action = \"toggle\" })")
-            (bind "SUPER + C" (run "clipboard-history"))
-            (bind "SUPER + L" (exec "loginctl lock-session"))
             (bind "SUPER + SHIFT + E" (exec "uwsm stop"))
             (bind "Print" (exec "screenshot area"))
             (bind "SHIFT + Print" (exec "screenshot screen"))
             (bindMouse "SUPER + mouse:272" "hl.dsp.window.drag()")
             (bindMouse "SUPER + mouse:273" "hl.dsp.window.resize()")
-            (bindRepeating "XF86AudioRaiseVolume" (exec "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"))
-            (bindRepeating "XF86AudioLowerVolume" (exec "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"))
             (bindRepeating "XF86MonBrightnessUp" (exec "brightnessctl set 5%+"))
             (bindRepeating "XF86MonBrightnessDown" (exec "brightnessctl set 5%-"))
-            (bindLocked "XF86AudioMute" (exec "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"))
-            (bindLocked "XF86AudioMicMute" (exec "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"))
             (bindLocked "XF86AudioPlay" (exec "playerctl play-pause"))
             (bindLocked "XF86AudioNext" (exec "playerctl next"))
             (bindLocked "XF86AudioPrev" (exec "playerctl previous"))
           ]
+          ++ lib.optionals hasAudio [
+            (bindRepeating "XF86AudioRaiseVolume" (exec "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"))
+            (bindRepeating "XF86AudioLowerVolume" (exec "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"))
+            (bindLocked "XF86AudioMute" (exec "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"))
+            (bindLocked "XF86AudioMicMute" (exec "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"))
+          ]
+          ++ lib.optionals hasLauncher [
+            (bind "SUPER + D" (run "fuzzel"))
+            (bind "SUPER + C" (run "clipboard-history"))
+          ]
+          ++ lib.optional hasLock (bind "SUPER + L" (exec "loginctl lock-session"))
           ++ directions
           ++ workspaces;
         };

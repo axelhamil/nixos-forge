@@ -247,7 +247,7 @@ summarize() {
   fi
 
   if [ -z "$text" ]; then
-    give_up "the Messages API answered no text, no summary"
+    give_up "the Messages API answered no text (stop_reason $(jq -r '.stop_reason // "none"' "$work/response.json" 2>/dev/null), blocks $(jq -r '[.content[]?.type] | join(",")' "$work/response.json" 2>/dev/null)), no summary"
     return 0
   fi
 

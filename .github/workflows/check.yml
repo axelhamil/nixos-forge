@@ -41,7 +41,7 @@ jobs:
         continue-on-error: true
         with:
           name: ${{ vars.CACHIX_CACHE }}
-          authToken: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
+          authToken: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.head_ref, 'chore/sync-upstream-')) && secrets.CACHIX_AUTH_TOKEN || '' }}
           skipPush: true
       - id: plan
         run: nix run .#ci-plan -- ${{ github.event_name }} >> "$GITHUB_OUTPUT"
@@ -67,7 +67,7 @@ jobs:
         continue-on-error: true
         with:
           name: ${{ vars.CACHIX_CACHE }}
-          authToken: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
+          authToken: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.head_ref, 'chore/sync-upstream-')) && secrets.CACHIX_AUTH_TOKEN || '' }}
           useDaemon: false
           pushFilter: (-source$|-nixos-image-|\.img$|\.iso$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
       - run: nix run .#ci-build -- ${{ matrix.system }} ${{ matrix.check }} results ${{ matrix.retry && '--retry' || '' }} ${{ matrix.baseInput && format('--base-input {0} --base github:{1}/{2}', matrix.baseInput, github.repository, github.event.pull_request.base.sha || github.event.before) || '' }}
@@ -105,7 +105,7 @@ jobs:
         continue-on-error: true
         with:
           name: ${{ vars.CACHIX_CACHE }}
-          authToken: ${{ github.event_name != 'pull_request' && secrets.CACHIX_AUTH_TOKEN || '' }}
+          authToken: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.head_ref, 'chore/sync-upstream-')) && secrets.CACHIX_AUTH_TOKEN || '' }}
           useDaemon: false
           pushFilter: (-source$|-nixos-image-|\.img$|\.iso$|\.img\.zst$|\.qcow2$|-disk-image$|-vm$)
       - run: nix run .#closure-diff -- ${{ github.event.pull_request.base.sha }} ${{ !matrix.build && '--no-build' || '' }} > closure-${{ matrix.system }}.md

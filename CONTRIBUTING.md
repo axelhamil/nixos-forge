@@ -19,7 +19,7 @@ New files must be `git add`ed before any `nix` command, or the flake does not se
 
 ## Commit messages
 
-[Conventional Commits](https://www.conventionalcommits.org/) drive releases through release-please. While in `0.x`, `feat` and breaking changes bump the minor, `fix` the patch, and `chore`, `ci`, `docs` and `refactor` do not release. Never set a version, edit `CHANGELOG.md` or create a tag by hand.
+[Conventional Commits](https://www.conventionalcommits.org/) drive releases through release-please. While in `0.x`, a breaking change (`!` or a `BREAKING CHANGE:` footer, which must say how to migrate) bumps the minor, `feat` and `fix` bump the patch, and `chore`, `ci`, `docs` and `refactor` do not release. Release notes open with the breaking changes, then features, fixes, performance and documentation; `chore`, `ci`, `refactor` and `test` stay out of them. Never set a version, edit `CHANGELOG.md` or create a tag by hand.
 
 ```text
 feat: add a server profile

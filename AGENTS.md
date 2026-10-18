@@ -63,7 +63,7 @@ Starter-owned modules stay generic: no user name, host name, path or personal va
 
 ## CI
 
-Workflows in `.github/workflows/` only chain one-line calls. Any logic goes into Nix (`flake.ci.*`) or into a shell script under `modules/flake/ci/` (or the folder of its tool, such as `modules/flake/upstream/`), packaged with `writeShellApplication` and called with `nix run .#<name>`. Never write a multi-line script inside a workflow. The `ci-ok` job is the single required status check on `main`. `release` runs in the starter only and `sync-upstream` in forks only, both keyed on `github.repository`; `sync-upstream` also waits for the fork to set `SYNC_UPSTREAM` to `true`. Details: `docs/ci.md`.
+Workflows in `.github/workflows/` only chain one-line calls. Any logic goes into Nix (`flake.ci.*`) or into a shell script under `modules/flake/ci/` (or the folder of its tool, such as `modules/flake/upstream/`), packaged with `writeShellApplication` and called with `nix run .#<name>`. Never write a multi-line script inside a workflow. The `ci-ok` job is the single required status check on `main`. `release` runs in the starter only and `sync-upstream` in forks only, both keyed on `github.repository`; `sync-upstream` also waits for the fork to set `SYNC_UPSTREAM` to `true`. Every text the CI writes for people (report, lock PR, upstream PR, release) goes through `nix run .#narvi` (`modules/flake/ci/narvi/`): its static lines live in `messages.json` alone, its Haiku summaries never fail a job and are silent without credentials. Details: `docs/ci.md`.
 
 ## Conventions
 

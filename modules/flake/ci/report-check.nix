@@ -75,11 +75,13 @@
           pkgs.coreutils
           pkgs.gnugrep
           pkgs.gnused
+          pkgs.python3
         ];
         runtimeEnv = {
           EXCERPT = ./excerpt.awk;
           LOGS = ./_fixtures/logs;
           RUNS = ./_fixtures/runs;
+          STUB = ./narvi/stub.py;
           CI_REPORT = lib.getExe ciReport;
           DESCRIPTIONS_FILE = pkgs.writeText "descriptions.json" (builtins.toJSON descriptions);
           FLAKY_CI_BUILD = lib.getExe (ciBuildWith flakyNix);

@@ -11,6 +11,9 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
@@ -27,6 +30,17 @@ jobs:
           commit-msg: "chore: update flake inputs"
           pr-title: "chore: update flake inputs"
           token: ${{ steps.bot.outputs.token }}
+      - if: steps.update.outputs.pull-request-number != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          PR: ${{ steps.update.outputs.pull-request-number }}
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: nix run .#narvi -- pr lock-pr inputs "$PR"
       - if: steps.update.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}

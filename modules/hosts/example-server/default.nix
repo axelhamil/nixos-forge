@@ -9,25 +9,26 @@
     # NixOS release the machine was first installed with. Set it once, never change it.
     stateVersion = "26.05";
 
-    # Role of the machine (docs/performance.md): "desktop", "laptop" (desktop plus power
-    # saving), "server" (headless), "pi" (server tuned for a Raspberry Pi).
+    # Role of the machine (docs/performance.md): "desktop" (NetworkManager, latest kernel,
+    # responsive scheduler), "laptop" (desktop with a power-aware scheduler), "server" (headless,
+    # tuned) or "pi" (server tuned for a Raspberry Pi).
     profile = "server";
 
     # What the machine turns on, by name. An unknown name stops the build with the known ones.
     features = [
-      "disk" # LUKS and btrfs, `/` wiped at every boot; the disk is picked at install (docs/install.md)
-      # "secure-boot" # lanzaboote, then the TPM2 unlocks the disk (docs/install.md)
+      "disk" # LUKS and btrfs, `/` wiped at every boot, hourly snapshots; the disk is picked at install (docs/install.md)
+      # "secure-boot" # lanzaboote with its own keys enrolled at first boot, then the TPM2 unlocks the disk (docs/install.md)
       "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
-      # "hibernate" # hibernation to an encrypted swap file, for laptops, needs disk (docs/hibernate.md)
+      # "hibernate" # hibernation to an encrypted swap file, and suspend-then-hibernate when the lid closes, needs disk (docs/hibernate.md)
       # "dual-boot" # Windows in the boot menu, Secure Boot kept, its disk read-only, needs disk (docs/dual-boot.md)
-      # "plymouth" # graphical boot splash and passphrase prompt (docs/desktop.md)
-      # "greetd" # the tuigreet login screen, which starts Hyprland by default when it is there (docs/desktop.md)
-      # "docker" # rootless Docker (docs/dev.md)
-      # "libvirt" # virtual machines with virt-manager (docs/dev.md)
+      # "plymouth" # graphical boot splash, quiet boot and the passphrase prompt on it (docs/desktop.md)
+      # "greetd" # the tuigreet login screen, which starts Hyprland by default when `hyprland` is listed (docs/desktop.md)
+      # "docker" # rootless Docker, with a weekly prune of what is unused (docs/dev.md)
+      # "libvirt" # virtual machines with virt-manager, a virtual TPM and USB redirection (docs/dev.md)
       # "nix-ld" # run binaries not built for NixOS, and AppImages (docs/dev.md)
-      "ssh" # key-only SSH server (docs/services.md)
+      "ssh" # key-only SSH server, no root login, its host key kept (docs/services.md)
       # "printing" # CUPS with driverless network printers found through Avahi (docs/services.md)
-      # "secrets" # sops-nix secrets (docs/services.md)
+      # "secrets" # sops-nix secrets, decrypted with an age key kept in /persist (docs/services.md)
       "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, rolls back a generation that does not start (docs/updates.md)
     ];
 
@@ -38,9 +39,9 @@
       "firmware" # redistributable firmware, CPU microcode and fwupd
       # "audio" # PipeWire with ALSA and PulseAudio support, and realtime scheduling
       # "bluetooth" # Bluetooth, powered on at boot, paired devices kept
-      # "nvidia" # NVIDIA GPU with the open kernel module
-      # "amd-gpu" # AMD GPU
-      # "intel-gpu" # Intel GPU with video decoding
+      # "nvidia" # NVIDIA GPU with the open kernel module and power management
+      # "amd-gpu" # AMD GPU, loaded early in the initrd
+      # "intel-gpu" # Intel GPU with video decoding, for an Intel GPU that drives the screens
       # "raspberry-pi-4" # Raspberry Pi 4, aarch64-linux (docs/raspberry-pi.md)
       # "raspberry-pi-5" # Raspberry Pi 5, aarch64-linux (docs/raspberry-pi.md)
     ];
@@ -53,26 +54,26 @@
     # package by name ("htop", "tmux"); unfree ones are allowed. Each app stands alone and
     # brings no other: list every one you want. Shell tools usually go in the person's apps.
     apps = [
-      # "hyprland" # the Hyprland window manager, with uwsm, its portal and a polkit agent (docs/desktop.md)
-      # "waybar" # a status bar (docs/desktop.md)
+      # "hyprland" # the Hyprland window manager through uwsm, with a polkit agent, a Nerd Font and the key binds of the apps below (docs/desktop.md)
+      # "waybar" # a top bar: workspaces, clock, tray, volume, network, battery (docs/desktop.md)
       # "fuzzel" # an app launcher on Super+D, and the clipboard history on Super+C (docs/desktop.md)
       # "kitty" # a terminal, the default one of Super+Return (docs/desktop.md)
       # "mako" # a notification daemon (docs/desktop.md)
       # "lock" # hyprlock and hypridle: a lock screen on Super+L and after 5 minutes idle (docs/desktop.md)
-      # "upgrade-notify" # a desktop notification after each auto-upgrade (docs/updates.md)
+      # "upgrade-notify" # a desktop notification saying what the last auto-upgrade changed (docs/updates.md)
       # "direnv" # per-project dev shells with nix-direnv (docs/dev.md)
       # "firefox" # Firefox with telemetry off, profile kept (docs/desktop.md)
-      # "zsh" # zsh, the login shell of whoever has it (docs/apps.md)
-      # "starship" # the starship prompt (docs/apps.md)
-      # "git" # git with sensible defaults (docs/apps.md)
-      # "delta" # delta, a pager for git diffs (docs/apps.md)
-      # "neovim" # neovim as $EDITOR (docs/apps.md)
-      # "fzf" # fuzzy finder on Ctrl+T, Ctrl+R, Alt+C (docs/apps.md)
+      # "zsh" # zsh with suggestions, syntax highlighting and a shared history; the login shell of whoever lists it (docs/apps.md)
+      # "starship" # the starship prompt in plain-text symbols (docs/apps.md)
+      # "git" # git with the settings git's own developers use; the person's name and email are the author (docs/apps.md)
+      # "delta" # delta, a pager for git diffs and blame (docs/apps.md)
+      # "neovim" # neovim as $EDITOR, with the compiler, tree-sitter, ripgrep and fd most configs expect (docs/apps.md)
+      # "fzf" # fuzzy finder on Ctrl+T, Ctrl+R, Alt+C, listed by fd so .gitignore is respected (docs/apps.md)
       # "zoxide" # `z` jumps to a directory you visited (docs/apps.md)
       # "eza" # file listings with git status, as ll, la, lt (docs/apps.md)
-      # "bat" # `cat` with syntax highlighting (docs/apps.md)
+      # "bat" # bat, a `cat` with syntax highlighting (docs/apps.md)
       # "btop" # a resource monitor (docs/apps.md)
-      # "stow" # links your dotfiles repository into your home (docs/apps.md)
+      # "stow" # links your dotfiles repository, ~/dotfiles by default, into your home at each switch (docs/apps.md)
     ];
 
     # Where the machine updates from (docs/updates.md): a flake reference such as

@@ -47,7 +47,7 @@
       <a href="LICENSE"><img alt="license" src="https://img.shields.io/github/license/axelhamil/nixos-forge?style=flat-square&color=6B7A90"></a>
       <a href="https://www.conventionalcommits.org"><img alt="Conventional Commits" src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-6B7A90?style=flat-square&logo=conventionalcommits&logoColor=white"></a>
       <a href="https://github.com/googleapis/release-please"><img alt="release-please" src="https://img.shields.io/badge/release--please-6B7A90?style=flat-square"></a>
-      <a href="https://github.com/axelhamil/nixos-forge/commits/develop"><img alt="last commit" src="https://img.shields.io/github/last-commit/axelhamil/nixos-forge/develop?style=flat-square&color=6B7A90"></a>
+      <a href="https://github.com/axelhamil/nixos-forge/commits/develop"><img alt="commit activity" src="https://img.shields.io/github/commit-activity/w/axelhamil/nixos-forge/develop?style=flat-square&color=6B7A90"></a>
     </td>
   </tr>
 </table>

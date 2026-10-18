@@ -1,5 +1,7 @@
 # Services
 
+DNS, SSH, secrets, printing and snapshots: the services a machine runs, with the defaults the starter picked and how to change them.
+
 Nothing here depends on a third-party cloud service: DNS comes from your network, secrets are decrypted with a key that stays on the machine, snapshots stay on the disk.
 
 ## DNS: systemd-resolved

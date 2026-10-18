@@ -1,6 +1,9 @@
 # Install on a machine
 
-The starter is developed and tested in VMs. This page is the path for your fork when you install it on real hardware. A host that lists `disk` in `features` gets the encrypted layout below, and **the install erases the whole disk it is given**: read every step before running one.
+From a host file to a real machine that boots, unlocks itself with the TPM2 and rolls back a bad upgrade on its own. The starter is developed and tested in VMs; this page is the path for your fork when you install it on real hardware.
+
+> [!WARNING]
+> A host that lists `disk` in `features` gets the encrypted layout below, and **the install erases the whole disk it is given**. Read every step before running one.
 
 The registry never names that disk: it is chosen at install time. Three ways to install:
 
@@ -30,7 +33,11 @@ btrfs subvolumes, mounted with `compress=zstd` and `noatime` (`@swap` with `noat
 | `@snapshots` | `/.snapshots` | yes: hourly snapshots of `@home` and `@persist` ([services.md](services.md#snapshots-btrbk)) |
 | `@swap` | `/swap` | yes: only with `hibernate`, a swap file for the hibernation image, never snapshotted ([hibernate.md](hibernate.md)) |
 
-Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home`, `/persist` and `/.snapshots` is gone unless it is declared in `environment.persistence."/persist"`: logs, `/var/lib/nixos`, `/var/lib/systemd`, `machine-id` and the dhcpcd lease and DUID (`modules/features/base/impermanence`), NetworkManager state (`modules/features/profiles/desktop`). CUPS (with `printing`), power-profiles-daemon and fwupd (with `firmware`) start from their defaults at every boot: printers are found again through Avahi, the power profile is the default one, firmware metadata is fetched again. Declare what your own modules need next to them, in the same option; `sudo doctor` lists what the next boot would erase ([doctor.md](doctor.md)).
+Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home`, `/persist` and `/.snapshots` is gone unless it is declared in `environment.persistence."/persist"`:
+
+- **Kept by the starter**: logs, `/var/lib/nixos`, `/var/lib/systemd`, `machine-id` and the dhcpcd lease and DUID (`modules/features/base/impermanence`), NetworkManager state (`modules/features/profiles/desktop`).
+- **Fresh at every boot, on purpose**: CUPS (with `printing`), power-profiles-daemon and fwupd (with `firmware`). Printers are found again through Avahi, the power profile is the default one, firmware metadata is fetched again.
+- **Yours**: declare what your own modules need next to them, in the same option. `sudo doctor` lists what the next boot would erase ([doctor.md](doctor.md)).
 
 Users are immutable (`users.mutableUsers = false`): passwords come from files under `/persist/passwords/`, never from `passwd`.
 

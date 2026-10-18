@@ -2,6 +2,8 @@
 
 Everything a user runs is an app: the desktop, the shell, a browser. Its program and its settings live in one folder, `modules/apps/<name>`, written in Nix, so a new machine comes up with your config and there is no dotfiles repository to clone.
 
+This page covers what an app is, the ones the starter ships, how to add yours and how to bend a starter default your way.
+
 ## What an app is
 
 One folder that publishes up to two parts:
@@ -22,7 +24,11 @@ apps = [ "hyprland" "waybar" "fuzzel" "kitty" "mako" "lock" "firefox" ]; # in mo
 users.alice.apps = [ "zsh" "starship" "git" "neovim" "ripgrep" "stow" ]; # in modules/users/alice
 ```
 
-No app brings another: each one works alone, and the list is the whole choice. An app adapts to its neighbours when they are there, by reading their home-manager option (`config.programs.fuzzel.enable`), never by importing them: Hyprland binds `Super + D` only when `fuzzel` is listed. An app named twice, by the host and by the person, is imported once.
+Three rules keep apps honest:
+
+- **No app brings another.** Each one works alone, and the list is the whole choice.
+- **Neighbours are read, never imported.** An app adapts to another by reading its home-manager option (`config.programs.fuzzel.enable`): Hyprland binds `Super + D` only when `fuzzel` is listed.
+- **Named twice, imported once.** An app listed by both the host and the person is imported a single time.
 
 ## Starter apps
 
@@ -88,7 +94,12 @@ It grows with you: any other file of `modules/users/<you>`, such as `git.nix` or
   ```
 
 - **neovim** as `$EDITOR` (`vi` and `vim` too), with the compiler, tree-sitter, ripgrep and fd most configurations expect. Its config is yours, in `~/.config/nvim` ([kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim), [LazyVim](https://www.lazyvim.org)). Language servers a plugin downloads (Mason) need the `nix-ld` feature ([dev.md](dev.md)).
-- **fzf**: `Ctrl-R` history, `Ctrl-T` files, `Alt-C` directories, listed by its own fd so `.gitignore` is respected. **zoxide**: `z <part of a path>`, its database kept. **eza** with git status as `ll`, `la`, `lt`, leaving `ls` alone. **bat** and **btop** with their defaults. The shell integrations of fzf, zoxide and starship turn on when `zsh` is listed.
+- **fzf**: `Ctrl-R` history, `Ctrl-T` files, `Alt-C` directories, listed by its own fd so `.gitignore` is respected.
+- **zoxide**: `z <part of a path>`, its database kept.
+- **eza** with git status as `ll`, `la`, `lt`, leaving `ls` alone.
+- **bat** and **btop** with their defaults.
+
+The shell integrations of fzf, zoxide and starship turn on when `zsh` is listed.
 
 Files follow the XDG layout: zsh in `~/.config/zsh`, its history in `~/.local/state/zsh`, Nix profiles in `~/.local/state/nix`. The only file left in your home is `~/.zshenv`, which tells zsh where its config is.
 

@@ -1,6 +1,8 @@
-# doctor
+# Doctor
 
-Every machine has a `doctor` command: one line per check, `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feature, with a hint under each problem. Run it as `sudo doctor`: without root it skips the checks that need it and says so. It exits non-zero when a check fails.
+Ask a machine how it is doing. Every host has a `doctor` command that checks the boot chain, the disk, the updates and what the next boot will erase, then tells you what to do about each problem.
+
+One line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feature, with a hint under each problem. Run it as `sudo doctor`: without root it skips the checks that need it and says so. It exits non-zero when a check fails.
 
 ```
 [  OK] Secure Boot    enforced, keys enrolled
@@ -47,4 +49,9 @@ TIME                       OUTCOME      FROM          TO            SOURCE
 
 With `disk`, `/` is restored from an empty snapshot at every boot. Whatever NixOS creates during the boot (`/etc`, users, tmpfiles) comes back on its own, so `doctor` only lists files created or changed on `/` after `sysinit.target` was reached, outside any mount: persisted paths are bind mounts from `/persist`, and `/nix`, `/home`, `/persist`, `/boot` are their own subvolumes, so none of them shows up. Symlinks into `/etc/static` or the store and the files activation rewrites (`/etc/passwd`, the files in `/etc/.clean`) are left out, so a `nixos-rebuild switch` adds nothing to the list.
 
-Each line is a choice: keep the file with `environment.persistence."/persist"` in the module that owns it, or declare its loss expected with `doctor.ephemeralPaths`, again from the module that owns it. The starter lists `/tmp`, `/var/tmp` and `/var/lib/lastlog` in `base`, tuned's runtime profile in `server`, NetworkManager's unused `wpa_supplicant` file and power-profiles-daemon's state in `desktop`, the CUPS state in `printing`, fwupd's state in `firmware` and Plymouth's boot timing in `plymouth`; a fresh boot of the example hosts reports nothing.
+Each line is a choice, made in the module that owns the file:
+
+- keep it with `environment.persistence."/persist"`;
+- or declare its loss expected with `doctor.ephemeralPaths`.
+
+The starter lists `/tmp`, `/var/tmp` and `/var/lib/lastlog` in `base`, tuned's runtime profile in `server`, NetworkManager's unused `wpa_supplicant` file and power-profiles-daemon's state in `desktop`, the CUPS state in `printing`, fwupd's state in `firmware` and Plymouth's boot timing in `plymouth`; a fresh boot of the example hosts reports nothing.

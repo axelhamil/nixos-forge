@@ -1,6 +1,6 @@
 # Updates
 
-How a change reaches your machines: every Monday your fork gets a PR for new inputs, you merge the starter's releases when you choose, CI proves both, then each machine pulls your fork.
+How a change reaches your machines, from the starter or from you, without ever skipping CI. Every Monday your fork gets a PR for new inputs, you merge the starter's releases when you choose, CI proves both, then each machine pulls your fork.
 
 ```text
 nixos-forge release ──┐ `nix run .#upstream`: a branch and a PR
@@ -21,7 +21,15 @@ Your fork decides when it takes the starter. In your checkout, with no uncommitt
 $ nix run .#upstream
 ```
 
-It reads the starter's latest release tag (`git ls-remote`, no GitHub login needed) and, when the `main` branch of your `origin` does not hold it yet, prints what changed since your last merge: the breaking changes first (a `!` commit or a `BREAKING CHANGE` footer), then the new lines of the starter's `CHANGELOG.md`. It then asks `Prepare branch chore/sync-upstream-<tag>? [y/N]`; on yes it creates that branch from `origin/main` (never from the branch you are on, so unreleased work on `develop` stays out of it), merges the tag with a merge commit, pushes it to `origin` and opens a PR against `main` of `origin` with `gh` when it is logged in, or prints the `gh pr create --repo <owner>/<repo>` command to run. The PR body opens with a line of [Narvi](ci.md#narvi) and, when Narvi can call Claude Haiku, a short summary of the release, above the breaking changes and the changelog, kept as they are. `--yes` skips the question. The starter is the argument (a git URL or a GitHub `owner/repo`), else your `upstream` remote, else `https://github.com/axelhamil/nixos-forge.git`. A fork already holding the tag gets `Already up to date with <tag>.`
+What it does, step by step:
+
+1. Reads the starter's latest release tag (`git ls-remote`, no GitHub login needed). A fork whose `origin/main` already holds it gets `Already up to date with <tag>.`
+2. Prints what changed since your last merge: the breaking changes first (a `!` commit or a `BREAKING CHANGE` footer), then the new lines of the starter's `CHANGELOG.md`.
+3. Asks `Prepare branch chore/sync-upstream-<tag>? [y/N]` (`--yes` skips the question).
+4. On yes, creates that branch from `origin/main`, never from the branch you are on, so unreleased work on `develop` stays out of it, and merges the tag with a merge commit.
+5. Pushes it to `origin` and opens a PR against `main` with `gh` when it is logged in, or prints the `gh pr create --repo <owner>/<repo>` command to run. The PR body opens with a line of [Narvi](ci.md#narvi) and, when Narvi can call Claude Haiku, a short summary of the release, above the breaking changes and the changelog, kept as they are.
+
+The starter is the argument (a git URL or a GitHub `owner/repo`), else your `upstream` remote, else `https://github.com/axelhamil/nixos-forge.git`.
 
 It never merges into `main` on its own: the starter's code reaches your machines only once you have read the diff. Adapt your hosts on the branch if needed, wait for `ci-ok`, then merge with a merge commit, never a squash, so the next merge starts from there. On a conflict it names the files, aborts the merge, deletes the branch, returns to where you started and exits 1: create the branch from `origin/main` and merge the tag there by hand, as its error says (`git switch -c chore/sync-upstream-<tag> origin/main && git merge --no-ff <tag>`), resolve and commit, push the branch and open its PR against `main`. A fork that shares no history with the starter (made by copying it, or with "Use this template") gets git's `refusing to merge unrelated histories` and the same clean exit.
 
@@ -58,7 +66,14 @@ configurations.nixos.my-laptop.flake = "/home/alice/nixos";
 
 ## A machine upgrades on its own
 
-Add the `auto-upgrade` feature to a host to have it follow the version CI validated for it. Once every check of a host passes on `main`, CI moves the `deploy/<host>` branch of your fork to that commit ([ci.md](ci.md#validated-versions-per-machine)), with the token of the bot App: without the App, no `deploy/<host>` branch ever exists and the machine stays `waiting`; every day from 04:00 (randomized over 45 minutes, caught up at the next start when the machine was off), `auto-upgrade.service` fetches that branch and builds it. It works with a flake reference (a plain `github:<owner>/<repo>` or `git+https://...`, without a query such as `?dir=`), or with a checkout, whose `origin` remote it reads, an SSH remote turned into its https URL. It trusts that remote only when root or an admin (`wheel`) owns the checkout, its `.git` folder (not a file or a link, as in a worktree) and `.git/config`, and no one outside root and `wheel` can write to them: otherwise any user could point it at a repository of their own. A checkout with no `.git` yet goes straight to the mirrors. When that source is down, it tries the host's `mirrors` in order:
+Add the `auto-upgrade` feature to a host to have it follow the version CI validated for it, while you sleep:
+
+- **CI picks the version.** Once every check of a host passes on `main`, CI moves the `deploy/<host>` branch of your fork to that commit ([ci.md](ci.md#validated-versions-per-machine)), with the token of the bot App. Without the App, no `deploy/<host>` branch ever exists and the machine stays `waiting`.
+- **The machine fetches it daily.** Every day from 04:00 (randomized over 45 minutes, caught up at the next start when the machine was off), `auto-upgrade.service` fetches that branch and builds it.
+- **From a flake reference or a checkout.** A plain `github:<owner>/<repo>` or `git+https://...` works, without a query such as `?dir=`. A checkout works through its `origin` remote, an SSH remote turned into its https URL.
+- **A checkout must belong to an admin.** It trusts that remote only when root or an admin (`wheel`) owns the checkout, its `.git` folder (not a file or a link, as in a worktree) and `.git/config`, and no one outside root and `wheel` can write to them: otherwise any user could point it at a repository of their own. A checkout with no `.git` yet goes straight to the mirrors.
+
+When that source is down, it tries the host's `mirrors` in order:
 
 ```nix
 configurations.nixos.my-server = {

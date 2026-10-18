@@ -1,6 +1,8 @@
 # Performance
 
-What each profile tunes. A profile brings only what its role needs: firmware, audio and Bluetooth are hardware modules (`firmware`, `audio`, `bluetooth`) and printing is the `printing` feature ([services.md](services.md#printing-printing-opt-in)), each listed in the host.
+What each profile tunes, and what every host gets anyway. Pick the role in the host's `profile`; nothing here needs a setting.
+
+A profile brings only what its role needs: firmware, audio and Bluetooth are hardware modules (`firmware`, `audio`, `bluetooth`) and printing is the `printing` feature ([services.md](services.md#printing-printing-opt-in)), each listed in the host.
 
 ## Profiles
 

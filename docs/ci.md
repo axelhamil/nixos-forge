@@ -1,6 +1,6 @@
 # CI and repository settings
 
-What the GitHub Actions workflows do, and what a fork sets so they run.
+What the GitHub Actions workflows do, what they prove, and the few settings a fork needs so they run. Start with [Turn CI on in your fork](#turn-ci-on-in-your-fork); the rest is here for when you want to know why the report says what it says.
 
 ## Turn CI on in your fork
 
@@ -33,9 +33,17 @@ A check that compiles a kernel is only evaluated in a PR and built on the push t
 
 ## The CI report
 
-The `report` job runs at the end of every `check` run, even when a job failed or hit its time limit; a run cancelled, for instance by a newer push, writes no report. It writes its report to the run summary (the run's page in the Actions tab) and, on a PR from a branch of the same repository, to one PR comment that each new run rewrites. The comment is posted by the bot App, so it shows as [Narvi](#narvi), with a token the job mints from `BOT_CLIENT_ID` and `BOT_PRIVATE_KEY` that may only write pull requests; when the App is not set up or its token cannot be minted (a Dependabot PR gets no Actions secret), the run posts as `github-actions` with its own token. A PR from another fork gets the run summary only, since its token cannot comment.
+The `report` job runs at the end of every `check` run, even when a job failed or hit its time limit; a run cancelled, for instance by a newer push, writes no report. Where it lands:
 
-`gh pr comment --edit-last` rewrites the last comment of the identity that posts, so the App and `github-actions` each keep their own comment. A PR open when the App was set up keeps its old `github-actions` comment as it was at its last run, and the App posts a new one below, which every later run rewrites; that old comment is never updated again, delete it by hand if it gets in the way. A run that falls back to `github-actions` updates that identity's comment instead, and the next run with the App updates the App's again.
+- **The run summary** (the run's page in the Actions tab), always.
+- **One PR comment**, on a PR from a branch of the same repository, rewritten by each new run. A PR from another fork gets the run summary only, since its token cannot comment.
+
+The comment is posted by the bot App, so it shows as [Narvi](#narvi), with a token the job mints from `BOT_CLIENT_ID` and `BOT_PRIVATE_KEY` that may only write pull requests. When the App is not set up or its token cannot be minted (a Dependabot PR gets no Actions secret), the run posts as `github-actions` with its own token.
+
+`gh pr comment --edit-last` rewrites the last comment of the identity that posts, so the App and `github-actions` each keep their own comment:
+
+- A PR open when the App was set up keeps its old `github-actions` comment as it was at its last run, and the App posts a new one below, which every later run rewrites. That old comment is never updated again: delete it by hand if it gets in the way.
+- A run that falls back to `github-actions` updates that identity's comment instead, and the next run with the App updates the App's again.
 
 The job runs `ci-report` from the base branch of the PR (the pushed commit on a push), never from the PR itself, and reads the machines and the check descriptions from the outputs of the `plan` job. A PR whose flake does not evaluate still gets its report: `The flake did not evaluate, so nothing was built or tested.`, with a pointer to the `plan` job log that names the file and line.
 
@@ -61,7 +69,7 @@ A comment over 64 KiB is cut and points to the run summary, which holds up to 1 
 
 ## Narvi
 
-Narvi, the dwarf who made the Doors of Durin, is the voice of the CI. He speaks where the CI already writes, and only there: facts first, at most one line of lore at the top, never inside a failure, a table or the breaking changes.
+Narvi, the dwarf who made the Doors of Durin, is the voice of the CI. He speaks where the CI already writes, and only there: facts first, at most one line of lore at the top, never inside a failure, a table or the breaking changes. Speak, friend, and read the diff.
 
 | Where | What Narvi says |
 |---|---|
@@ -85,7 +93,15 @@ Summaries come from Claude Haiku (`claude-haiku-5-5`) through the Messages API, 
    - **pull requests**, optional: `subject_prefix` `repo:<owner>/<repo>:pull_request`, for the reports of PRs. Its id goes in `ANTHROPIC_PR_FEDERATION_RULE_ID`, which the `report` job uses on PRs instead of the first; without it, PR reports have no summary through federation. Anthropic warns that such a rule matches PRs from forks too: GitHub gives a fork PR no OIDC token only while "Send write tokens to workflows from fork pull requests" is off (Settings, Actions, General, offered on private repositories; public ones never send them). With it on, a fork PR could edit `check.yml` in its own branch and trade the token for Anthropic access. Create this rule only while that setting is off.
 2. **An API key**: the repository secret `ANTHROPIC_API_KEY`.
 
-Narvi never turns CI red and never blocks: no credentials, an HTTP error, no answer within 30 s for all its calls together (GitHub's token, the exchange and the message), an answer that is not a message or holds no text all give no summary, a warning on the job's log and exit code 0. A failure is remembered for the rest of the job, so the PR comment does not wait again after the run summary waited. A summary is flattened to one plain paragraph before it is posted: HTML and comments are dropped, links and images keep their text only, Markdown characters are escaped, and `@` mentions and URLs are broken with a zero-width space, so a diff or a commit subject that steers Haiku can neither hide what follows, ping anyone nor embed a link under Narvi's name. Tokens and keys travel in header files only the job's user can read, never on a command line or in the log. A PR from another fork gets no OIDC token and no secret, so its report has the line alone. The diff Haiku reads comes from the PR: a summary is a hint to read the diff below it, never a verdict.
+Narvi never turns CI red and never blocks:
+
+- **Any failure means no summary, not a red run.** No credentials, an HTTP error, no answer within 30 s for all its calls together (GitHub's token, the exchange and the message), an answer that is not a message or holds no text: each gives no summary, a warning on the job's log and exit code 0.
+- **A failure is remembered** for the rest of the job, so the PR comment does not wait again after the run summary waited.
+- **A summary is flattened** to one plain paragraph before it is posted: HTML and comments are dropped, links and images keep their text only, Markdown characters are escaped, and `@` mentions and URLs are broken with a zero-width space. A diff or a commit subject that steers Haiku can neither hide what follows, ping anyone nor embed a link under Narvi's name.
+- **Secrets stay hidden.** Tokens and keys travel in header files only the job's user can read, never on a command line or in the log.
+- **A PR from another fork** gets no OIDC token and no secret, so its report has the line alone.
+
+The diff Haiku reads comes from the PR: a summary is a hint to read the diff below it, never a verdict.
 
 ### Rename the bot
 
@@ -105,7 +121,6 @@ The `promote` job runs after every push to `main`, once the builds ended, even w
 - `deploy/<host> warning: its tip <short sha> is not a promotion signed by DEPLOY_SIGNING_KEY, ...`: the branch holds a commit the key did not sign for that host (pushed by hand, reset to a commit of `main`, or forged); the new promotion replaces it rather than building on it, with `--force-with-lease` on that tip, and the line shows up as a warning of the run. Find out who moved the branch.
 - `deploy/<host> kept: <check> <outcome>`: a check of that machine did not pass, the branch stays.
 - `deploy/<host> refused: not a fast-forward`: the pushed commit does not descend from the branch (from the commit of `main` it carries, for a promotion commit), for instance after a force push on `main`. The branch stays, the job fails and needs a look; `ci-ok` is not affected.
-
 - `deploy/<host> already at or past <short sha>`: the branch already holds the pushed commit (with the signing key, a promotion that verifies with it carries that commit or a later one), for instance when an older run is rerun after a newer one promoted the machine. Nothing moves and the job stays green.
 - `deploy/<host> refused: <reason>`: the remote declined the push, with git's reason, for instance the `deploy/*` ruleset when the App is not on its bypass list.
 
@@ -113,7 +128,14 @@ The job is skipped when `BOT_CLIENT_ID` is not set. Its token asks for the **Con
 
 ## Sign the deploy branches
 
-With the secret `DEPLOY_SIGNING_KEY` (an OpenSSH private key without a passphrase, ed25519 from `nix run .#init`), `promote` does not move `deploy/<host>` to the commit of `main` itself. It creates a promotion commit with `git commit-tree -S`: the tree of that commit, the subject `deploy <host>: checks passed for <short sha>`, two parents, the previous promotion of `deploy/<host>` and the commit of `main` (only the latter for the first one), and an SSH signature. The branch therefore only moves forward, each promotion holds the previous one, and the ruleset above still refuses anything else. Before building on the tip of `deploy/<host>`, `promote` checks it against the public key it derives from the secret (`ssh-keygen -y`): a tip that is not a promotion signed for that host is neither a parent nor a reason to answer `already at or past`, and the run warns about it, so a branch deleted or reset by hand never holds the machines back. Machines whose host lists the public key in `signers` apply only such commits, signed for them ([updates.md](updates.md#signed-deploy-commits)). Without the secret, `promote` prints `unsigned: DEPLOY_SIGNING_KEY is not set, ...` and moves the branches to the commits of `main`, unsigned, which those machines refuse.
+With the secret `DEPLOY_SIGNING_KEY` (an OpenSSH private key without a passphrase, ed25519 from `nix run .#init`), `promote` does not move `deploy/<host>` to the commit of `main` itself. It creates a promotion commit with `git commit-tree -S`:
+
+- the tree of that commit of `main`;
+- the subject `deploy <host>: checks passed for <short sha>`;
+- two parents, the previous promotion of `deploy/<host>` and the commit of `main` (only the latter for the first one);
+- an SSH signature.
+
+The branch therefore only moves forward, each promotion holds the previous one, and the ruleset above still refuses anything else. Before building on the tip of `deploy/<host>`, `promote` checks it against the public key it derives from the secret (`ssh-keygen -y`): a tip that is not a promotion signed for that host is neither a parent nor a reason to answer `already at or past`, and the run warns about it, so a branch deleted or reset by hand never holds the machines back. Machines whose host lists the public key in `signers` apply only such commits, signed for them ([updates.md](updates.md#signed-deploy-commits)). Without the secret, `promote` prints `unsigned: DEPLOY_SIGNING_KEY is not set, ...` and moves the branches to the commits of `main`, unsigned, which those machines refuse.
 
 The key is written to a file only the job's user can read, in a temporary folder removed when `ci-promote` ends, and is never printed. It lives in the `deploy` environment, limited to `main` ([setup](#turn-ci-on-in-your-fork)), apart from the App token: a leaked token can push a deploy branch but not sign it, and a leaked key can sign but not push. Anyone who can run a workflow on `main` of the fork can use both: that is the accepted limit. Signing happens once, in `promote`, before any push: the `mirror` workflow copies the signed commits as they are and never creates or rewrites a commit, so a mirror's forge can withhold a version but not forge one.
 

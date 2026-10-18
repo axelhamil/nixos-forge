@@ -1,6 +1,8 @@
 # Desktop
 
-Two features and a handful of apps turn a host into a graphical machine: a text login screen, a boot splash, and Hyprland with a bar, a launcher, a terminal, notifications and a lock screen. Each piece is its own module with its tool's own look, and you list every one you want: Hyprland without kitty is `kitty` left out of the list. Another desktop plugs in as a sibling of `hyprland`.
+Two features and a handful of apps turn a host into a graphical machine: a text login screen, a boot splash, and Hyprland with a bar, a launcher, a terminal, notifications and a lock screen. This page shows how to list them, what each one brings, the keybinds and how to make it look like yours.
+
+Each piece is its own module with its tool's own look, and you list every one you want: Hyprland without kitty is `kitty` left out of the list. Another desktop plugs in as a sibling of `hyprland`.
 
 ## Use it
 
@@ -13,7 +15,15 @@ features = [ "greetd" "plymouth" "printing" ];
 apps = [ "hyprland" "waybar" "fuzzel" "kitty" "mako" "lock" "upgrade-notify" ];
 ```
 
-`hyprland` brings only what it cannot run without: uwsm, its portal, a polkit agent, fonts, a cursor and its keybinds. The rest is listed: `greetd` starts Hyprland by default when both are there, `kitty` becomes the terminal of `Super + Return` (any terminal does, through `xdg-terminal-exec`; with none registered, the build warns that the key opens nothing), and the keys of the launcher, the clipboard history and the lock exist only with `fuzzel` and `lock`. Named in the host's `apps`, every user of the host gets them; named in your person's `apps` or in the host's `users.<you>.apps`, only you get their home config, while their NixOS part (Hyprland, fonts, the hyprlock PAM service) is on for the whole machine ([apps.md](apps.md)). `plymouth` is independent: import it on any host, with or without a desktop. The `desktop` profile brings NetworkManager and the performance tuning only ([performance.md](performance.md)): sound, Bluetooth, firmware and printing are listed in `hardware` and `features`, and the volume keys exist only with PipeWire on.
+`hyprland` brings only what it cannot run without: uwsm, its portal, a polkit agent, fonts, a cursor and its keybinds. Everything else is listed, and fits in when it is there:
+
+- `greetd` starts Hyprland by default when both are there.
+- `kitty` becomes the terminal of `Super + Return`. Any terminal does, through `xdg-terminal-exec`; with none registered, the build warns that the key opens nothing.
+- The keys of the launcher, the clipboard history and the lock exist only with `fuzzel` and `lock`, the volume keys only with PipeWire on.
+- Named in the host's `apps`, every user of the host gets them. Named in your person's `apps` or in the host's `users.<you>.apps`, only you get their home config, while their NixOS part (Hyprland, fonts, the hyprlock PAM service) is on for the whole machine ([apps.md](apps.md)).
+- `plymouth` is independent: import it on any host, with or without a desktop.
+
+The `desktop` profile brings NetworkManager and the performance tuning only ([performance.md](performance.md)): sound, Bluetooth and firmware are listed in `hardware`, printing in `features`.
 
 ## What is in it
 

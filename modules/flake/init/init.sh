@@ -24,7 +24,7 @@ the result. Asks for every answer not given as an option.
   --keyboard LAYOUT      such as fr (default: us)
   --locale LOCALE        such as fr_FR.UTF-8 (default: en_US.UTF-8)
   --features LIST        features to turn on, comma or space separated (default: picked for the profile)
-  --hardware LIST        hardware modules or nixos-hardware profiles (default: raspberry-pi-5 for pi, else none)
+  --hardware LIST        hardware modules or nixos-hardware profiles (default: firmware audio bluetooth for desktop and laptop, raspberry-pi-5 for pi, else none)
   --apps LIST            apps for every user: starter apps or nixpkgs packages (default: picked for the profile)
   --keep-server          keep the example-server host
   --keep-pi              keep the example-pi host
@@ -269,7 +269,7 @@ detected_locale() {
 default_features() {
   local wanted=() feature
   case $1 in
-  desktop | laptop) wanted=(disk plymouth nix-ld) ;;
+  desktop | laptop) wanted=(disk plymouth greetd nix-ld printing) ;;
   server) wanted=(disk ssh) ;;
   pi) wanted=(ssh) ;;
   esac
@@ -285,7 +285,7 @@ default_features() {
 
 default_apps() {
   case $1 in
-  desktop | laptop) printf 'hyprland direnv firefox' ;;
+  desktop | laptop) printf 'hyprland waybar fuzzel kitty mako lock upgrade-notify direnv firefox' ;;
   esac
 }
 
@@ -332,8 +332,11 @@ else
   ask features features "Features, space separated (blank keeps the ones marked)" "$suggested_features" check_features true
 fi
 
-suggested_hardware=""
-[[ $profile == pi ]] && suggested_hardware=raspberry-pi-5
+case $profile in
+desktop | laptop) suggested_hardware="firmware audio bluetooth" ;;
+pi) suggested_hardware=raspberry-pi-5 ;;
+*) suggested_hardware="" ;;
+esac
 if [[ $hardware_set == true ]]; then
   ask hardware hardware "" "" check_names set
 elif [[ $yes == true ]]; then

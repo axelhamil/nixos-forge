@@ -15,6 +15,8 @@ in
         (
           { config, ... }:
           {
+            xdg.enable = true;
+
             home.persistence."/persist".directories =
               map
                 (path: {

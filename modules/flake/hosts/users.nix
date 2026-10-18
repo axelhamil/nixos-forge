@@ -30,13 +30,14 @@ let
 
         apps = mkOption {
           type = types.listOf types.str;
-          default = [ "shell" ];
+          default = [ ];
           example = [
-            "shell"
-            "stow"
-            "obsidian"
+            "zsh"
+            "git"
+            "neovim"
+            "ripgrep"
           ];
-          description = "Apps that follow the person on every host: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`shell`, the default, brings zsh as login shell, starship, git, neovim and CLI tools), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed. A host adds its own with `users.<name>.apps`.";
+          description = "Apps that follow the person on every host, none by default: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`zsh` also becomes the login shell), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed. A host adds its own with `users.<name>.apps`.";
         };
 
         module = mkOption {

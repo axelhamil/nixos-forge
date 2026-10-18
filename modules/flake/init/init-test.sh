@@ -198,9 +198,17 @@ host_file=modules/hosts/rec/default.nix
 has_line '  configurations\.nixos\."rec" = \{'
 has_line '    users\."in" = \{'
 has_line '      "hyprland" # .*'
+has_line '      "kitty" # .*'
+has_line '      "lock" # .*'
 has_line '      "direnv" # .*'
 has_line '      "nix-ld" # .*'
+has_line '      "greetd" # .*'
+has_line '      "printing" # .*'
+has_line '      "firmware" # .*'
+has_line '      "audio" # .*'
+has_line '      "bluetooth" # .*'
 person_file=modules/users/in/default.nix
+person_has_line '      "zsh" # .*'
 person_has_line '  users\."in" = \{'
 person_has_line '.* an account with .users\."in".*'
 fork_evaluates '["rec"]'
@@ -258,7 +266,7 @@ sed -i 's/^    fullName = .*/    fullName = 3;/' "$person_file"
 fork_fails "is not of type"
 git checkout -q -- "$person_file"
 
-sed -i 's/^    # apps = .*/    apps = [ "shell" "nope-not-a-package" ];/' "$person_file"
+sed -i 's/^    apps = \[$/    apps = [ "nope-not-a-package"/' "$person_file"
 fork_fails 'users.dan.apps (modules/users/dan): unknown name "nope-not-a-package"'
 git checkout -q -- "$person_file"
 

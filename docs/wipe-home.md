@@ -22,7 +22,7 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 | `base` | `~/.ssh`, `~/.gnupg` and `~/.config/gh`, mode `0700`, in every home |
 | `update` | the host's `flake` checkout, when it is a path in `/home/<you>/` (do not list it again) |
 | `zsh` | `~/.local/state/zsh` |
-| `cli` | `~/.local/share/zoxide` |
+| `zoxide` | `~/.local/share/zoxide` |
 | `neovim` | `~/.local/share/nvim`, `~/.local/state/nvim` |
 | `stow` | the clone (`~/dotfiles`) and `~/.local/state/stow` |
 | `direnv` | `~/.local/share/direnv` |

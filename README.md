@@ -94,11 +94,11 @@ Fork it, run `nix run .#init`, turn CI on ([docs/ci.md](docs/ci.md#turn-ci-on-in
 {
   configurations.nixos.my-laptop = {
     stateVersion = "26.05";
-    hardware = [ "framework-13-7040-amd" ];
+    hardware = [ "framework-13-7040-amd" "firmware" "audio" "bluetooth" ];
 
     profile = "laptop";
-    features = [ "disk" "secure-boot" "plymouth" "docker" ];
-    apps = [ "hyprland" "firefox" ];
+    features = [ "disk" "secure-boot" "greetd" "plymouth" "printing" "docker" ];
+    apps = [ "hyprland" "waybar" "fuzzel" "kitty" "mako" "lock" "firefox" ];
 
     timeZone = "Europe/Paris";
     keyboard = "fr";
@@ -115,7 +115,7 @@ Fork it, run `nix run .#init`, turn CI on ([docs/ci.md](docs/ci.md#turn-ci-on-in
   users.alice = {
     fullName = "Alice Example";
     email = "alice@example.org";
-    apps = [ "shell" "stow" ];
+    apps = [ "zsh" "starship" "git" "neovim" "ripgrep" "stow" ];
   };
 }
 ```
@@ -129,11 +129,11 @@ That is the whole host: it gets a `nixosConfigurations` entry, a build check, a 
 | **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/install.md), [wipe-home](docs/wipe-home.md), [hibernate](docs/hibernate.md) |
 | **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback. [install](docs/install.md) |
 | **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
-| **Shell** | zsh, starship, git with delta, neovim, fzf, zoxide, eza, bat, ripgrep, fd, btop through home-manager in the XDG layout; your dotfiles with [stow](https://www.gnu.org/software/stow/). [apps](docs/apps.md) |
-| **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land) with waybar, fuzzel, kitty, mako, hyprlock and hypridle, Firefox with telemetry off. [desktop](docs/desktop.md) |
-| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd). [performance](docs/performance.md) |
+| **Shell** | zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop through home-manager in the XDG layout, each its own app; your dotfiles with [stow](https://www.gnu.org/software/stow/). [apps](docs/apps.md) |
+| **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land), and as apps of their own waybar, fuzzel, kitty, mako, hyprlock with hypridle, Firefox with telemetry off: no app brings another, you list each one. [desktop](docs/desktop.md) |
+| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd), each bringing only what its role needs. [performance](docs/performance.md) |
 | **Hardware** | firmware with CPU microcode, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
-| **Services and dev** | systemd-resolved, key-only SSH, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
+| **Services and dev** | systemd-resolved, key-only SSH, driverless printing, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
 | **Updates** | every Monday your fork gets a PR with fresh inputs, merged once CI is green; `nix run .#upstream` shows what the starter changed and prepares its merge when you choose; machines pull your fork with `update`, or daily on their own with `auto-upgrade`, which takes only the version CI validated for that machine, and with `signers` only one CI signed for it; a desktop then shows a notification with what changed. [updates](docs/updates.md) |
 | **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, what the last auto-upgrade did, whether it requires signed deploy commits and whether a boot went back to the previous version, and lists what the next boot erases from `/`. [doctor](docs/doctor.md) |
 | **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, `flake.lock` updates itself weekly, only what the cache lacks is built ([above](#what-ci-proves)). [ci](docs/ci.md) |
@@ -174,13 +174,13 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
 | `module` | anything else, as plain NixOS config |
 
-A person (`modules/users/<name>`, every field in [docs/options.md](docs/options.md#person-options)) has `fullName`, `email`, `sshKeys`, `apps` that follow them on every machine (`shell` by default) and `module`, their own home-manager config.
+A person (`modules/users/<name>`, every field in [docs/options.md](docs/options.md#person-options)) has `fullName`, `email`, `sshKeys`, `apps` that follow them on every machine (none by default) and `module`, their own home-manager config.
 
 An unknown name stops the evaluation with the list of known ones; in `apps`, a name that is no app and no nixpkgs package; in `users`, a person with no folder in `modules/users`.
 
 **Add a feature.** Publish `features.<name>` from a file under `modules/features/<name>` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as an app, a sibling of `hyprland`.
 
-**Add an app with its config** ([docs/apps.md](docs/apps.md)). Create `modules/apps/<name>/default.nix` and name it in `apps`; a `check.nix` with `helpers.appCheck` gives it a VM test, `app-<name>`. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the example, swap it for the browser you like the same way.
+**Add an app with its config** ([docs/apps.md](docs/apps.md)). Create `modules/apps/<name>/default.nix` and name it in `apps`. An app brings no other app: it reads their home-manager options to fit with them when they are listed; a `check.nix` with `helpers.appCheck` gives it a VM test, `app-<name>`. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the example, swap it for the browser you like the same way.
 
 ```nix
 {
@@ -207,7 +207,8 @@ modules/
 │              Raspberry Pi), and disk, wipe-home, secure-boot, ssh, secrets, docker, libvirt,
 │              nix-ld, greetd, plymouth, ...
 ├── apps/      everything a user runs, with its config: hyprland, waybar, fuzzel, kitty, mako,
-│              lock, the shell bundle (zsh, starship, git, neovim, cli), direnv, stow, firefox
+│              lock, zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop, direnv,
+│              stow, firefox, upgrade-notify
 ├── users/     one folder per person: name, email, SSH keys, apps and home config
 └── hosts/     one file per machine, giving accounts to people
 ```

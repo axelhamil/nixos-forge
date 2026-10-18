@@ -1,59 +1,47 @@
-{
-  lib,
-  inputs,
-  config,
-  options,
-  ...
-}:
+{ lib, config, ... }:
 
 let
-  hostType = options.configurations.nixos.type.nestedTypes.elemType;
+  inherit (config.helpers) appMachine;
 
-  people = lib.attrNames config.users;
-
-  machine =
-    hostApps: userApps:
-    let
-      host = lib.evalModules {
-        modules = hostType.getSubModules ++ [
-          {
-            _module.args.name = "apps-once";
-            stateVersion = "26.05";
-            apps = hostApps;
-            users.${lib.head people}.apps = userApps;
-            module = {
-              fileSystems."/" = {
-                device = "/dev/disk/by-label/apps-once";
-                fsType = "ext4";
-              };
-              boot.loader.grub.enable = false;
-            };
-          }
+  once =
+    appMachine "apps-once"
+      {
+        apps = [
+          "hyprland"
+          "lock"
         ];
-      };
-    in
-    (inputs.nixpkgs.lib.nixosSystem {
-      modules = [
-        host.config.module
-        { nixpkgs.hostPlatform = "x86_64-linux"; }
+      }
+      [
+        "zsh"
+        "git"
       ];
-    }).config;
-
-  once = machine [ "hyprland" ] [ "shell" ];
-  twice = machine [ "shell" "zsh" "hyprland" "lock" ] [ "shell" "zsh" "git" ];
-
+  twice =
+    appMachine "apps-once"
+      {
+        apps = [
+          "zsh"
+          "hyprland"
+          "lock"
+        ];
+      }
+      [
+        "zsh"
+        "git"
+        "hyprland"
+        "lock"
+      ];
 in
 {
   perSystem =
     { pkgs, system, ... }:
-    lib.mkIf (system == "x86_64-linux" && people != [ ]) {
+    lib.mkIf (system == "x86_64-linux" && config.users != { }) {
       checks.apps-once =
         assert lib.assertMsg (
           twice.security.pam.services ? hyprlock
-        ) "apps-once: hyprland and lock give no hyprlock PAM service";
+        ) "apps-once: lock gives no hyprlock PAM service";
         assert lib.assertMsg (
           once.system.build.toplevel.drvPath == twice.system.build.toplevel.drvPath
-        ) "apps-once: an app reached twice (shell and zsh, hyprland and lock) changes the system";
-        pkgs.writeText "apps-once" "an app reached twice is imported once";
+        ) "apps-once: an app named by the host and the person (zsh, hyprland, lock) changes the system";
+        pkgs.writeText "apps-once" "an app named by the host and the person is imported once";
     };
 }

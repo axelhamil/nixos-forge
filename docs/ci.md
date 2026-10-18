@@ -29,7 +29,7 @@ Scheduled workflows and Dependabot only run from the default branch, so they sta
 | `release` | push to `main`, starter only | Runs [release-please](https://github.com/googleapis/release-please): a release PR bumps the version and `CHANGELOG.md` from Conventional Commits; merging it tags and publishes the GitHub Release, whose notes [Narvi](#narvi) then opens with a line and a summary of what the release means for a machine. |
 | Dependabot | weekly | Updates GitHub Actions versions, with PRs against `develop`. |
 
-A check that compiles a kernel is only evaluated in a PR and built on the push to `develop` or `main` after the merge.
+A check that compiles a kernel is only evaluated in a PR and built on the push to `develop` or `main` after the merge. A newer push to `develop` cancels that build and its own run starts it again, since nothing was cached; `main` never cancels, so a release always builds every kernel.
 
 ## The CI report
 

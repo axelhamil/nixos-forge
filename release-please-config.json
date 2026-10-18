@@ -8,7 +8,7 @@
   "initial-version": "0.1.0",
   "pull-request-title-pattern": "chore: release ${version}",
   "pull-request-header": "Merging this PR publishes the release below as a GitHub pre-release.",
-  "pull-request-footer": "Forks: `nix run .#upstream` opens the PR that merges this release, and the `sync-upstream` workflow runs it every Monday ([docs/updates.md](docs/updates.md#your-fork-follows-the-starter)). Read the breaking changes first: each one says how to migrate.",
+  "pull-request-footer": "Forks: `nix run .#upstream` opens the PR that merges this release, and the `sync-upstream` workflow runs it every Monday ([docs/updates.md](https://github.com/axelhamil/nixos-forge/blob/main/docs/updates.md#your-fork-follows-the-starter)). Read the breaking changes first: each one says how to migrate.",
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Bug fixes" },

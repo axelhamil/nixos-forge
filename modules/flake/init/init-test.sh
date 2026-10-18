@@ -238,7 +238,7 @@ kept_flake "$TMPDIR/seventh" https://git.example.org/bob/nixos.git
 has_line '      "auto-upgrade" # .*'
 has_line '    flake = "git\+https://git\.example\.org/bob/nixos\.git";'
 
-kept_flake "$TMPDIR/eighth" https://github.com/axelhamil/nixos-starter.git
+kept_flake "$TMPDIR/eighth" https://github.com/axelhamil/nixos-forge.git
 has_line '      # "auto-upgrade" # .*'
 has_line '    # flake = "github:alice/nixos";'
 

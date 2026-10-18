@@ -4,7 +4,7 @@ let
   inherit (lib) mkOption types;
 
   published = field: name: module: {
-    key = "nixos-starter/${field}/${name}";
+    key = "nixos-forge/${field}/${name}";
     _class = "nixos";
     imports = [ module ];
   };

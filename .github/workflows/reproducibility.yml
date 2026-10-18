@@ -11,6 +11,8 @@ permissions:
 jobs:
   reproducibility:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
@@ -21,4 +23,10 @@ jobs:
         with:
           name: ${{ vars.CACHIX_CACHE }}
           skipPush: true
-      - run: nix run .#reproducibility >> "$GITHUB_STEP_SUMMARY"
+      - run: nix run .#reproducibility | tee reproducibility.md >> "$GITHUB_STEP_SUMMARY"
+      - if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+        continue-on-error: true
+        run: nix run .#ci-badges -- reproducibility reproducibility.md badges
+      - if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+        continue-on-error: true
+        run: nix run .#ci-badges -- publish badges

@@ -211,14 +211,14 @@
         "lastModified": 1792213989,
         "narHash": "sha256-i6YzKO35Hm4DSLNNJaXaI5HuE2wStC5IvYQErZFiR/Q=",
         "owner": "axelhamil",
-        "repo": "nixos-starter",
+        "repo": "nixos-forge",
         "rev": "cd2dc1708f787f167b5f0c45c2c928d6a5b8b969",
         "type": "github"
       },
       "original": {
         "owner": "axelhamil",
         "ref": "main",
-        "repo": "nixos-starter",
+        "repo": "nixos-forge",
         "type": "github"
       }
     },

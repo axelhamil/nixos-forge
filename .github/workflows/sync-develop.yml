@@ -9,15 +9,21 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      - id: bot
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
       - uses: actions/checkout@v7
         with:
           ref: develop
           fetch-depth: 0
+          token: ${{ steps.bot.outputs.token }}
       - uses: cachix/install-nix-action@v31
       - run: nix run .#sync-develop

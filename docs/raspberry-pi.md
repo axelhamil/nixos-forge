@@ -2,6 +2,8 @@
 
 A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modules, plus a board module and the `pi` profile. Board support comes from [nixos-raspberrypi](https://github.com/nvmd/nixos-raspberrypi) (vendor kernel, firmware, `config.txt`, bootloader). The host builds an SD card image.
 
+This page takes a Pi from the example host to a flashed card, then keeps it up to date without making it compile anything.
+
 ## Use it
 
 [`modules/hosts/example-pi/default.nix`](../modules/hosts/example-pi/default.nix) is the example: `system = "aarch64-linux"`, `profile = "pi"`, the hardware `raspberry-pi-5` (or `raspberry-pi-4`), the feature `ssh`, and a user. Rename the host and the user as for any host, and give your person an SSH key in `modules/users/<you>/default.nix`: a Pi starts headless, and SSH refuses passwords.
@@ -17,7 +19,7 @@ A fork without a Pi deletes `modules/hosts/example-pi` and the `nixos-raspberryp
 - **Board modules** `raspberry-pi-4` and `raspberry-pi-5`: firmware partition on `/boot/firmware`, ext4 root grown to the card at first boot, and the `raspberrypi-eeprom` tools. The kernel and firmware are built from this flake's nixpkgs, so they follow the lock updates. ZFS does not build against the vendor kernel.
 - **`pi` profile**: the `server` profile, builds sent to the builders in `nix.buildMachines`, passwordless `sudo` for `wheel` (the only way in is an SSH key), a 15 s hardware watchdog, the journal capped at 100 MB, and no NixOS manual.
 
-The Pi has no `disk`: no LUKS, btrfs or wiped `/` on an SD card. `ssh`, `secrets`, `audio` and the home modules work as on any host.
+The Pi has no `disk`: no LUKS, btrfs or wiped `/` on an SD card. `ssh`, `secrets`, the `audio` hardware module and the apps work as on any host.
 
 ## Build and flash the image
 

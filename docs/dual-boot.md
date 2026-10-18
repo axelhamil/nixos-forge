@@ -7,7 +7,7 @@ features = [ "disk" "secure-boot" "dual-boot" ];
 module.dualBoot.windowsPartition = "/dev/disk/by-uuid/0123456789ABCDEF";
 ```
 
-It works with and without `secure-boot`, with Windows on its own disk or on the same disk as NixOS.
+It works with and without `secure-boot`, with Windows on its own disk or on the same disk as NixOS. This page explains how Windows starts, both install layouts, how to read Windows from NixOS, and what to do when the menu misbehaves.
 
 ## How Windows starts
 

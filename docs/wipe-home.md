@@ -1,6 +1,8 @@
 # Start `/home` empty at every boot
 
-A host with `disk` that adds `wipe-home` to its features forgets `/home` like `/`: every boot starts from an empty home, and only the paths you declared come back.
+A host with `disk` that adds `wipe-home` to its features forgets `/home` like `/`: every boot starts from an empty home, and only the paths you declared come back. No more mystery dotfiles piling up for years.
+
+This page shows what happens at boot, how to declare what you keep, how to find what you forgot, and how to switch a home already in use.
 
 ```nix
 features = [ "disk" "wipe-home" ];
@@ -17,7 +19,7 @@ features = [ "disk" "wipe-home" ];
 
 Declared paths live in `/persist/home/<you>` and are bind-mounted into your home at boot. The starter's modules already declare their own state when `wipe-home` is on:
 
-| Module | Path |
+| Declared by | Path |
 |---|---|
 | `base` | `~/.ssh`, `~/.gnupg` and `~/.config/gh`, mode `0700`, in every home |
 | `update` | the host's `flake` checkout, when it is a path in `/home/<you>/` (do not list it again) |

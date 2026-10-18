@@ -1,6 +1,6 @@
 # Hibernate
 
-A host with `disk` that adds `hibernate` to its features can hibernate, and closing the lid suspends, then hibernates after a while.
+Close the lid, walk away, come back to the same session days later. A host with `disk` that adds `hibernate` to its features can hibernate, and closing the lid suspends, then hibernates after a while. This page covers what it sets up, how to add it to a machine already installed, and how it lives with Secure Boot.
 
 ```nix
 features = [ "disk" "hibernate" ];
@@ -35,4 +35,4 @@ Changing `hibernate.swapSize` later also takes a new swap file: `swapoff /swap/s
 
 Linux refuses to hibernate under kernel lockdown, since nothing signs the image. NixOS kernels are built without the lockdown module (`SECURITY_LOCKDOWN_LSM` off) and lanzaboote does not turn it on, so hibernation works with `secure-boot`. A kernel built with that module and booted with `lockdown=integrity` or `confidentiality` loses it.
 
-The image sits inside LUKS, so it is encrypted at rest. With a TPM2 token, the disk opens on its own at resume like at boot: the session is then guarded by the screen lock, which the `lock` module turns on before sleeping.
+The image sits inside LUKS, so it is encrypted at rest. With a TPM2 token, the disk opens on its own at resume like at boot: the session is then guarded by the screen lock, which the `lock` app turns on before sleeping when the host or the person lists it.

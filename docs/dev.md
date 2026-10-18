@@ -1,6 +1,6 @@
 # Dev base
 
-What every host gets to manage Nix, and the opt-in modules for development machines.
+The Nix housekeeping every host gets for free, then the opt-in modules that turn a machine into a dev box: containers, VMs, foreign binaries and per-project shells.
 
 ## Every host
 

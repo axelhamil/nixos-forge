@@ -1,0 +1,44 @@
+{
+  "report-green": [
+    "The forge is warm and every blade rang true on the anvil.",
+    "Speak, friend, and enter: every door of this change opens.",
+    "Narvi checked each rune twice. The doors hold.",
+    "Durin would nod at this one. Every machine stands.",
+    "Hammers down, lanterns up: the whole hall passed its trial.",
+    "Mithril, not tin. Every test held its edge.",
+    "Not a single crack in the stone this time.",
+    "The bellows breathed, the metal sang, the machines booted."
+  ],
+  "report-red": [
+    "A crack in the stone. Narvi marked where to strike next.",
+    "Even the doors of Durin took more than one try. Here is the flaw.",
+    "The forge spat a spark. The details below say which one.",
+    "Something did not temper right. Back to the anvil, the notes are below.",
+    "A rune is out of place. Narvi traced it for you.",
+    "The hall echoes with one wrong note. Let us find it together.",
+    "No shame in a bent blade, only in not reforging it. Here is the bend."
+  ],
+  "lock-pr": [
+    "Fresh ore from the deep mines: the inputs moved.",
+    "Narvi sharpened the tools of the week.",
+    "New metal for the forge, same old doors.",
+    "The lanterns were refilled, and nixpkgs with them.",
+    "A weekly sweep of the halls: every input brought up to date.",
+    "The mines of nixpkgs gave up new ore this week."
+  ],
+  "upstream-pr": [
+    "A messenger from the forge where this fork was born.",
+    "The elder smiths shipped a new release. Narvi carried it here.",
+    "Word from upstream: new runes to carve into your doors.",
+    "The first forge has been busy. Here is what it made.",
+    "A new stone from the quarry of the starter, ready to set."
+  ],
+  "release": [
+    "A new release, forged and tempered.",
+    "Fresh from the anvil, cooled and ready.",
+    "Narvi stamped his mark on another version.",
+    "The doors were polished once more. Speak, friend, and upgrade.",
+    "Another blade off the forge, tested in every VM it could find.",
+    "The hammers rest: a new version leaves the hall."
+  ]
+}

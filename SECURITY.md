@@ -6,7 +6,7 @@ Only the latest release is supported.
 
 ## Reporting a vulnerability
 
-Report it through [GitHub private vulnerability reporting](https://github.com/axelhamil/nixos-starter/security/advisories/new). Do not open a public issue.
+Report it through [GitHub private vulnerability reporting](https://github.com/axelhamil/nixos-forge/security/advisories/new). Do not open a public issue.
 
 ## Scope
 

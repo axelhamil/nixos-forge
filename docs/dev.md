@@ -1,6 +1,6 @@
 # Dev base
 
-What every host gets to manage Nix, and the opt-in modules for development machines.
+The Nix housekeeping every host gets for free, then the opt-in modules that turn a machine into a dev box: containers, VMs, foreign binaries and per-project shells.
 
 ## Every host
 
@@ -27,7 +27,7 @@ Gotchas:
 
 ## `libvirt` (opt-in)
 
-libvirtd with unprivileged QEMU, UEFI firmware, swtpm (for guests that need a TPM, such as Windows 11), virtiofs, USB redirection and virt-manager. Add your user to `libvirtd` and start the NAT network once:
+libvirtd with unprivileged QEMU, UEFI firmware, swtpm (for guests that need a TPM, such as Windows 11), virtiofs, USB redirection and virt-manager. Add your user to `libvirtd` in the host and start the NAT network once:
 
 ```nix
 users.<you>.groups = [ "libvirtd" ];
@@ -42,5 +42,7 @@ virsh -c qemu:///system net-start default
 
 ## `nix-ld` and `direnv` (opt-in)
 
-- **`nix-ld`** runs dynamically linked binaries not built for NixOS (editor language servers, prebuilt npm or pip binaries, VS Code server). Add missing libraries to `programs.nix-ld.libraries`.
+`nix-ld` is a feature, `direnv` an app: `features = [ "nix-ld" ]; apps = [ "direnv" ];`.
+
+- **`nix-ld`** runs dynamically linked binaries not built for NixOS (editor language servers, prebuilt npm or pip binaries, VS Code server). Add missing libraries to `programs.nix-ld.libraries`. AppImages run by their name too (`./App.AppImage`), through `appimage-run` registered with binfmt.
 - **`direnv`** with nix-direnv: `use flake` in a project's `.envrc` loads its dev shell on `cd`, cached.

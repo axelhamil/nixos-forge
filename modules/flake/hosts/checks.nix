@@ -1,7 +1,7 @@
 { lib, config, ... }:
 
 let
-  inherit (config.helpers) hostsOn hasDisk;
+  inherit (config.helpers) hostsOn hasDisk testRevision;
 in
 {
   perSystem =
@@ -11,6 +11,8 @@ in
         name: host:
         let
           nixos = config.flake.nixosConfigurations.${name}.config;
+          tested =
+            (config.flake.nixosConfigurations.${name}.extendModules { modules = [ testRevision ]; }).config;
           homeManagerUnits = lib.filter (lib.hasPrefix "home-manager-") (
             lib.attrNames nixos.systemd.services
           );
@@ -20,15 +22,21 @@ in
           withoutDisko =
             { options, ... }:
             {
-              imports = [ host.module ];
+              imports = [
+                host.module
+                testRevision
+              ];
               config = lib.optionalAttrs (options ? disko) { disko.enableConfig = false; };
             };
         in
-        (
+        {
+          "${name}-toplevel" = nixos.system.build.toplevel;
+        }
+        // (
           if hasSdImage then
             {
               "${name}-sd-image" = pkgs.runCommand "${name}-sd-image" { } ''
-                for image in ${nixos.system.build.sdImage}/sd-image/*.img*; do
+                for image in ${tested.system.build.sdImage}/sd-image/*.img*; do
                   test -s "$image"
                   echo "$(basename "$image") $(stat -c %s "$image")" >> $out
                 done
@@ -36,20 +44,23 @@ in
             }
           else
             {
-              "${name}-toplevel" = nixos.system.build.toplevel;
-
               "${name}-boots" = pkgs.testers.runNixOSTest {
                 name = "${name}-boots";
                 node.pkgsReadOnly = false;
                 nodes.machine = withoutDisko;
                 testScript = lib.concatLines (
-                  [ (waitForUnit "multi-user.target") ] ++ map waitForUnit homeManagerUnits ++ [ host.testScript ]
+                  [ (waitForUnit "multi-user.target") ]
+                  ++ map waitForUnit homeManagerUnits
+                  ++ [
+                    (builtins.readFile ./boot-time.py)
+                    host.testScript
+                  ]
                 );
               };
             }
         )
         // lib.optionalAttrs (hasDisk name) {
-          "${name}-disk" = nixos.system.build.installTest;
+          "${name}-disk" = tested.system.build.installTest;
         }
       ) (hostsOn system);
     };

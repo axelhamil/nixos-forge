@@ -1,0 +1,12 @@
+machine.wait_for_unit("multi-user.target")
+machine.succeed("swapon --show=NAME --noheadings | grep -qx /dev/zram0")
+machine.wait_until_succeeds("grep -q ^lavd_ /sys/kernel/sched_ext/root/ops")
+machine.succeed("powerprofilesctl get")
+machine.succeed("findmnt -no FSTYPE /tmp | grep -qx tmpfs")
+machine.wait_for_unit("systemd-oomd.service")
+machine.succeed("systemctl show -p ManagedOOMMemoryPressure -- -.slice | grep -qx ManagedOOMMemoryPressure=kill")
+machine.succeed("systemctl show -p ManagedOOMPreference nix-daemon.service | grep -qx ManagedOOMPreference=avoid")
+machine.wait_for_unit("NetworkManager.service")
+for unit in ["bluetooth.service", "cups.socket", "avahi-daemon.service", "fwupd.service"]:
+    machine.fail(f"systemctl cat {unit}")
+machine.fail("systemctl --global cat pipewire.socket")

@@ -7,18 +7,20 @@ target_device=""
 passphrase_file=""
 passphrase=""
 assume_yes=false
+beside_windows=false
 reboot_after=true
 declare -A password_files=()
 declare -A password_hashes=()
 
 usage() {
   cat <<EOF
-Usage: install-host [--disk DEVICE] [--passphrase-file FILE] [--password-file USER=FILE]... [--yes] [--no-reboot]
+Usage: install-host [--disk DEVICE] [--beside-windows] [--passphrase-file FILE] [--password-file USER=FILE]... [--yes] [--no-reboot]
 
-Installs $HOST_NAME on a whole disk and erases everything on it.
+Installs $HOST_NAME on a whole disk and erases everything on it, or beside Windows.
 Every value not given on the command line is asked for, unless --yes is set.
 
   --disk DEVICE              disk to erase, such as /dev/nvme0n1
+  --beside-windows           keep Windows on the disk: NixOS goes in its free space and shares its ESP (docs/dual-boot.md)
   --passphrase-file FILE     file holding the disk encryption passphrase
   --password-file USER=FILE  file holding the login password of USER
   --yes                      ask nothing: erase without confirmation, fail on a missing value, reboot at the end
@@ -49,6 +51,10 @@ while [ $# -gt 0 ]; do
       entry=${2:?--password-file needs USER=FILE}
       password_files[${entry%%=*}]=${entry#*=}
       shift 2
+      ;;
+    --beside-windows)
+      beside_windows=true
+      shift
       ;;
     --yes)
       assume_yes=true
@@ -158,12 +164,13 @@ hash_password() {
 }
 
 confirm_erase() {
-  local typed
+  local typed fate="erased entirely"
+  [ "$beside_windows" != true ] || fate="Windows kept, NixOS in its free space"
   say "Ready to install"
-  printf '  Host:   %s\n  Disk:   %s (%s), erased entirely\n  Users:  %s\n\n' \
-    "$HOST_NAME" "$disk" "$(describe "$disk")" "${USERS[*]}" >&2
-  read -rp "Type $disk to erase it and install: " typed
-  [ "$typed" = "$disk" ] || fail "the name did not match, nothing was erased."
+  printf '  Host:   %s\n  Disk:   %s (%s), %s\n  Users:  %s\n\n' \
+    "$HOST_NAME" "$disk" "$(describe "$disk")" "$fate" "${USERS[*]}" >&2
+  read -rp "Type $disk to install on it: " typed
+  [ "$typed" = "$disk" ] || fail "the name did not match, nothing was changed."
 }
 
 release_target() {
@@ -180,8 +187,16 @@ for user in "${!password_files[@]}"; do
   [[ " ${USERS[*]} " == *" $user "* ]] || fail "$user is not a user of $HOST_NAME (${USERS[*]})."
 done
 
+if [ "$beside_windows" = true ] && [ "$DUAL_BOOT" != true ]; then
+  fail "$HOST_NAME does not import the dual-boot feature, so Windows would be missing from its boot menu. Add \"dual-boot\" to its features, rebuild the installer, then run again."
+fi
+
 say "Install $HOST_NAME"
-echo "This installer erases one whole disk and installs $HOST_NAME on it, encrypted." >&2
+if [ "$beside_windows" = true ]; then
+  echo "This installer keeps Windows and installs $HOST_NAME, encrypted, in the free space of its disk." >&2
+else
+  echo "This installer erases one whole disk and installs $HOST_NAME on it, encrypted." >&2
+fi
 
 if [ -z "$disk" ]; then
   [ "$assume_yes" != true ] || fail "--yes needs --disk."
@@ -221,8 +236,13 @@ ln -sfn "$target_device" "$TARGET_LINK"
   printf '%s' "$passphrase" >"$PASSPHRASE_FILE"
 )
 
-say "Erasing $disk and creating the encrypted layout"
-"$DISKO" --yes-wipe-all-disks
+if [ "$beside_windows" = true ]; then
+  say "Creating the encrypted layout beside Windows on $disk"
+  "$BESIDE_WINDOWS" "$target_device" "$SYSTEM"
+else
+  say "Erasing $disk and creating the encrypted layout"
+  "$DISKO" --yes-wipe-all-disks
+fi
 
 install -d -m 700 /mnt/persist/passwords
 for user in "${USERS[@]}"; do

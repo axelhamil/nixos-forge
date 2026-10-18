@@ -5,16 +5,16 @@ on:
   schedule:
     - cron: "0 7 * * 1"
 
-env:
-  UPSTREAM: axelhamil/nixos-starter
-
 permissions:
   contents: read
 
 jobs:
   sync:
-    if: github.repository != 'axelhamil/nixos-starter'
+    if: github.repository != 'axelhamil/nixos-forge' && vars.SYNC_UPSTREAM == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - id: bot
         uses: actions/create-github-app-token@v3
@@ -29,4 +29,10 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
-        run: nix run .#sync-upstream -- "$UPSTREAM"
+          UPSTREAM: ${{ vars.UPSTREAM || 'axelhamil/nixos-forge' }}
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: nix run .#upstream -- --yes "$UPSTREAM"

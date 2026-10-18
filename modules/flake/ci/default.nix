@@ -15,6 +15,8 @@ let
     map (check: {
       inherit check system;
       runner = runners.${system};
+      retry = config.flake.checks.${system}.${check} ? driver;
+      baseInput = config.flake.checks.${system}.${check}.baseInput or null;
     }) (buildChecksOn system);
 
   kernelsOn =
@@ -28,10 +30,22 @@ let
   hostNamesOn = system: lib.attrNames (hostsOn system);
 
   systemsWithHosts = lib.filter (system: hostsOn system != { }) config.systems;
+
+  checks = import ./_checks.nix { inherit lib; };
+
+  hostChecks = lib.mapAttrs (
+    name: host: checks.hostChecksOf config.flake.checks.${host.system} name
+  ) config.configurations.nixos;
+
+  matrix = lib.concatMap jobsOn config.systems;
+
+  descriptions = lib.genAttrs (lib.unique (map (job: job.check) matrix ++ [ "treefmt" ])) (
+    checks.describe hostChecks
+  );
 in
 {
   flake.ci = {
-    matrix = lib.concatMap jobsOn config.systems;
+    inherit matrix hostChecks descriptions;
     hosts = lib.genAttrs config.systems hostNamesOn;
     kernels = lib.genAttrs config.systems kernelsOn;
     closureMatrix = map (system: {
@@ -62,13 +76,49 @@ in
         text = builtins.readFile ./ci-plan.sh;
       };
 
-      packages.sync-upstream = pkgs.writeShellApplication {
-        name = "sync-upstream";
+      packages.ci-build = import ./_ci-build.nix {
+        inherit pkgs;
+        inherit (pkgs) nix;
+      };
+
+      packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
+
+      packages.ci-badges = import ./_ci-badges.nix { inherit pkgs; };
+
+      packages.ci-boot-time = pkgs.writeShellApplication {
+        name = "ci-boot-time";
+        runtimeInputs = [
+          pkgs.nix
+          pkgs.jq
+          pkgs.coreutils
+        ];
+        text = builtins.readFile ./ci-boot-time.sh;
+      };
+
+      packages.reproducibility = import ./_reproducibility.nix {
+        inherit pkgs;
+        inherit (pkgs) nix;
+      };
+
+      packages.ci-promote = pkgs.writeShellApplication {
+        name = "ci-promote";
         runtimeInputs = [
           pkgs.git
-          pkgs.gh
+          pkgs.jq
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.openssh
         ];
-        text = builtins.readFile ./sync-upstream.sh;
+        text = builtins.readFile ./ci-promote.sh;
+      };
+
+      packages.ci-mirror = pkgs.writeShellApplication {
+        name = "ci-mirror";
+        runtimeInputs = [
+          pkgs.git
+          pkgs.coreutils
+        ];
+        text = builtins.readFile ./ci-mirror.sh;
       };
 
       packages.sync-develop = pkgs.writeShellApplication {

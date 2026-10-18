@@ -4,7 +4,7 @@ Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.ni
 
 ## apps
 
-Apps for every user of the machine: an app of ` modules/apps/<name> ` when there is one, else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
+Apps for every user of the machine: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` hyprland ` is the window manager; its bar, launcher, terminal and lock screen are apps of their own), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
 
 
 
@@ -25,6 +25,7 @@ list of string
 
 ```nix
 [
+  "hyprland"
   "firefox"
   "vlc"
 ]
@@ -65,7 +66,7 @@ null
 
 
 
-NixOS modules the machine turns on, by name: anything a file under ` modules/ ` publishes as ` flake.modules.nixos.<name> ` (` disk `, ` secure-boot `, ` wipe-home `, ` hyprland `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\. ` disk ` is the encrypted btrfs layout with ` / ` wiped at boot; the disk it erases is chosen at install (installer ISO, ` disko-install --disk main `, or ` disk.device ` in ` module `), never in the registry\.
+NixOS modules the machine turns on, by name: the features of ` modules/features/<name> ` (` disk `, ` secure-boot `, ` wipe-home `, ` plymouth `, ` docker `, ` libvirt `, ` ssh `, ` secrets `, …)\. ` disk ` is the encrypted btrfs layout with ` / ` wiped at boot; the disk it erases is chosen at install (installer ISO, ` disko-install --disk main `, or ` disk.device ` in ` module `), never in the registry\.
 
 
 
@@ -88,7 +89,6 @@ list of string
 [
   "disk"
   "secure-boot"
-  "hyprland"
   "docker"
 ]
 ```
@@ -99,7 +99,7 @@ list of string
 
 
 
-Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:alice/nixos `, which the ` auto-upgrade ` feature needs\.
+Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:alice/nixos `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\.
 
 
 
@@ -128,7 +128,7 @@ null
 
 
 
-Hardware of the machine, by name: a module of the starter (` nvidia `, ` amd-gpu `, ` intel-gpu `, ` raspberry-pi-4 `, ` raspberry-pi-5 `, …) or a [nixos-hardware](https://github\.com/NixOS/nixos-hardware) profile (` common-pc-ssd `, ` framework-13-7040-amd `, …)\.
+Hardware of the machine, by name: a module of ` modules/features/hardware/<name> ` (` nvidia `, ` amd-gpu `, ` intel-gpu `, ` raspberry-pi-4 `, ` raspberry-pi-5 `, …) or a [nixos-hardware](https://github\.com/NixOS/nixos-hardware) profile (` common-pc-ssd `, ` framework-13-7040-amd `, …)\.
 
 
 
@@ -214,6 +214,37 @@ string
 
 
 
+## mirrors
+
+
+
+Extra git URLs of the fork, tried in order when the first one is unreachable: ` https:// `, ` ssh:// `, an scp-like ` user@host:path `, ` file:// ` or an absolute path\. ` http:// ` and ` git:// ` are refused, since they are not encrypted\.
+
+
+
+*Type:*
+list of string
+
+
+
+*Default:*
+
+```nix
+[ ]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  "https://codeberg.org/alice/nixos.git"
+]
+```
+
+
+
 ## module
 
 
@@ -239,7 +270,7 @@ module
 
 
 
-Role of the machine: ` desktop `, ` laptop `, ` server ` or ` pi ` (` modules/profiles `)\.
+Role of the machine: ` desktop `, ` laptop `, ` server ` or ` pi `, the profiles of ` modules/features/profiles/<name> `\.
 
 
 
@@ -260,6 +291,37 @@ null
 
 ```nix
 "laptop"
+```
+
+
+
+## signers
+
+
+
+SSH public keys that sign the deploy commits CI promotes (the secret ` DEPLOY_SIGNING_KEY `, which ` nix run .#init ` generates)\. When set, ` auto-upgrade ` applies a ` deploy/<host> ` commit only when it carries a valid signature from one of them, and skips a source that serves anything else\. Empty, it trusts whatever its sources serve, and ` doctor ` warns\.
+
+
+
+*Type:*
+list of string
+
+
+
+*Default:*
+
+```nix
+[ ]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyOfTheDeploySecret deploy"
+]
 ```
 
 
@@ -360,7 +422,7 @@ string
 
 
 
-Accounts of the machine, by login name\. Each one gets home-manager with the ` home ` modules it lists\.
+Accounts of the machine, by login name: each one is a person of ` modules/users/<name> ` (the ` users ` of the flake), with their identity, apps and home-manager ` module `, plus the host’s ` apps `\. The fields below are what changes from one machine to another\.
 
 
 
@@ -402,7 +464,7 @@ true
 
 
 
-Apps for this user only: an app of ` modules/apps/<name> ` when there is one, else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\.
+Apps for this user on this machine only, added to the person’s ` apps `: an app of ` modules/apps/<name> `, else the nixpkgs package of that name\. Unfree packages named here are allowed\.
 
 
 
@@ -423,67 +485,9 @@ list of string
 
 ```nix
 [
-  "firefox"
-  "obsidian"
+  "stow"
+  "kdePackages.kate"
 ]
-```
-
-
-
-## users\.\<name>\.email
-
-
-
-Email used as git author email\.
-
-
-
-*Type:*
-null or string
-
-
-
-*Default:*
-
-```nix
-null
-```
-
-
-
-*Example:*
-
-```nix
-"alice@example.org"
-```
-
-
-
-## users\.\<name>\.fullName
-
-
-
-Full name, shown by the greeter and used as git author name\.
-
-
-
-*Type:*
-string
-
-
-
-*Default:*
-
-```nix
-""
-```
-
-
-
-*Example:*
-
-```nix
-"Alice Example"
 ```
 
 
@@ -519,11 +523,13 @@ list of string
 
 
 
-## users\.\<name>\.home
+# Person options
 
+Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the person a host gives an account with `users.<person>`. Generated from [`modules/flake/hosts/users.nix`](../modules/flake/hosts/users.nix).
 
+## apps
 
-home-manager modules the user imports, by name: the starter’s (` modules/home/<name> `) or your own, such as ` flake.modules.homeManager.<user> ` in ` modules/users/<user> `\.
+Apps that follow the person on every host, none by default: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` zsh ` also becomes the login shell), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\. A host adds its own with ` users.<name>.apps `\.
 
 
 
@@ -535,9 +541,7 @@ list of string
 *Default:*
 
 ```nix
-[
-  "shell"
-]
+[ ]
 ```
 
 
@@ -546,18 +550,112 @@ list of string
 
 ```nix
 [
-  "shell"
-  "stow"
+  "zsh"
+  "git"
+  "neovim"
+  "ripgrep"
 ]
 ```
 
 
 
-## users\.\<name>\.sshKeys
+## email
 
 
 
-Public SSH keys allowed to log in as this user\.
+Email used as git author email\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+
+```nix
+null
+```
+
+
+
+*Example:*
+
+```nix
+"alice@example.org"
+```
+
+
+
+## fullName
+
+
+
+Full name, shown by the greeter and used as git author name\.
+
+
+
+*Type:*
+string
+
+
+
+*Default:*
+
+```nix
+""
+```
+
+
+
+*Example:*
+
+```nix
+"Alice Example"
+```
+
+
+
+## module
+
+
+
+The person’s own home-manager config, on every host that gives them an account\. Several files under ` modules/users/<name> ` may each set part of it\.
+
+
+
+*Type:*
+module
+
+
+
+*Default:*
+
+```nix
+{ }
+```
+
+
+
+*Example:*
+
+```nix
+{ pkgs, ... }:
+{
+  home.packages = [ pkgs.gimp ];
+  programs.git.settings.alias.st = "status";
+}
+
+```
+
+
+
+## sshKeys
+
+
+
+Public SSH keys allowed to log in as this person, on every host that gives them an account\.
 
 
 

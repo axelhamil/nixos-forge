@@ -1,6 +1,9 @@
 # Install on a machine
 
-The starter is developed and tested in VMs. This page is the path for your fork when you install it on real hardware. A host that lists `disk` in `features` gets the encrypted layout below, and **the install erases the whole disk it is given**: read every step before running one.
+From a host file to a real machine that boots, unlocks itself with the TPM2 and rolls back a bad upgrade on its own. The starter is developed and tested in VMs; this page is the path for your fork when you install it on real hardware.
+
+> [!WARNING]
+> A host that lists `disk` in `features` gets the encrypted layout below, and **the install erases the whole disk it is given**. Read every step before running one.
 
 The registry never names that disk: it is chosen at install time. Three ways to install:
 
@@ -30,7 +33,11 @@ btrfs subvolumes, mounted with `compress=zstd` and `noatime` (`@swap` with `noat
 | `@snapshots` | `/.snapshots` | yes: hourly snapshots of `@home` and `@persist` ([services.md](services.md#snapshots-btrbk)) |
 | `@swap` | `/swap` | yes: only with `hibernate`, a swap file for the hibernation image, never snapshotted ([hibernate.md](hibernate.md)) |
 
-Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home`, `/persist` and `/.snapshots` is gone unless it is declared in `environment.persistence."/persist"`: logs, `/var/lib/nixos`, `/var/lib/systemd`, `machine-id` and the dhcpcd lease and DUID (`modules/system/impermanence`), NetworkManager and CUPS state (`modules/profiles/desktop`). Declare what your own modules need next to them, in the same option; `sudo doctor` lists what the next boot would erase ([doctor.md](doctor.md)).
+Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home`, `/persist` and `/.snapshots` is gone unless it is declared in `environment.persistence."/persist"`:
+
+- **Kept by the starter**: logs, `/var/lib/nixos`, `/var/lib/systemd`, `machine-id` and the dhcpcd lease and DUID (`modules/features/base/impermanence`), NetworkManager state (`modules/features/profiles/desktop`).
+- **Fresh at every boot, on purpose**: CUPS (with `printing`), power-profiles-daemon and fwupd (with `firmware`). Printers are found again through Avahi, the power profile is the default one, firmware metadata is fetched again.
+- **Yours**: declare what your own modules need next to them, in the same option. `sudo doctor` lists what the next boot would erase ([doctor.md](doctor.md)).
 
 Users are immutable (`users.mutableUsers = false`): passwords come from files under `/persist/passwords/`, never from `passwd`.
 
@@ -64,6 +71,8 @@ If you quit it, `install-host` starts it again. Without any question, for script
 install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file alice=./alice-password --yes --no-reboot
 ```
 
+To keep Windows on the disk, a host with `dual-boot` takes `install-host --beside-windows`: NixOS goes in the free space and shares the Windows ESP ([dual-boot.md](dual-boot.md#windows-on-the-same-disk)).
+
 `--yes` asks nothing: it skips the confirmation, fails before erasing anything when a disk, passphrase or password is missing or empty, and reboots at the end unless `--no-reboot` is set. Without `--yes`, a value left out is asked for.
 
 The hardware report comes from [nixos-facter](https://github.com/nix-community/nixos-facter) and is kept in `/persist/facter.json`. Copy it next to your host file, `git add` it and name it in the host, as the assistant reminds you at the end: nixpkgs' facter module then turns on the initrd kernel modules, graphics, network, Bluetooth and virtualisation support that machine needs.
@@ -73,6 +82,25 @@ facter = ./facter.json;
 ```
 
 The prebuilt system boots on common hardware (SATA, NVMe and USB disks are in the default initrd); a machine that needs more, such as an unusual disk controller, needs the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`) and a new ISO. A host that imports `secrets` needs its age key before the first boot: use [disko-install](#by-hand-with-disko-install) for it, or create the key on the installed machine and rebuild ([services.md](services.md#secrets-secrets-opt-in)).
+
+## Try the install in a VM
+
+Before you touch real hardware, run the whole installer of a host in a local QEMU window, from your fork:
+
+```sh
+nix run .#try-install -- <host>
+```
+
+It builds `.#installer-<host>` and boots it in a machine that looks like a new one: UEFI firmware with Secure Boot in setup mode (the [OVMF](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) build the `<host>-disk` checks use), a software TPM2 ([swtpm](https://github.com/stefanberger/swtpm)) and a blank disk image. The assistant runs as on a USB stick: pick the only disk, type the passphrase and the passwords. At the first boot of the installed system, a host with `secure-boot` enrolls its keys and the TPM2; at the second, the disk unlocks without the passphrase.
+
+The disk image, the firmware variables and the TPM state are kept in `$XDG_STATE_HOME/try-install/<host>/` (`~/.local/state` by default), so running the command again boots the installed system: the disk comes first in the boot order, the ISO only boots while the disk is blank.
+
+| Option | Effect |
+|---|---|
+| `--disk-size 64G` | size of the disk image when it is created (default `32G`; it grows as it fills) |
+| `--reset` | erase the disk image, the firmware variables and the TPM, then install again from scratch |
+
+It needs a graphical session and KVM: it stops when `/dev/kvm` is missing or not writable, since an install with an emulated CPU takes hours. It runs on `x86_64-linux` only. It never takes a device: any argument starting with `/dev/` is refused, since it only installs on its own disk image.
 
 ## Remote install with nixos-anywhere
 
@@ -137,6 +165,8 @@ From any NixOS installer ISO, with your fork cloned in `~/nixos`:
 
    `Secure Boot: enabled (user)` means the firmware only runs what your keys signed. `sbctl verify` lists kernels under `/EFI/nixos/` as unsigned: that is expected, the signed lanzaboote stub checks them by hash.
 
+   On that first boot, `systemd-bless-boot.service` fails with `Can't find boot counter source file`, since lanzaboote has just signed the boot files again under a new name, and `doctor` lists it among the failed units until the next reboot. It is harmless: the next boot blesses the fresh `+3` entry.
+
    If the machine later refuses to boot with a Secure Boot violation (a firmware update restored the factory keys), reset the firmware to setup mode: systemd-boot enrolls the keys from `/boot/loader/keys/auto` again.
 
 2. The TPM now unlocks the disk. On a host with `secure-boot`, the `tpm2-enroll` service does it at the first boot where Secure Boot is enforced (the boot after the keys are enrolled): you type the passphrase once more, and the next boots open the disk without it. The passphrase stays as a fallback. Check it:
@@ -162,3 +192,17 @@ From any NixOS installer ISO, with your fork cloned in `~/nixos`:
    ```
 
    On a host without `secure-boot`, nothing is enrolled automatically: run the same command without `--tpm2-with-pin=yes` yourself, knowing PCR 7 does not protect against another boot chain there, so the TPM only protects a disk taken out of the machine.
+
+## Going back to the previous generation
+
+A host with `disk` writes every new generation to the boot menu with 3 tries ([Automatic Boot Assessment](https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/): `boot.loader.systemd-boot.bootCounting`, or `boot.lanzaboote.bootCounting.initialTries` with `secure-boot`). Each boot of that entry spends a try; once the boot reaches `boot-complete.target`, `systemd-bless-boot` marks it good and it keeps no counter. An entry whose 3 tries are spent is marked bad, and systemd-boot starts the newest generation that is not bad instead, usually the one before. An entry whose content changes when a new generation is installed (the first one gains the `machine-id` after the first boot) is written again with 3 tries, and blessed again the next time it starts.
+
+With `auto-upgrade`, `boot-complete.target` also requires `systemd-boot-check-no-failures.service`: a boot where a unit failed once the default target is reached is not blessed. Without `auto-upgrade`, nothing waits for `multi-user.target`: a boot counts as good once its local file systems are mounted. See where an entry stands:
+
+```sh
+bootctl list
+```
+
+An entry whose file name ends in `+<left>` or `+<left>-<done>` is still being tried, `+0-<done>` is bad and skipped, and one with no `+` is good. A bad generation stays in the menu: pick it by hand to look at its journal (`journalctl -b -1`), then fix the cause and let the next upgrade replace it.
+
+`feature-rollback` and `feature-rollback-secure-boot` prove it: they install a machine, add a generation in `boot` mode whose health check, a service required by `boot-complete.target`, fails while `systemd-boot-check-no-failures` is left out of that target and never runs, check that each of its 3 boots spends a try without being blessed, that the next boot starts the generation before, and that this one keeps no counter. They run on the systemd and lanzaboote of the locked nixpkgs, so a regression in boot counting fails them. `feature-rollback-failed-unit` does the same with a service that fails once `multi-user.target` is reached, which `systemd-boot-check-no-failures` catches.

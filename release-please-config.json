@@ -3,8 +3,23 @@
   "release-type": "simple",
   "include-component-in-tag": false,
   "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
   "prerelease": true,
   "initial-version": "0.1.0",
+  "pull-request-title-pattern": "chore: release ${version}",
+  "pull-request-header": "Merging this PR publishes the release below as a GitHub pre-release.",
+  "pull-request-footer": "Forks: `nix run .#upstream` opens the PR that merges this release, and the `sync-upstream` workflow runs it every Monday ([docs/updates.md](https://github.com/axelhamil/nixos-forge/blob/main/docs/updates.md#your-fork-follows-the-starter)). Read the breaking changes first: each one says how to migrate.",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "revert", "section": "Reverts" },
+    { "type": "refactor", "section": "Refactoring", "hidden": true },
+    { "type": "ci", "section": "CI", "hidden": true },
+    { "type": "chore", "section": "Chores", "hidden": true },
+    { "type": "test", "section": "Tests", "hidden": true }
+  ],
   "packages": {
     ".": {}
   }

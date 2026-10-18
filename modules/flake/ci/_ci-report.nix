@@ -6,6 +6,7 @@ pkgs.writeShellApplication {
     pkgs.jq
     pkgs.coreutils
     pkgs.gawk
+    (import ./narvi/_package.nix { inherit pkgs; })
   ];
   runtimeEnv = {
     CAUSES = ./causes.tsv;

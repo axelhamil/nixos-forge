@@ -82,6 +82,7 @@ Fork it, run `nix run .#init`, turn CI on ([docs/ci.md](docs/ci.md#turn-ci-on-in
 - The same CI on your own hosts: each one is built, booted in a VM and, with `disk`, installed on a blank disk with Secure Boot and TPM2.
 - Your own live badges, published by your CI once it runs on `main` ([docs/ci.md](docs/ci.md#live-badges)).
 - A pull request every Monday with fresh inputs in `flake.lock`, merged on its own once CI is green.
+- Narvi, the voice of your CI: a line of dwarven lore on each report, PR and release, and with Claude Haiku a few plain sentences on what a package diff, a lock update or a release changes ([docs/ci.md](docs/ci.md#narvi)).
 - A package diff on every pull request.
 - Deploy branches signed by your CI with a key `init` generates, which your machines alone accept ([docs/ci.md](docs/ci.md#sign-the-deploy-branches)).
 - `auto-upgrade`, which takes only the version CI validated for that machine and on a host with `disk`, goes back to the previous generation when the new one does not boot ([docs/updates.md](docs/updates.md)).

@@ -99,6 +99,9 @@ SKIPPED='[]'
 CACHE_OUTCOME=success
 LINT_RESULT=success
 RUN_URL=https://github.com/owner/repo/actions/runs/42
+unset ANTHROPIC_API_KEY ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_ID_TOKEN_REQUEST_TOKEN RUNNER_TEMP NARVI_CACHE_DIR
+echo '{}' >silent-narvi.json
+export NARVI_MESSAGES=$PWD/silent-narvi.json
 
 pass_all() {
   mkdir -p "$1"
@@ -317,5 +320,51 @@ expect_first_line long "**Everything works: every machine builds, boots and pass
 [ "$(grep -c '^<details' long.md)" -eq "$(grep -c '^</details>' long.md)" ] || fail "long: a details block is left open"
 report long
 grep -qx "\[U.\] package-20000: 1.0 -> 2.0" long.md || fail "long: the run summary is cut below its limit"
+
+echo '{ "report-green": ["The doors hold."], "report-red": ["A crack in the stone."] }' >narvi.json
+
+pass_all narvi-green
+NARVI_MESSAGES=$PWD/narvi.json report narvi-green
+expect_first_line narvi-green "*The doors hold.*"
+[ "$(sed -n 3p narvi-green.md)" = "**Everything works: every machine builds, boots and passed its tests.**" ] || fail "narvi-green: the verdict is not under the line: $(head -n 3 narvi-green.md)"
+
+pass_all narvi-red
+set_outcome narvi-red example-server-boots failed 2 "$LOGS/assertion.log"
+NARVI_MESSAGES=$PWD/narvi.json report narvi-red --comment
+expect_first_line narvi-red "*A crack in the stone.*"
+[ "$(sed -n 3p narvi-red.md)" = "**1 check failed: example-server would not get this change.**" ] || fail "narvi-red: the verdict is not under the line: $(head -n 3 narvi-red.md)"
+[ "$(grep -c "A crack in the stone" narvi-red.md)" -eq 1 ] || fail "narvi-red: the line is repeated in the details"
+
+PLANNED='' PLAN_RESULT=failure NARVI_MESSAGES=$PWD/narvi.json report narvi-no-plan
+expect_first_line narvi-no-plan "*A crack in the stone.*"
+
+echo ok >stub-mode
+python3 "$STUB" "$PWD/stub-requests.jsonl" "$PWD/stub-port" "$PWD/stub-mode" &
+stub=$!
+trap 'kill "$stub" 2>/dev/null || true' EXIT
+for _ in $(seq 50); do
+  [ -s stub-port ] && break
+  sleep 0.1
+done
+[ -s stub-port ] || fail "the stub server did not start"
+stub_url=http://127.0.0.1:$(cat stub-port)
+
+pass_all summarized
+cp all-green/closure-x86_64-linux.md summarized/
+ANTHROPIC_BASE_URL=$stub_url ANTHROPIC_API_KEY=sk-ant-api-test report summarized
+summary_at=$(grep -n "^The kernel moves to 6.18, Firefox jumps a major version.$" summarized.md | cut -d : -f 1)
+details_at=$(grep -n "^<summary>Package changes per machine</summary>$" summarized.md | cut -d : -f 1)
+[ -n "$summary_at" ] && [ -n "$details_at" ] && [ "$summary_at" -lt "$details_at" ] || fail "summarized: the summary is not above the package diff: $(cat summarized.md)"
+expect_line summarized "**What changes on the machines**, summarized by Claude Haiku from the package diff below:"
+expect_line summarized "new host"
+jq -e 'select(.path == "/v1/messages") | .body.messages[0].content | test("new host")' stub-requests.jsonl >/dev/null || fail "summarized: the package diff was not sent"
+
+echo error >stub-mode
+pass_all api-down
+cp all-green/closure-x86_64-linux.md api-down/
+ANTHROPIC_BASE_URL=$stub_url ANTHROPIC_API_KEY=sk-ant-api-test report api-down 2>api-down.err
+if grep -q "summarized by Claude Haiku" api-down.md; then fail "api-down: a failed call still prints a summary heading"; fi
+expect_line api-down "<summary>Package changes per machine</summary>"
+cmp -s <(grep -v "^$" all-green.md) <(grep -v "^$" api-down.md) || fail "api-down: the report differs from the one without Narvi"
 
 echo "ci-report: all assertions passed"

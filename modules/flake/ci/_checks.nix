@@ -55,6 +55,10 @@ let
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
     apps-once = "an app named by the host and the person is imported once";
     hyprland-alone = "hyprland alone evaluates, warns that no terminal is registered, and binds no key to an app or to audio the host lacks";
+    feature-dual-boot = "Windows on its own disk starts from the systemd-boot menu under Secure Boot, with or without BitLocker or its firmware entry, its disk unchanged and readable from NixOS read-only";
+    feature-dual-boot-same-disk = "NixOS installs beside Windows on one disk over an old LUKS header, refuses an ESP too small, keeps the Windows boot manager when another Windows disk comes and goes, and starts Windows from its menu under Secure Boot with the Windows partitions unchanged";
+    feature-dual-boot-systemd-boot = "without secure-boot, Windows on its own disk starts from the plain systemd-boot menu, with or without BitLocker or its firmware entry";
+    feature-dual-boot-hook-failure = "with lanzaboote, a boot loader install that fails makes the switch fail instead of passing";
     feature-migration = "a machine running `example` from the base revision keeps its state after switching to this version";
     feature-migration-without-disk = "an `example` host without `disk`, here or on the base, gets no migration check and still evaluates";
     feature-rollback-failed-unit = "a generation whose service fails after boot is not blessed and is rolled back";

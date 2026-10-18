@@ -64,6 +64,8 @@ If you quit it, `install-host` starts it again. Without any question, for script
 install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file alice=./alice-password --yes --no-reboot
 ```
 
+To keep Windows on the disk, a host with `dual-boot` takes `install-host --beside-windows`: NixOS goes in the free space and shares the Windows ESP ([dual-boot.md](dual-boot.md#windows-on-the-same-disk)).
+
 `--yes` asks nothing: it skips the confirmation, fails before erasing anything when a disk, passphrase or password is missing or empty, and reboots at the end unless `--no-reboot` is set. Without `--yes`, a value left out is asked for.
 
 The hardware report comes from [nixos-facter](https://github.com/nix-community/nixos-facter) and is kept in `/persist/facter.json`. Copy it next to your host file, `git add` it and name it in the host, as the assistant reminds you at the end: nixpkgs' facter module then turns on the initrd kernel modules, graphics, network, Bluetooth and virtualisation support that machine needs.

@@ -29,6 +29,12 @@ jobs:
           branch: chore/update-flake-lock
           commit-msg: "chore: update flake inputs"
           pr-title: "chore: update flake inputs"
+          pr-body: |
+            Automated changes by the [update-flake-lock](https://github.com/DeterminateSystems/update-flake-lock) GitHub Action.
+
+            ```
+            {{ env.GIT_COMMIT_MESSAGE }}
+            ```
           token: ${{ steps.bot.outputs.token }}
       - if: steps.update.outputs.pull-request-number != ''
         continue-on-error: true

@@ -227,6 +227,7 @@ summarize() {
     '{
       model: $model,
       max_tokens: 400,
+      thinking: { type: "disabled" },
       system: $system,
       messages: [{ role: "user", content: ($task + "\n\n<input>\n" + $input + "\n</input>") }]
     }' >"$work/request.json"

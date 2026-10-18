@@ -95,7 +95,7 @@ request /v1/oauth/token | jq -e '.body == {
   }' >/dev/null || fail "oidc: wrong exchange body: $(request /v1/oauth/token)"
 request /v1/messages | jq -e '.authorization == "Bearer sk-ant-oat01-stub" and ."x-api-key" == "" and ."anthropic-version" == "2023-06-01"' >/dev/null ||
   fail "oidc: the Messages call does not carry the federated token alone: $(request /v1/messages)"
-request /v1/messages | jq -e '.body.model == "claude-haiku-5-5" and .body.max_tokens <= 500 and (.body.system | test("never use a dash")) and (.body.messages[0].content | test("linux 6.12 -> 6.18"))' >/dev/null ||
+request /v1/messages | jq -e '.body.model == "claude-haiku-5-5" and .body.max_tokens <= 500 and .body.thinking == {type: "disabled"} and (.body.system | test("never use a dash")) and (.body.messages[0].content | test("linux 6.12 -> 6.18"))' >/dev/null ||
   fail "oidc: wrong Messages body: $(request /v1/messages)"
 [ "$(jq -s 'map(.path | sub("[?].*"; "")) | join(" ")' requests.jsonl)" = '"/oidc /v1/oauth/token /v1/messages"' ] ||
   fail "oidc: the calls are not GitHub, the exchange, then Messages: $(cat requests.jsonl)"

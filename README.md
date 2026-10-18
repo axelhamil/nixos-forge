@@ -232,7 +232,7 @@ A person (`modules/users/<name>`, every field in [docs/options.md](docs/options.
 
 ## Layout
 
-Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) module, loaded by [import-tree](https://github.com/vic/import-tree): adding a file adds the feature, deleting it removes it.
+Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) module, loaded by [import-tree](https://github.com/vic/import-tree): adding a file adds the feature, deleting it removes it. A path with a segment starting with `_` is skipped: those files are helpers their neighbours import by hand.
 
 ```text
 modules/

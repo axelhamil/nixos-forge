@@ -87,7 +87,7 @@ request /oidc | jq -e '.method == "GET" and (.path | endswith("&audience=https:/
   fail "oidc: GitHub's token was not asked for the Anthropic audience: $(cat requests.jsonl)"
 request /v1/oauth/token | jq -e '.body == {
     grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-    assertion: "jwt-from-github",
+    assertion: "eyJhbGciOiJub25lIn0.eyJzdWIiOiJyZXBvOm93bmVyL3JlcG86cHVsbF9yZXF1ZXN0IiwicmVwb3NpdG9yeSI6Im93bmVyL3JlcG8iLCJyZXBvc2l0b3J5X2lkIjoiNDIiLCJldmVudF9uYW1lIjoicHVsbF9yZXF1ZXN0In0.jwt-from-github",
     federation_rule_id: "fdrl_test",
     organization_id: "00000000-0000-0000-0000-000000000000",
     service_account_id: "svac_test",
@@ -109,6 +109,8 @@ run exchange-fails oidc env ANTHROPIC_API_KEY=sk-ant-api-test "$NARVI" summarize
 request /v1/messages | jq -e '."x-api-key" == "sk-ant-api-test" and .authorization == ""' >/dev/null ||
   fail "exchange-fails: the API key is not used after a refused exchange: $(request /v1/messages)"
 grep -q "token exchange failed" exchange-fails.err || fail "exchange-fails: no warning: $(cat exchange-fails.err)"
+grep -q "Authentication failed; GitHub token: sub=repo:owner/repo:pull_request repository=owner/repo repository_id=42 event=pull_request" exchange-fails.err ||
+  fail "exchange-fails: the warning lacks the API error or the token claims: $(cat exchange-fails.err)"
 
 echo ok >mode
 run api-key env ANTHROPIC_API_KEY=sk-ant-api-test "$NARVI" summarize release diff.md
@@ -161,7 +163,7 @@ started=$(date +%s)
 run slow-exchange oidc env NARVI_TIMEOUT=4 "$NARVI" summarize packages diff.md
 [ $(($(date +%s) - started)) -lt 6 ] || fail "slow-exchange: the calls together took more than one budget"
 [ ! -s slow-exchange.out ] || fail "slow-exchange: printed '$(cat slow-exchange.out)'"
-request /v1/oauth/token | jq -e '.body.assertion == "jwt-from-github"' >/dev/null || fail "slow-exchange: no exchange"
+request /v1/oauth/token | jq -e '.body.assertion == "eyJhbGciOiJub25lIn0.eyJzdWIiOiJyZXBvOm93bmVyL3JlcG86cHVsbF9yZXF1ZXN0IiwicmVwb3NpdG9yeSI6Im93bmVyL3JlcG8iLCJyZXBvc2l0b3J5X2lkIjoiNDIiLCJldmVudF9uYW1lIjoicHVsbF9yZXF1ZXN0In0.jwt-from-github"' >/dev/null || fail "slow-exchange: no exchange"
 
 echo error >mode
 failed_cache=$PWD/failed-cache

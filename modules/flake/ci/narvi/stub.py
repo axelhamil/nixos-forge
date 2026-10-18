@@ -38,7 +38,7 @@ class Stub(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.record("")
         if self.path.startswith("/oidc?") and self.headers.get("authorization") == "Bearer gh-request-token":
-            self.answer(200, {"value": "jwt-from-github"})
+            self.answer(200, {"value": "eyJhbGciOiJub25lIn0.eyJzdWIiOiJyZXBvOm93bmVyL3JlcG86cHVsbF9yZXF1ZXN0IiwicmVwb3NpdG9yeSI6Im93bmVyL3JlcG8iLCJyZXBvc2l0b3J5X2lkIjoiNDIiLCJldmVudF9uYW1lIjoicHVsbF9yZXF1ZXN0In0.jwt-from-github"})
         else:
             self.answer(403, {"message": "no"})
 

@@ -79,6 +79,19 @@ say() {
   jq -r --arg moment "$moment" --argjson index "$((crc % count))" "$lines | .[\$index]" "$messages"
 }
 
+api_error() {
+  jq -r '.error.message // .error_description // .message // empty | tostring | .[0:300]' "$1" 2>/dev/null || true
+}
+
+claims() {
+  jq -r '
+    (.value | split(".")[1]) as $p
+    | $p + ("===" | .[0:((4 - ($p | length) % 4) % 4)])
+    | gsub("-"; "+") | gsub("_"; "/") | @base64d | fromjson
+    | "sub=\(.sub) repository=\(.repository) repository_id=\(.repository_id) event=\(.event_name)"
+  ' "$1" 2>/dev/null || true
+}
+
 within() {
   local left=$((deadline - $(date +%s)))
 
@@ -87,7 +100,7 @@ within() {
     return 1
   fi
 
-  curl -fsS --max-time "$left" "$@"
+  curl -sS --fail-with-body --max-time "$left" "$@"
 }
 
 oidc_auth() {
@@ -124,7 +137,7 @@ oidc_auth() {
     } + (if $workspace != "" then { workspace_id: $workspace } else {} end)' "$work/oidc.json" >"$work/exchange.json"
 
   if ! within -H 'content-type: application/json' --data @"$work/exchange.json" "$base_url/v1/oauth/token" >"$work/token.json" 2>"$work/curl.err"; then
-    warn "the Anthropic token exchange failed: $(cat "$work/curl.err")"
+    warn "the Anthropic token exchange failed: $(cat "$work/curl.err") $(api_error "$work/token.json"); GitHub token: $(claims "$work/oidc.json")"
     return 1
   fi
 
@@ -224,7 +237,7 @@ summarize() {
     -H 'content-type: application/json' \
     --data @"$work/request.json" \
     "$base_url/v1/messages" >"$work/response.json" 2>"$work/curl.err"; then
-    give_up "the Messages API failed, no summary: $(cat "$work/curl.err")"
+    give_up "the Messages API failed, no summary: $(cat "$work/curl.err") $(api_error "$work/response.json")"
     return 0
   fi
 

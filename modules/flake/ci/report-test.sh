@@ -359,6 +359,14 @@ expect_line summarized "**What changes on the machines**, summarized by Claude H
 expect_line summarized "new host"
 jq -e 'select(.path == "/v1/messages") | .body.messages[0].content | test("new host")' stub-requests.jsonl >/dev/null || fail "summarized: the package diff was not sent"
 
+pass_all no-change
+printf '### Closure diff (x86_64-linux)\n\n#### example\n```\n<<< /nix/store/a-old\n>>> /nix/store/b-new\nNo version or selection state changes.\nClosure size: 1783 -> 1783 (12 paths added, 12 paths removed, delta +0, disk usage +0B).\n```\n' >no-change/closure-x86_64-linux.md
+: >stub-requests.jsonl
+ANTHROPIC_BASE_URL=$stub_url ANTHROPIC_API_KEY=sk-ant-api-test report no-change
+if grep -q "summarized by Claude Haiku" no-change.md; then fail "no-change: a diff without package changes still gets a summary"; fi
+if grep -q '"/v1/messages"' stub-requests.jsonl; then fail "no-change: Haiku was called for a diff without package changes"; fi
+expect_line no-change "No version or selection state changes."
+
 echo error >stub-mode
 pass_all api-down
 cp all-green/closure-x86_64-linux.md api-down/

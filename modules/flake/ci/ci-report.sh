@@ -223,7 +223,10 @@ line=$(narvi say "$moment")
 } >"$work/report.md"
 
 if [ -s "$work/closures.md" ]; then
-  summary=$(narvi summarize packages "$work/closures.md")
+  summary=""
+  if grep -qvE '^(#|```|<<< |>>> |No version or selection state changes\.|Closure size: |$)' "$work/closures.md"; then
+    summary=$(narvi summarize packages "$work/closures.md")
+  fi
   {
     if [ -n "$summary" ]; then
       echo "**What changes on the machines**, summarized by Claude Haiku from the package diff below:"

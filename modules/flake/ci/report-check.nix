@@ -65,6 +65,8 @@
         exit 1
       '';
 
+      baseNix = fakeNix "";
+
       test = pkgs.writeShellApplication {
         name = "report-test";
         runtimeInputs = [
@@ -85,6 +87,7 @@
           KILLED_CI_BUILD = lib.getExe (ciBuildWith killedNix);
           EVIDENCE_CI_BUILD = lib.getExe (ciBuildWith evidenceNix);
           UNREADABLE_EVIDENCE_CI_BUILD = lib.getExe (ciBuildWith unreadableEvidenceNix);
+          BASE_CI_BUILD = lib.getExe (ciBuildWith baseNix);
         };
         excludeShellChecks = [ "SC2016" ];
         text = builtins.readFile ./report-test.sh;

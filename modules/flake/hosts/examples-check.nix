@@ -52,7 +52,7 @@ let
       lacks = regex: !hasLine lines regex;
       field = hasField lines;
     in
-    map (name: "the name \"${name}\"") (lib.filter (name: lacks " *(# )?\"${name}\" #.*") listedNames)
+    map (name: "the name \"${name}\"") (lib.filter (name: lacks " *(# +)?\"${name}\" #.*") listedNames)
     ++ map (name: "the profile \"${name}\"") (lib.filter (name: lacks ".*\"${name}\".*") profiles)
     ++ map (name: "the field `${name}`") (lib.filter (name: !field name) hostFields)
     ++ map (name: "the user field `${name}`") (lib.filter (name: !field name) userFields);

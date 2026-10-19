@@ -20,23 +20,34 @@ let
     ];
   };
 
+  evalNixos =
+    module:
+    lib.evalModules {
+      specialArgs.pkgs = { };
+      modules = [
+        module
+        {
+          options.environment.systemPackages = lib.mkOption { default = [ ]; };
+          options.specialisation = lib.mkOption {
+            type = lib.types.attrsOf lib.types.raw;
+            default = { };
+          };
+          config._module.check = false;
+        }
+      ];
+    };
+
   host =
     hostName:
     let
-      nixos = lib.evalModules {
-        specialArgs.pkgs = { };
-        modules = [
-          flake.config.configurations.nixos.${hostName}.module
-          {
-            options.environment.systemPackages = lib.mkOption { default = [ ]; };
-            config._module.check = false;
-          }
-        ];
-      };
+      nixos = evalNixos flake.config.configurations.nixos.${hostName}.module;
     in
     {
       options = builtins.attrNames nixos.config;
       packages = nixos.config.environment.systemPackages;
+      specialisations = lib.mapAttrs (
+        _: variant: builtins.attrNames (evalNixos variant.configuration).config
+      ) nixos.config.specialisation;
     };
 in
 {

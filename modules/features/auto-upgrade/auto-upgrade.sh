@@ -231,9 +231,20 @@ if [[ $ALLOW_LOCAL_BUILD != true ]]; then
   build_options+=(--option max-jobs 0 --option always-allow-substitutes true)
 fi
 
+target="$repo?rev=$to"
+new_system=/nix/var/nix/profiles/system
+if [[ $OPERATION != boot && -s /etc/specialisation ]]; then
+  variant=$(</etc/specialisation)
+  if nix eval --json "git+file://$target#nixosConfigurations.$HOST.config.specialisation" --apply builtins.attrNames |
+    jq -e --arg variant "$variant" 'index($variant) != null' >/dev/null; then
+    build_options+=(--specialisation "$variant")
+    new_system=$new_system/specialisation/$variant
+  fi
+fi
+
 old_system=$(readlink -f /run/current-system)
 
-if ! "$REBUILD" "$OPERATION" --flake "git+file://$repo?rev=$to#$HOST" "${build_options[@]}" 2>&1 | tee "$state_dir/rebuild.log"; then
+if ! "$REBUILD" "$OPERATION" --flake "git+file://$target#$HOST" "${build_options[@]}" 2>&1 | tee "$state_dir/rebuild.log"; then
   if grep -q -e "local builds are disabled" -e "Unable to start any build" "$state_dir/rebuild.log"; then
     finish waiting "the cache does not have this version yet"
     exit 0
@@ -247,7 +258,7 @@ if [[ $OPERATION != boot ]]; then
   keep current "$to"
 fi
 
-changes=$(nvd diff "$old_system" /nix/var/nix/profiles/system 2>/dev/null | grep '^Closure size:' || true)
+changes=$(nvd diff "$old_system" "$new_system" 2>/dev/null | grep '^Closure size:' || true)
 
 if [[ $OPERATION == boot ]]; then
   finish upgraded "applies at next boot"

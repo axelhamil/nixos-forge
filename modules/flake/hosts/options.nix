@@ -28,8 +28,8 @@ let
     namespace.${name} or (fail host field "unknown name \"${name}\". Known: ${known namespace}.");
 
   hardwareModule =
-    host: name:
-    hardware.${name} or inputs.nixos-hardware.nixosModules.${name} or (fail host "hardware"
+    host: field: name:
+    hardware.${name} or inputs.nixos-hardware.nixosModules.${name} or (fail host field
       "unknown name \"${name}\": neither a module of modules/features/hardware (${known hardware}) nor a nixos-hardware profile (https://github.com/NixOS/nixos-hardware)."
     );
 
@@ -49,6 +49,60 @@ let
     lib.getName (package where inputs.nixpkgs.legacyPackages.${system} name);
 
   bringsZsh = lib.elem "zsh";
+
+  selection =
+    host: system: prefix: chosen:
+    let
+      field = name: "${prefix}${name}";
+      where = "configurations.nixos.${host}.${field "apps"}";
+      packages = packagedApps chosen.apps;
+    in
+    { pkgs, ... }:
+    {
+      imports =
+        map (pick host (field "features") features) chosen.features
+        ++ map (hardwareModule host (field "hardware")) chosen.hardware
+        ++ appModules "nixos" chosen.apps;
+
+      environment.systemPackages = map (package where pkgs) packages;
+      home-manager.sharedModules = appModules "homeManager" chosen.apps;
+      nixpkgs.config.allowUnfreePackages = map (unfreeName where system) packages;
+    };
+
+  specialisationOptions = {
+    options = {
+      features = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        example = [ "libvirt" ];
+        description = "Features this variant adds to the host's `features`, by the same names.";
+      };
+
+      apps = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        example = [
+          "steam"
+          "gamemode"
+          "mangohud"
+        ];
+        description = "Apps this variant adds to the host's `apps` for every user, by the same names: an app of `modules/apps/<name>`, else a nixpkgs package.";
+      };
+
+      hardware = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        example = [ "nvidia" ];
+        description = "Hardware modules this variant adds to the host's `hardware`, by the same names.";
+      };
+
+      module = mkOption {
+        type = types.deferredModule;
+        default = { };
+        description = "Any other NixOS configuration of this variant, on top of the host's.";
+      };
+    };
+  };
 
   person =
     host: name:
@@ -148,7 +202,6 @@ let
     { name, config, ... }:
     let
       host = config;
-      packages = packagedApps host.apps;
     in
     {
       options = {
@@ -258,6 +311,13 @@ let
           description = "Keyboard layout, for the console and the desktop.";
         };
 
+        specialisations = mkOption {
+          type = types.attrsOf (types.submodule specialisationOptions);
+          default = { };
+          example = lib.literalExpression ''{ gaming.apps = [ "steam" "gamemode" ]; }'';
+          description = "Variants of the machine, by name, each one the whole host plus its own `features`, `apps`, `hardware` and `module`. Each variant is an entry of the boot menu, and `update -s <name>` switches to it without a reboot (`update -S` goes back); a kernel or kernel module it changes takes effect only when it is started from the boot menu. The running variant's name is in `/etc/specialisation`, and `update` and `auto-upgrade` keep it.";
+        };
+
         module = mkOption {
           type = types.deferredModule;
           default = { };
@@ -272,16 +332,24 @@ let
       };
 
       config.module =
-        { lib, pkgs, ... }:
+        { lib, ... }:
         {
           imports = [
             base
+            (selection name host.system "" host)
           ]
           ++ lib.optional (host.profile != null) (pick name "profile" profiles host.profile)
-          ++ map (pick name "features" features) host.features
-          ++ map (hardwareModule name) host.hardware
-          ++ appModules "nixos" host.apps
           ++ lib.mapAttrsToList (userModule name host.apps host.system) host.users;
+
+          specialisation = lib.mapAttrs (variant: chosen: {
+            configuration = {
+              imports = [
+                (selection name host.system "specialisations.${variant}." chosen)
+                chosen.module
+              ];
+              environment.etc.specialisation.text = variant;
+            };
+          }) host.specialisations;
 
           networking.hostName = name;
           update.flake = host.flake;
@@ -292,10 +360,6 @@ let
           i18n.defaultLocale = lib.mkDefault host.locale;
           services.xserver.xkb.layout = lib.mkDefault host.keyboard;
           console.keyMap = lib.mkDefault host.keyboard;
-
-          environment.systemPackages = map (package "configurations.nixos.${name}.apps" pkgs) packages;
-          home-manager.sharedModules = appModules "homeManager" host.apps;
-          nixpkgs.config.allowUnfreePackages = map (unfreeName "configurations.nixos.${name}.apps" host.system) packages;
 
           system.stateVersion = host.stateVersion;
         };

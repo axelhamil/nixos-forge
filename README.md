@@ -144,6 +144,7 @@ Fork it, run `nix run .#init`, [turn CI on](docs/ci.md#turn-ci-on-in-your-fork),
 |---|---|
 | **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/install.md), [wipe-home](docs/wipe-home.md), [hibernate](docs/hibernate.md) |
 | **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback. [install](docs/install.md) |
+| **Variants** | `specialisations.<name>` adds features, apps and hardware to a host as a boot menu entry, switched to without a reboot by `update -s <name>`; `steam`, `gamemode` and `mangohud` for a gaming one. [specialisations](docs/specialisations.md) |
 | **Dual boot** | opt-in Windows in the systemd-boot menu, started by the firmware so Secure Boot and BitLocker stay intact, on its own disk or beside NixOS on the same disk, readable from NixOS read-only. [dual-boot](docs/dual-boot.md) |
 | **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
 | **Shell** | zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop through home-manager in the XDG layout, each its own app; your dotfiles with [stow](https://www.gnu.org/software/stow/). [apps](docs/apps.md) |
@@ -259,6 +260,7 @@ modules/
 | [ci](docs/ci.md) | turn CI on in your fork, read the report, meet Narvi, mirror to a second forge |
 | [apps](docs/apps.md) | add an app, change a default, set up the shell, bring your dotfiles |
 | [desktop](docs/desktop.md) | Hyprland and its neighbours, keybinds, monitors, themes |
+| [specialisations](docs/specialisations.md) | switch one machine between variants, such as work and games, Steam included |
 | [dual-boot](docs/dual-boot.md) | keep Windows, with Secure Boot and BitLocker intact |
 | [wipe-home](docs/wipe-home.md) | start `/home` empty at every boot and keep only what you declare |
 | [hibernate](docs/hibernate.md) | hibernate to an encrypted swap file |

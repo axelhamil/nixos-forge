@@ -94,6 +94,47 @@ assert state["outcome"] == "upgraded", state
 assert state["from"] == a and state["to"] == d, state
 assert len(rebuild_calls()) == 3, "auto-upgrade did not install the fix over the version that did not start"
 
+
+
+def promote_variants(*names):
+    variants = " ".join(f"{name} = {{ }};" for name in names)
+    machine.succeed(
+        f"echo '{{ outputs = _: {{ nixosConfigurations.machine.config.specialisation = {{ {variants} }}; }}; }}' > /tmp/work/flake.nix",
+        "git -C /tmp/work add flake.nix",
+        "git -C /tmp/work commit -q -m variants",
+        "git -C /tmp/work push -q /srv/mirror.git fix:deploy/machine",
+    )
+
+
+def enter(variant):
+    machine.succeed(f"/run/booted-system/specialisation/{variant}/bin/switch-to-configuration test")
+
+
+enter("variant")
+promote_variants("variant", "pinned")
+state = run(a)
+assert state["outcome"] == "upgraded", state
+assert state["message"] == "running now", state
+calls = rebuild_calls()
+assert len(calls) == 4, calls
+assert calls[3].startswith("switch "), calls
+assert calls[3].endswith(" --specialisation variant"), "auto-upgrade switched a host running a variant back to its base"
+
+promote_variants("pinned")
+state = run(a)
+assert state["outcome"] == "upgraded", state
+calls = rebuild_calls()
+assert len(calls) == 5, calls
+assert calls[4].startswith("switch ") and "--specialisation" not in calls[4], "auto-upgrade kept a variant the new version removed"
+
+enter("pinned")
+state = run(a)
+assert state["outcome"] == "upgraded", state
+calls = rebuild_calls()
+assert len(calls) == 6, calls
+assert calls[5].startswith("boot ") and "--specialisation" not in calls[5], "auto-upgrade passed a variant to nixos-rebuild boot"
+machine.succeed("/run/booted-system/bin/switch-to-configuration test")
+
 machine.succeed(
     "git -C /tmp/work checkout -q --orphan elsewhere",
     "git -C /tmp/work commit -q --allow-empty -m C",
@@ -102,12 +143,12 @@ machine.succeed(
 state = run(b)
 assert state["outcome"] == "refused", state
 assert "moved back" in state["message"], state
-assert len(rebuild_calls()) == 3, "auto-upgrade replaced a system deploy/machine does not contain"
+assert len(rebuild_calls()) == 6, "auto-upgrade replaced a system deploy/machine does not contain"
 
 machine.succeed("rm -rf /srv/mirror.git")
 state = run(b)
 assert state["outcome"] == "unreachable", state
-assert len(machine.succeed("cat /var/lib/auto-upgrade/history.tsv").splitlines()) == 11
+assert len(machine.succeed("cat /var/lib/auto-upgrade/history.tsv").splitlines()) == 14
 
 assert "CURRENT_REV" not in machine.succeed("systemctl cat auto-upgrade.service")
 machine.succeed("systemctl is-active auto-upgrade.timer")

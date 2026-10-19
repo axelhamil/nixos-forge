@@ -32,6 +32,11 @@ in
             autoUpgrade.allowLocalBuild = false;
             autoUpgrade.rebuildCommand = toString (stub pkgs);
             environment.systemPackages = [ pkgs.git ];
+            specialisation.variant.configuration = {
+              autoUpgrade.operation = "switch";
+              environment.etc.specialisation.text = "variant";
+            };
+            specialisation.pinned.configuration.environment.etc.specialisation.text = "pinned";
           };
 
         desktop =

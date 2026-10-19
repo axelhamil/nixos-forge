@@ -78,6 +78,17 @@
       # "stow" # links your dotfiles repository, ~/dotfiles by default, into your home at each switch (docs/apps.md)
     ];
 
+    # Variants of the machine (docs/specialisations.md): each one is this host plus its own
+    # `features`, `apps`, `hardware` and `module`, an entry of the boot menu, and a switch
+    # without reboot by `update -s <name>` (back with `update -S`).
+    # specialisations.gaming = {
+    #   apps = [
+    #     "steam" # Steam with Proton-GE and protontricks, its library kept (docs/specialisations.md)
+    #     "gamemode" # Feral GameMode: `gamemoderun %command%` in a game's launch options (docs/specialisations.md)
+    #     "mangohud" # an FPS and frame time overlay for `mangohud %command%`, Shift+F2 logs a run (docs/specialisations.md)
+    #   ];
+    # };
+
     # Where the machine updates from (docs/updates.md): your checkout on the machine, which
     # `update` pulls, or a flake reference such as "github:<you>/<fork>". auto-upgrade
     # pulls the deploy/<host> branch of that fork, which CI moves once this host passed.

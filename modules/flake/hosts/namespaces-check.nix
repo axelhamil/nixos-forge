@@ -31,6 +31,11 @@ let
       message = "configurations.nixos.wrong-apps.apps: unknown name \"disk\": neither an app of modules/apps (${known "apps"}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\".";
     };
 
+    wrong-specialisation = {
+      host.specialisations.gaming.features = [ "nvidia" ];
+      message = "configurations.nixos.wrong-specialisation.specialisations.gaming.features: unknown name \"nvidia\". Known: ${known "features"}.";
+    };
+
     wrong-users = {
       host.users.firefox = { };
       message = "configurations.nixos.wrong-users.users: unknown person \"firefox\": no modules/users/firefox. Known: ${known "users"}.";

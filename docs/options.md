@@ -326,6 +326,151 @@ list of string
 
 
 
+## specialisations
+
+
+
+Variants of the machine, by name, each one the whole host plus its own ` features `, ` apps `, ` hardware ` and ` module `\. Each variant is an entry of the boot menu, and ` update -s <name> ` switches to it without a reboot (` update -S ` goes back); a kernel or kernel module it changes takes effect only when it is started from the boot menu\. The running variant’s name is in ` /etc/specialisation `, and ` update ` and ` auto-upgrade ` keep it\.
+
+
+
+*Type:*
+attribute set of (submodule)
+
+
+
+*Default:*
+
+```nix
+{ }
+```
+
+
+
+*Example:*
+
+```nix
+{ gaming.apps = [ "steam" "gamemode" ]; }
+```
+
+
+
+## specialisations\.\<name>\.apps
+
+
+
+Apps this variant adds to the host’s ` apps ` for every user, by the same names: an app of ` modules/apps/<name> `, else a nixpkgs package\.
+
+
+
+*Type:*
+list of string
+
+
+
+*Default:*
+
+```nix
+[ ]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  "steam"
+  "gamemode"
+  "mangohud"
+]
+```
+
+
+
+## specialisations\.\<name>\.features
+
+
+
+Features this variant adds to the host’s ` features `, by the same names\.
+
+
+
+*Type:*
+list of string
+
+
+
+*Default:*
+
+```nix
+[ ]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  "libvirt"
+]
+```
+
+
+
+## specialisations\.\<name>\.hardware
+
+
+
+Hardware modules this variant adds to the host’s ` hardware `, by the same names\.
+
+
+
+*Type:*
+list of string
+
+
+
+*Default:*
+
+```nix
+[ ]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  "nvidia"
+]
+```
+
+
+
+## specialisations\.\<name>\.module
+
+
+
+Any other NixOS configuration of this variant, on top of the host’s\.
+
+
+
+*Type:*
+module
+
+
+
+*Default:*
+
+```nix
+{ }
+```
+
+
+
 ## stateVersion
 
 

@@ -41,6 +41,7 @@ Three rules keep apps honest:
 | `firefox` | Firefox with telemetry off, its profile kept |
 | `zsh`, `starship`, `git`, `delta`, `neovim` | the shell, its prompt, git, its diff pager, the editor ([below](#the-shell)) |
 | `fzf`, `zoxide`, `eza`, `bat`, `btop` | command line tools with their config ([below](#the-shell)) |
+| `steam`, `gamemode`, `mangohud` | Steam with Proton-GE, Feral GameMode, and an FPS overlay that logs runs ([specialisations.md](specialisations.md#games)) |
 | `stow` | links your dotfiles repository, for those who keep one ([below](#keep-your-dotfiles-with-stow)) |
 
 Tools with nothing to configure, such as `ripgrep`, `fd` or `jq`, are plain nixpkgs names.

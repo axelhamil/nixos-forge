@@ -74,7 +74,14 @@
       # "bat" # bat, a `cat` with syntax highlighting (docs/apps.md)
       # "btop" # a resource monitor (docs/apps.md)
       # "stow" # links your dotfiles repository, ~/dotfiles by default, into your home at each switch (docs/apps.md)
+      # "steam" # Steam with Proton-GE and protontricks, its library kept (docs/specialisations.md)
+      # "gamemode" # Feral GameMode, for games started with `gamemoderun` (docs/specialisations.md)
+      # "mangohud" # an FPS and frame time overlay, Shift+F2 logs a run (docs/specialisations.md)
     ];
+
+    # Variants of the machine, each one this host plus its own lists, chosen at boot or
+    # switched to by `update -s <name>` (docs/specialisations.md).
+    # specialisations.maintenance.features = [ "nix-ld" ];
 
     # Where the machine updates from (docs/updates.md): a flake reference such as
     # "github:<you>/<fork>", whose deploy/<host> branch auto-upgrade pulls once CI passed.

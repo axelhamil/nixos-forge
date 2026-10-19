@@ -208,11 +208,11 @@
     "migration-base": {
       "flake": false,
       "locked": {
-        "lastModified": 1792349532,
-        "narHash": "sha256-IMS8OVKzwwi6CqsIred83Xea4ZvCrblwfIQ9AKGup+Y=",
+        "lastModified": 1792355629,
+        "narHash": "sha256-ZGOagU6OOaGl7YAk04Nszs8pVigXSOpTdXYuX917nBQ=",
         "owner": "axelhamil",
         "repo": "nixos-forge",
-        "rev": "4fede9ee51b6155121e5eb81237a00b62882a050",
+        "rev": "dd20ac0e34f79f1ff571ed91749d5c29977e9f6d",
         "type": "github"
       },
       "original": {

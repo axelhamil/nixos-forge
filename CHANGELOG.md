@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1](https://github.com/axelhamil/nixos-forge/compare/v0.2.0...v0.2.1) (2026-10-19)
+
+
+### Features
+
+* **hosts:** add specialisations variants with steam, gamemode and mangohud apps ([#64](https://github.com/axelhamil/nixos-forge/issues/64)) ([371cc09](https://github.com/axelhamil/nixos-forge/commit/371cc09975f2832111cf5c0e209b12de1cd8adb5))
+
+
+### Documentation
+
+* **agents:** add the extend-flake skill with recipes for each module kind ([#65](https://github.com/axelhamil/nixos-forge/issues/65)) ([7f44115](https://github.com/axelhamil/nixos-forge/commit/7f44115a5b3205d714872f86a1d75fa39610607e))
+* **agents:** state the forge rule and plan lots 37 to 41 ([#66](https://github.com/axelhamil/nixos-forge/issues/66)) ([dfff6ff](https://github.com/axelhamil/nixos-forge/commit/dfff6ffbe5f4c34f9c20beff5c131a8a1e963fe0))
+* **readme:** say import-tree skips the files under a _ segment ([#61](https://github.com/axelhamil/nixos-forge/issues/61)) ([db15fad](https://github.com/axelhamil/nixos-forge/commit/db15fadb9b149dfb479fcf2d3220684c03279281))
+
 ## [0.2.0](https://github.com/axelhamil/nixos-forge/compare/v0.1.0...v0.2.0) (2026-10-18)
 
 

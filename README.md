@@ -5,6 +5,8 @@
   </picture>
 </p>
 
+<h3 align="center">Not a distro. The forge where you make your own.</h3>
+
 <p align="center">A NixOS starter you fork and forge: every machine you describe is built, booted and installed in a VM by CI before it reaches yours.</p>
 
 <p align="center"><sub>Fork, friend, and enter.</sub></p>

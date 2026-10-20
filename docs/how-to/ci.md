@@ -1,91 +1,127 @@
 # CI and repository settings
 
-What the GitHub Actions workflows do, what they prove, and the few settings a fork needs so they run. Start with [Turn CI on in your fork](#turn-ci-on-in-your-fork); the rest is here for when you want to know why the report says what it says.
+The few settings a fork needs so its CI runs, how to read the report it writes, and how machines get the versions it validated. Start with [Turn CI on in your fork](#turn-ci-on-in-your-fork). The workflows, every check and the scripts you can run locally are in [reference/ci.md](../reference/ci.md).
 
 ## Turn CI on in your fork
 
+Plan about 15 minutes. Steps 1 and 2 are enough for CI to build and test every pull request; the others add the weekly lock PR, safe auto-merge, deploy branches, signing and the binary cache.
+
 1. **Keep `develop`**: untick "Copy the main branch only" when forking, or create `develop` from `main`. Work lands on `develop`, then reaches `main` through a PR.
 2. **Enable the workflows**: GitHub disables them on forks. Open the Actions tab and enable them.
-3. **Bot GitHub App**: the weekly lock PR, `sync-develop`, `promote` and the optional upstream PRs need an App token, since PRs opened with `GITHUB_TOKEN` trigger no workflow. [Create a GitHub App](https://github.com/settings/apps/new) with webhooks off and the repository permissions **Contents** and **Pull requests** set to read and write, and preferably **Workflows** too (see [below](#validated-versions-per-machine)), generate a private key, install the App on your fork, then set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key. One App serves all your repositories.
+3. **Bot GitHub App**: the weekly lock PR, `sync-develop`, `promote` and the optional upstream PRs need an App token, since PRs opened with `GITHUB_TOKEN` trigger no workflow. One App serves all your repositories.
+   - [Create a GitHub App](https://github.com/settings/apps/new) with webhooks off.
+   - Give it the repository permissions **Contents** and **Pull requests**, read and write, and preferably **Workflows** too ([why](#validated-versions-per-machine)).
+   - Generate a private key and install the App on your fork.
+   - Set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key.
 4. **Allow auto-merge and merge commits**: Settings, General, "Allow auto-merge" (the lock PR) and "Allow merge commits" (the upstream PRs).
 5. **Ruleset on `main`**: require a pull request and the `ci-ok` status check. Without a required check, auto-merge merges at once.
 6. **Ruleset on `develop`**: block deletions and force pushes, or "Automatically delete head branches" deletes `develop` when a `develop` into `main` PR merges.
-7. **Ruleset on `deploy/*`, with the App as the only bypass**: whoever can push `deploy/<host>` chooses what every machine with `auto-upgrade` builds as root, so only the `promote` job may move these branches. Settings, Rules, Rulesets, New ruleset, New branch ruleset: name it `deploy`, set Enforcement status to Active, under Bypass list add your bot App (and nothing else, so neither admins nor collaborators can push), under Target branches add the pattern `deploy/*`, and tick **Restrict creations**, **Restrict updates**, **Restrict deletions** and **Block force pushes**. Without the App on the bypass list, `promote` prints `refused` with GitHub's reason.
-8. **Environment `deploy`, with the signing key (recommended)**: Settings, Environments, New environment: name it `deploy`, under Deployment branches and tags choose Selected branches and add `main`, then add the environment secret `DEPLOY_SIGNING_KEY` with the private key file `nix run .#init` names, then `shred -u` that file ([below](#sign-the-deploy-branches)). Only the `promote` job runs in that environment, so no other job, and no branch but `main`, can read the key.
-9. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. Every job pulls from it with the token, so a private cache works too, and pushes and PRs from a branch of this repository write what they built, except sources and images (SD card, ISO, disk, VM), so the push after a merge finds the PR's builds and rebuilds nothing. A PR from another fork and an upstream sync PR (`chore/sync-upstream-*`) read the cache but never get the token, so code nobody here wrote cannot poison it before review. Without it, every run builds every check and PRs never build kernels.
+7. **Ruleset on `deploy/*`, with the App as the only bypass**. Whoever can push `deploy/<host>` chooses what every machine with `auto-upgrade` builds as root, so only the `promote` job may move these branches. In Settings, Rules, Rulesets, New ruleset, New branch ruleset:
+   - name it `deploy` and set Enforcement status to Active;
+   - under Bypass list, add your bot App and nothing else, so neither admins nor collaborators can push;
+   - under Target branches, add the pattern `deploy/*`;
+   - tick **Restrict creations**, **Restrict updates**, **Restrict deletions** and **Block force pushes**.
+
+   Without the App on the bypass list, `promote` prints `refused` with GitHub's reason.
+8. **Environment `deploy`, with the signing key (recommended)**. In Settings, Environments, New environment: name it `deploy`, and under Deployment branches and tags choose Selected branches and add `main`. Add the environment secret `DEPLOY_SIGNING_KEY` with the private key file `nix run .#init` names, then `shred -u` that file ([why](#sign-the-deploy-branches)). Only the `promote` job runs in that environment, so no other job, and no branch but `main`, can read the key.
+9. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token.
+   - Every job pulls from it with the token, so a private cache works too. Pushes and PRs from a branch of this repository write what they built, except sources and images (SD card, ISO, disk, VM), so the push after a merge rebuilds nothing.
+   - A PR from another fork and an upstream sync PR (`chore/sync-upstream-*`) read the cache but never get the token, so code nobody here wrote cannot poison it before review.
+   - Without a cache, every run builds every check, and PRs never build kernels.
 
 Scheduled workflows and Dependabot only run from the default branch, so they start once the workflows are on `main`.
 
-## Workflows
-
-| Workflow | Trigger | What it does |
-|---|---|---|
-| `check` | every PR, push to `main` and `develop`; a newer push cancels the running check of its PR or of `develop`, never of `main` | Lints the flake, plans the build with `ci-plan` (checks already in the binary cache are skipped), builds each remaining check on a runner of its system (`ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`), retrying a VM test once, computes the package diff ([nvd](https://git.sr.ht/~khumba/nvd)) per system on a PR, measures the base revision against this one on a PR in the `perf` job ([below](#the-ci-report)), and writes one readable report ([below](#the-ci-report)). `ci-ok` sums up the result, without waiting for `perf`. On a push to `main`, `promote` moves `deploy/<host>` to the pushed commit for every machine whose checks all passed ([below](#validated-versions-per-machine)), and `badges` publishes the live badges ([below](#live-badges)). |
-| `mirror` | push to `main` or `deploy/*`, when `MIRROR_URL` is set | Pushes `main` and every `deploy/<host>` to a second forge, so machines can still fetch their validated version when GitHub is down; a version whose `flake.lock` changed still needs its inputs from GitHub ([below](#mirror-to-a-second-forge)). |
-| `reproducibility` | every day 03:00 UTC, or by hand | Runs `nix run .#reproducibility`: builds the system of every `x86_64-linux` machine, builds it again with `nix build --rebuild` and writes to the run summary whether the two match, with a [diffoscope](https://diffoscope.org) summary when they do not ([below](#reproducibility)). On `main`, it publishes the `reproducibility` badge. Informational: a difference fails nothing, and `ci-ok` never waits for it. |
-| `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR updating `flake.lock` against `main`, with auto-merge on. Its body lists the inputs that moved. |
-| `sync-develop` | push to `main` | Merges `main` into `develop` with the App token, so `check` runs on the merged `develop`. |
-| `sync-upstream` | Monday 07:00 UTC, or by hand, forks only, when the repository variable `SYNC_UPSTREAM` is `true` | Runs `nix run .#upstream -- --yes` on `main`: opens a PR merging upstream's latest release, whose body lists the upstream commits it merges, then the breaking changes and the changelog, for you to review and merge ([updates.md](../explanation/updates.md#your-fork-follows-upstream)). The variable `UPSTREAM` (`owner/repo`) points it at another upstream repository. |
-| `release` | push to `develop`, upstream only | Skipped in a fork: it publishes upstream's releases ([releases.md](../maintenance/releases.md)). |
-| Dependabot | weekly | Updates GitHub Actions versions, with PRs against `develop`. |
-
-A check that compiles a kernel is only evaluated in a PR and built on the push to `develop` or `main` after the merge. A newer push to `develop` cancels that build and its own run starts it again, since nothing was cached; `main` never cancels, so a release always builds every kernel.
+To check it worked, open a PR against `develop`: the `check` workflow starts, and the run ends with a report and a green `ci-ok`.
 
 ## The CI report
 
-The `report` job runs at the end of every `check` run, even when a job failed or hit its time limit; a run cancelled, for instance by a newer push, writes no report. Where it lands:
+The `report` job runs at the end of every `check` run, even when a job failed or hit its time limit. A run cancelled, for instance by a newer push, writes no report. Where it lands:
 
 - **The run summary** (the run's page in the Actions tab), always.
 - **One PR comment**, on a PR from a branch of the same repository, rewritten by each new run. A PR from another fork gets the run summary only, since its token cannot comment.
 
-The comment is posted by the bot App, so it shows under the App's name ([rename it](#rename-the-bot)), with a token the job mints from `BOT_CLIENT_ID` and `BOT_PRIVATE_KEY` that may only write pull requests. When the App is not set up or its token cannot be minted (a Dependabot PR gets no Actions secret), the run posts as `github-actions` with its own token.
+The comment is posted by the bot App, so it shows under the App's name ([rename it](#rename-the-bot)). The job mints a token from `BOT_CLIENT_ID` and `BOT_PRIVATE_KEY` that may only write pull requests. When the App is not set up or its token cannot be minted (a Dependabot PR gets no Actions secret), the run posts as `github-actions` with its own token.
 
 `gh pr comment --edit-last` rewrites the last comment of the identity that posts, so the App and `github-actions` each keep their own comment:
 
-- A PR open when the App was set up keeps its old `github-actions` comment as it was at its last run, and the App posts a new one below, which every later run rewrites. That old comment is never updated again: delete it by hand if it gets in the way.
+- A PR open when the App was set up keeps its old `github-actions` comment as it was, and the App posts a new one below, which every later run rewrites. Delete the old one by hand if it gets in the way.
 - A run that falls back to `github-actions` updates that identity's comment instead, and the next run with the App updates the App's again.
 
-The job runs `ci-report` from the base branch of the PR (the pushed commit on a push), never from the PR itself, and reads the machines and the check descriptions from the outputs of the `plan` job. A PR whose flake does not evaluate still gets its report: `The flake did not evaluate, so nothing was built or tested.`, with a pointer to the `plan` job log that names the file and line.
+The job runs `ci-report` from the base branch of the PR (the pushed commit on a push), never from the PR itself. It reads the machines and the check descriptions from the outputs of the `plan` job. A PR whose flake does not evaluate still gets its report: `The flake did not evaluate, so nothing was built or tested.`, with a pointer to the `plan` job log that names the file and line.
 
-Line by line:
+Because the report comes from the base branch, a new section of the report appears from the first PR opened after the change that adds it is merged.
+
+A comment over 64 KiB is cut and points to the run summary, which holds up to 1 MiB.
+
+### What each part says
 
 - **The verdict**, in bold, above everything else: `Everything works: every machine builds, boots and passed its tests.`, or how many checks failed or did not finish and which machines would not get the change. A failure in a check that belongs to no machine still keeps CI red.
-- **What to do**, under the verdict: `Nothing to fix: this commit is ready for the machines.` on a green run, `Fix what is listed below and push again: CI runs on every push.` on a red one, including a run whose flake did not evaluate or could not be planned.
+- **What to do**, under the verdict: `Nothing to fix: this commit is ready for the machines.` on a green run, `Fix what is listed below and push again: CI runs on every push.` on a red one.
 - `N tests passed only on their second try and are marked unstable.`: a VM test failed once, then passed on its retry. The run stays green, but a test that keeps showing up here is flaky.
 - `The binary cache was unreachable: everything was built from scratch.`: Cachix did not answer, so the run was slower than usual.
 - `Checks that compile a kernel run after the merge.`: a PR never compiles a kernel; the push to `develop` after the merge builds those checks.
 - `N checks were skipped: they already passed with the same code.`: their result is already in the binary cache.
-- **One table per machine**, with each check, what it proves and its result: `passed`, `failed`, `unstable`, `did not finish` (the job was cancelled or hit its time limit before its first attempt ended), or `skipped` with the reason. A retry cut by the time limit keeps the `failed` result and the excerpt of the first attempt. A check that runs on two systems gets one row per system, with the system after its name.
+- **One table per machine**, with each check, what it proves and its result: `passed`, `failed`, `unstable`, `did not finish` (the job was cancelled or hit its time limit before its first attempt ended), or `skipped` with the reason. A retry cut by the time limit keeps the `failed` result and the excerpt of the first attempt. A check that runs on two systems gets one row per system.
 - **Module checks**, folded, with the same columns; the block opens by itself when one of them failed.
-- **Boot time**: for each machine with a `<host>-boots` check, the `systemd-analyze` total and userspace time its boot test recorded, beside the same values on the base revision (the PR's base, or the previous commit on a push), read from the base's `<host>-boots` in the binary cache by `ci-boot-time`. A value is `n/a` when the check did not run in this run (skipped as already passed), when the base's test is not in the cache (no Cachix, or a base older than the boot time), or when the boot did not finish within 120 s. There is no threshold: a shared CI VM is noisy, so read the trend over several runs. The section is left out when no machine has a value.
-- **Performance against the base**, on a PR: the `perf` job builds `perf-regression` with `ci-build`, against the PR's base commit as its `migration-base` input (locally, upstream's `main` as locked). The job runs whenever an `x86_64-linux` host of the registry boots in a VM here, so a fork whose hosts upstream lacks gets it too. In one VM test, for every such host that also boots in a VM on the base, it starts the base's generation and this one in turn, 5 times each, each boot a fresh VM of 2 GiB and 2 cores: `systemd-analyze` total and userspace time once the system is up, idle RAM (`MemTotal` minus `MemAvailable` 10 s later) and running services (`systemctl list-units --type=service --state=running`), plus the closure size of each host's real system. One table per machine compares the base and this change, with the change in percent: boot times and idle RAM by the best of the 5 boots of each side (the lowest value, which cuts the noise of a shared runner's scheduler), running services by their median, the closure of the real system. A line under the section's heading names each metric past both its thresholds, relative and absolute: boot total or userspace up more than 10 % and by at least 0.5 s, idle RAM up more than 10 % and by at least 32 MiB, the closure up more than 5 % and by at least 50 MiB, any new running service. Both thresholds of each metric live together in `perfThresholds` in `modules/flake/ci/ci-report.sh`. Both generations ran on the same runner, so a flagged line is worth a look, but it is informational: neither the `perf` job, which continues on error, nor a regression ever turns the run red or blocks the merge. A host absent from the base, or that does not boot in a VM there, is listed under the section as not measured, with the reason; when no host is left, the check writes that list without booting anything. A value is `n/a` when one side was not measured, and the section is left out when the job did not run (a push), failed or produced nothing readable. The raw samples are in the `perf-<system>` artifact.
-- **Screenshots**: every check whose VM test took a screenshot (`machine.screenshot`, such as `desktop` in `app-hyprland`) lists its images and the artifact that holds them, `screenshot-<system>-<check>`, kept 7 days on the run's page. They are evidence to look at, never compared. A check skipped as already passed takes no new screenshot.
-- **What went wrong**: for each failed check, the likely cause and what to do, read from `modules/flake/ci/causes.tsv` (the first row, top to bottom, whose pattern matches a line of the excerpt wins), the excerpt of the log (the last 20 distinct lines that name an error, each with the two lines before it), and a link to the full log.
+- **Boot time**: for each machine with a `<host>-boots` check, the `systemd-analyze` total and userspace time, beside the same values on the base revision (the PR's base, or the previous commit on a push). `ci-boot-time` reads the base's values from the binary cache. A value is `n/a` when the check was skipped as already passed, when the base's test is not in the cache, or when the boot did not finish within 120 s. There is no threshold: a shared CI VM is noisy, so read the trend over several runs.
+- **Performance against the base**, on a PR ([below](#performance-against-the-base)).
+- **Screenshots**: every check whose VM test took a screenshot (`machine.screenshot`) lists its images and the artifact that holds them, `screenshot-<system>-<check>`, kept 7 days. They are evidence to look at, never compared.
+- **What went wrong**: for each failed check, the likely cause and what to do, read from `modules/flake/ci/causes.tsv` (the first row whose pattern matches a line of the excerpt wins), the excerpt of the log (the last 20 distinct lines that name an error, each with the two lines before it), and a link to the full log.
 - **Package changes per machine**, folded, on a PR: the nvd diff of each host against the base branch.
 
-The report job runs `ci-report` and `ci-boot-time` from the base branch, so the boot time, performance and screenshot sections appear from the first PR opened after the change that adds them is merged; the PR carrying that change gets its report without them.
+### Performance against the base
 
-A comment over 64 KiB is cut and points to the run summary, which holds up to 1 MiB.
+On a PR, the `perf` job boots the base revision's generation and this one in turn, in one VM job, so both sides run on the same runner. It is informational: the `perf` job continues on error, and neither it nor a regression ever turns the run red or blocks the merge.
+
+| Metric | How it is measured | Compared on |
+|---|---|---|
+| Boot, total and userspace | `systemd-analyze` once the system is up | the best of 5 boots per side |
+| Idle RAM | `MemTotal` minus `MemAvailable`, 10 s after boot | the best of 5 boots per side |
+| Running services | `systemctl list-units --type=service --state=running` | the median of 5 boots |
+| Closure | the size of the host's real system | one value |
+
+- The job runs whenever an `x86_64-linux` host boots in a VM here, so a fork whose hosts upstream lacks gets it too. Every such host that also boots in a VM on the base is measured, each boot a fresh VM of 2 GiB and 2 cores.
+- A host absent from the base, or that does not boot in a VM there, is listed under the section as not measured, with the reason; when no host is left, the check writes that list without booting anything.
+- A line under the heading names each metric past both its thresholds. The source of these values is `perfThresholds` in `modules/flake/ci/ci-report.sh`:
+
+  | Metric | Flagged when it grows by more than | and by at least |
+  |---|---|---|
+  | Boot, total | 10 % | 0.5 s |
+  | Boot, userspace | 10 % | 0.5 s |
+  | Idle RAM | 10 % | 32 MiB |
+  | Closure | 5 % | 50 MiB |
+  | Running services | 0 % | 1 service |
+
+- A value is `n/a` when one side was not measured. The section is left out on a push, or when the job failed or produced nothing readable.
+- The raw samples are in the `perf-<system>` artifact. The base is the `migration-base` input, overridden by `ci-build --base` with the PR's base commit.
 
 ## Rename the bot
 
-The comments and PRs come from your bot GitHub App ([setup](#turn-ci-on-in-your-fork)). To give it a name and a face, open the App's settings (Settings, Developer settings, GitHub Apps, Edit): change its **GitHub App name** (it must be unique on GitHub), and under **Display information** upload a logo, which becomes its avatar. Its client ID does not change, so `BOT_CLIENT_ID` stays as it is. The CI report comment, the lock PR and the upstream PR then all show under that name.
+The comments and PRs come from your bot GitHub App ([setup](#turn-ci-on-in-your-fork)). To give it a name and a face, open the App's settings (Settings, Developer settings, GitHub Apps, Edit):
+
+- change its **GitHub App name** (it must be unique on GitHub);
+- under **Display information**, upload a logo, which becomes its avatar.
+
+Its client ID does not change, so `BOT_CLIENT_ID` stays as it is. The CI report comment, the lock PR and the upstream PR then all show under that name.
 
 ## Validated versions per machine
 
 Each machine has a branch `deploy/<host>` that points to the last commit of `main` on which every check of that machine passed. A machine follows its own branch rather than `main`, so a commit that breaks one machine never reaches it, while the others still move on.
 
-The `promote` job runs after every push to `main`, once the builds ended, even when some failed or hit their time limit; a cancelled run promotes nothing. It reads the exact list of checks of each machine from `nix eval --json .#ci.hostChecks`, never a name prefix, so `<host>-server-boots` failing never holds `deploy/<host>` back. A check counts as passed when its result is `passed` or `unstable`, or when the plan skipped it because the binary cache already holds it. A check without a result (its job was cancelled or hit its time limit) or skipped for any other reason keeps the branch where it is.
+The `promote` job runs after every push to `main`, once the builds ended, even when some failed or hit their time limit; a cancelled run promotes nothing. It reads the exact list of checks of each machine from `nix eval --json .#ci.hostChecks`, never a name prefix, so `<host>-server-boots` failing never holds `deploy/<host>` back.
+
+- A check counts as passed when its result is `passed` or `unstable`, or when the plan skipped it because the binary cache already holds it.
+- A check without a result (its job was cancelled or hit its time limit), or skipped for any other reason, keeps the branch where it is.
 
 `ci-promote` prints one line per machine, after a first line `unsigned: ...` when `DEPLOY_SIGNING_KEY` is not set:
 
 - `deploy/<host> -> <short sha>`: the branch moved to the pushed commit.
 - `deploy/<host> -> <short sha>, signed as <short sha>`: the branch moved to a new promotion commit carrying the pushed commit, signed ([below](#sign-the-deploy-branches)).
 - `deploy/<host> refused: DEPLOY_SIGNING_KEY cannot sign, it must hold an OpenSSH private key without a passphrase`: the secret holds something else; the branch stays and the job fails.
-- `deploy/<host> warning: its tip <short sha> is not a promotion signed by DEPLOY_SIGNING_KEY, ...`: the branch holds a commit the key did not sign for that host (pushed by hand, reset to a commit of `main`, or forged); the new promotion replaces it rather than building on it, with `--force-with-lease` on that tip, and the line shows up as a warning of the run. Find out who moved the branch.
+- `deploy/<host> warning: its tip <short sha> is not a promotion signed by DEPLOY_SIGNING_KEY, ...`: the branch holds a commit the key did not sign for that host (pushed by hand, reset to a commit of `main`, or forged). The new promotion replaces it rather than building on it, with `--force-with-lease` on that tip, and the line shows up as a warning of the run. Find out who moved the branch.
 - `deploy/<host> kept: <check> <outcome>`: a check of that machine did not pass, the branch stays.
-- `deploy/<host> refused: not a fast-forward`: the pushed commit does not descend from the branch (from the commit of `main` it carries, for a promotion commit), for instance after a force push on `main`. The branch stays, the job fails and needs a look; `ci-ok` is not affected.
-- `deploy/<host> already at or past <short sha>`: the branch already holds the pushed commit (with the signing key, a promotion that verifies with it carries that commit or a later one), for instance when an older run is rerun after a newer one promoted the machine. Nothing moves and the job stays green.
+- `deploy/<host> refused: not a fast-forward`: the pushed commit does not descend from the branch (for a promotion commit, from the commit of `main` it carries), for instance after a force push on `main`. The branch stays and the job fails; `ci-ok` is not affected.
+- `deploy/<host> already at or past <short sha>`: the branch already holds the pushed commit, or a later one, for instance when an older run is rerun after a newer one promoted the machine. Nothing moves and the job stays green.
 - `deploy/<host> refused: <reason>`: the remote declined the push, with git's reason, for instance the `deploy/*` ruleset when the App is not on its bypass list.
 
 The job is skipped when `BOT_CLIENT_ID` is not set. Its token asks for the **Contents** write permission only, whatever else the App installation grants. GitHub may refuse to move a branch across commits that change `.github/workflows/` to a token without the **Workflows** permission; `ci-promote` then prints the refusal reason and the branch stays.
@@ -99,91 +135,48 @@ With the secret `DEPLOY_SIGNING_KEY` (an OpenSSH private key without a passphras
 - two parents, the previous promotion of `deploy/<host>` and the commit of `main` (only the latter for the first one);
 - an SSH signature.
 
-The branch therefore only moves forward, each promotion holds the previous one, and the ruleset above still refuses anything else. Before building on the tip of `deploy/<host>`, `promote` checks it against the public key it derives from the secret (`ssh-keygen -y`): a tip that is not a promotion signed for that host is neither a parent nor a reason to answer `already at or past`, and the run warns about it, so a branch deleted or reset by hand never holds the machines back. Machines whose host lists the public key in `signers` apply only such commits, signed for them ([updates.md](../explanation/updates.md#signed-deploy-commits)). Without the secret, `promote` prints `unsigned: DEPLOY_SIGNING_KEY is not set, ...` and moves the branches to the commits of `main`, unsigned, which those machines refuse.
+The branch therefore only moves forward, each promotion holds the previous one, and the ruleset above still refuses anything else.
 
-The key is written to a file only the job's user can read, in a temporary folder removed when `ci-promote` ends, and is never printed. It lives in the `deploy` environment, limited to `main` ([setup](#turn-ci-on-in-your-fork)), apart from the App token: a leaked token can push a deploy branch but not sign it, and a leaked key can sign but not push. Anyone who can run a workflow on `main` of the fork can use both: that is the accepted limit. Signing happens once, in `promote`, before any push: the `mirror` workflow copies the signed commits as they are and never creates or rewrites a commit, so a mirror's forge can withhold a version but not forge one.
+Before building on the tip of `deploy/<host>`, `promote` checks it against the public key it derives from the secret (`ssh-keygen -y`). A tip that is not a promotion signed for that host is neither a parent nor a reason to answer `already at or past`, and the run warns about it. So a branch deleted or reset by hand never holds the machines back.
+
+Machines whose host lists the public key in `signers` apply only such commits, signed for them ([updates.md](../explanation/updates.md#signed-deploy-commits)). Without the secret, `promote` prints `unsigned: DEPLOY_SIGNING_KEY is not set, ...` and moves the branches to the commits of `main`, unsigned, which those machines refuse.
+
+How the key is kept:
+
+- It is written to a file only the job's user can read, in a temporary folder removed when `ci-promote` ends, and is never printed.
+- It lives in the `deploy` environment, limited to `main` ([setup](#turn-ci-on-in-your-fork)), apart from the App token. A leaked token can push a deploy branch but not sign it, and a leaked key can sign but not push. Anyone who can run a workflow on `main` of the fork can use both: that is the accepted limit.
+- Signing happens once, in `promote`, before any push. The `mirror` workflow copies the signed commits as they are and never creates or rewrites a commit, so a mirror's forge can withhold a version but not forge one.
 
 ## Mirror to a second forge
 
-The `mirror` workflow copies `main` and the `deploy/*` branches to another forge (Codeberg, a Forgejo, Gitea or GitLab instance, or another GitHub repository), which machines list in their `mirrors` ([updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own)). It runs on every push to `main` and to `deploy/*`; the `promote` job pushes `deploy/*` with the App token, and pushes made with an App token do trigger workflows, unlike those made with `GITHUB_TOKEN`, so each promotion reaches the mirror. Runs queue one after the other and each one pushes the branches as they are when it starts.
+The `mirror` workflow copies `main` and the `deploy/*` branches to another forge (Codeberg, a Forgejo, Gitea or GitLab instance, or another GitHub repository), which machines list in their `mirrors` ([updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own)). It runs on every push to `main` and to `deploy/*`. The `promote` job pushes `deploy/*` with the App token, and pushes made with an App token trigger workflows, unlike those made with `GITHUB_TOKEN`, so each promotion reaches the mirror. Runs queue one after the other, and each one pushes the branches as they are when it starts.
 
-The mirror holds the fork's commits, not its inputs. While GitHub is down, a `deploy/<host>` whose `flake.lock` is the one the machine already runs builds from the mirror; one whose `flake.lock` changed, as after every weekly lock update, needs its new `github:` inputs, which neither the mirror nor the binary cache hold (Cachix keeps no sources). That build fails, the run is recorded as `failed`, and the next daily run retries.
+The mirror holds the fork's commits, not its inputs. While GitHub is down, a `deploy/<host>` whose `flake.lock` is the one the machine already runs builds from the mirror. One whose `flake.lock` changed, as after every weekly lock update, needs its new `github:` inputs, which neither the mirror nor the binary cache hold (Cachix keeps no sources). That build fails, the run is recorded as `failed`, and the next daily run retries.
 
-Set the repository variable `MIRROR_URL` to the https URL of the mirror repository, and the secret `MIRROR_TOKEN` to an access token of the mirror's forge that can push to it. `ci-mirror` sends it with HTTP Basic auth, the token as the password and `x-access-token` as the user name (the header `Authorization: Basic <base64 of x-access-token:<token>>`), which GitHub, GitLab, Gitea, Forgejo and Codeberg accept, since they take the user name from the token. The header is read from the environment, never on the command line or in the log, and sent to the mirror URL only. Without `MIRROR_URL` the workflow is skipped; without `MIRROR_TOKEN` it pushes without credentials, which suits a remote that needs none.
+To set it up:
+
+1. Set the repository variable `MIRROR_URL` to the https URL of the mirror repository.
+2. Set the secret `MIRROR_TOKEN` to an access token of the mirror's forge that can push to it.
+
+`ci-mirror` sends the token with HTTP Basic auth, as the password of the user `x-access-token`, which GitHub, GitLab, Gitea, Forgejo and Codeberg accept. The header is read from the environment, never on the command line or in the log, and sent to the mirror URL only. Without `MIRROR_URL` the workflow is skipped; without `MIRROR_TOKEN` it pushes without credentials, which suits a remote that needs none.
 
 `ci-mirror <url>` pushes only `main` and `deploy/*`, never `develop` or any other branch:
 
-- `main` moves without force: a mirror whose `main` has diverged refuses the push, the job fails and needs a look, while the `deploy/*` branches still go through.
-- `deploy/*` is pushed with force, and a `deploy/<host>` deleted in the fork is deleted on the mirror; nothing else on the mirror is pruned. A deploy branch is the fork's pointer, which only `promote` moves once the ruleset above is in place, or an admin who lifts it: the mirror holds a copy of it, so a branch moved back or removed by hand in the fork is moved back or removed on the mirror too, and a machine reading the mirror never follows a version the fork withdrew.
-
-## Checks
-
-Every host gets its checks from the registry, so a new host reaches CI without touching YAML. The checks of upstream's examples and of its upgrade path (`feature-migration`, `init`, `example-hosts`) are in [maintenance/ci.md](../maintenance/ci.md).
-
-| Check | When | What it proves |
-|---|---|---|
-| `<host>-toplevel` | every host | the system builds, with its real revision; its closure is what `auto-upgrade` substitutes |
-| `<host>-boots` | every host without an SD image | the VM reaches `multi-user.target` and every `home-manager-<user>` service; once the boot finished, it writes `systemd-analyze`'s total and userspace time to `boot-time.json` in its output, without failing when the boot does not finish |
-| `<host>-sd-image` | Raspberry Pi hosts, in place of `<host>-boots` | the SD card image builds |
-| `<host>-disk` | hosts with `disk` | install on a blank disk, reboot, `/` wiped, btrbk snapshot taken; Secure Boot and TPM2 unlock on `x86_64-linux` hosts with `secure-boot`; the swap file, with a 1G size, on hosts with `hibernate` |
-| `<host>-wipe-home` | hosts with `disk` but not `wipe-home` | the install test with `wipe-home` added |
-| `<host>-installer` | hosts in `installer.testedHosts` | the installer ISO installs without questions and the installed disk boots |
-| `base-*`, `feature-*`, `profile-*`, `app-*` | modules with a `check.nix` | the module's own VM test |
-| `perf-regression` | on a PR only, in the `perf` job outside `ci-ok` and outside `ci.matrix`, on `x86_64-linux` while a host boots in a VM here | boots the base's and this version's VM of each host that also boots in a VM on the base in turn, 5 times each, and writes `perf.json` (per host and side: the `min` and `median` of `total`, `userspace`, `memory` in MiB and `services`, `closure` in bytes, and the raw `samples`; under `skipped`, each other host with `absent` or `no-vm`); it fails only when a boot cannot be measured, never on a regression. The base is the `migration-base` input: `ci-build --base` overrides it with the PR's base commit |
-| `feature-rollback-failed-unit` | always, on `x86_64-linux` | like `feature-rollback`, with a generation whose service fails after `multi-user.target`: `auto-upgrade`'s `systemd-boot-check-no-failures` keeps the boot from being blessed |
-| `wrong-namespace` | always, on `x86_64-linux` | a host naming in `features`, `profile` or `hardware` a name of another field fails to evaluate, with an error naming that field and listing only its own names; a name in `apps` that is neither an app nor a package of the host's pkgs, overlays included, lists the configured apps; a `users` entry with no person in `modules/users` lists the known people |
-| `apps-once` | always, on `x86_64-linux` | apps named by both the host and the person (`zsh`, `hyprland`, `lock`) build the same system as each one once, with a hyprlock PAM service; an unfree package added by a host overlay and named in `apps` is installed and allowed |
-| `fork-overrides` | always, on `x86_64-linux` | plain definitions in a host's `module` override the default policy values of the shipped modules (NVIDIA open module, Bluetooth at boot, boot counting, snapshot schedule, root login over SSH, scx scheduler, auto-upgrade time, Docker log driver, greeter, Hyprland session variable, zsh completion, protontricks, comma) without `mkForce`, `nvidia` with the nixos-hardware profile `asus-fa507nv` keeps its closed module, and a Raspberry Pi with `firmware` and `plymouth` evaluates |
-| `hyprland-alone` | always, on `x86_64-linux` | `hyprland` alone evaluates, binds its terminal key to `xdg-terminal-exec`, warns that no terminal is registered, and binds no key to `fuzzel`, the lock or `wpctl`; with `kitty`, `fuzzel`, `lock` and the `audio` hardware module it binds them all, kitty is the default terminal and the warning is gone |
-| `flake-modules` | always, on `x86_64-linux` | no name is published by two namespaces in the `flake.modules.nixos` output |
-| `facter` | always, on `x86_64-linux` | a host with the registry field `facter` set to nixpkgs' sample report turns on nixpkgs' facter module |
-| `options-doc` | always | `docs/reference/options.md` matches the registry options |
-| `docs` | always, on `x86_64-linux` | `check-docs`: every relative link and `#anchor` of `README.md` and `docs/` resolves (lychee, offline), every page of `docs/` is linked from `docs/README.md`, no page outside `docs/maintenance/` names upstream's examples or repository (the FIDO2 origin `pam://nixos-forge` excepted) unless the line says `<!-- docs-check: allow <name> -->`, and every app, feature, hardware module and profile has a heading or first table cell naming it; the violations listed in `modules/flake/docs/pending.txt` pass, and a listed one that no longer fails stops the check |
-| `ci-promote` | always, on `x86_64-linux` | on local git repositories, `deploy/<host>` moves only when every check of that host passed, unstable or cached, stays on a failure, a missing result or a kernel skip, never follows another host sharing its name prefix, and is never moved backwards or sideways, says when it is already at or past the commit, and prints the reason the remote gives for a refusal; with `DEPLOY_SIGNING_KEY`, it points to a promotion commit that verifies with the key, carries the tree of `main`'s commit, has the previous promotion and that commit as parents, replaces with a warning a tip that is unsigned or a forged promotion rather than building on it or calling it already promoted, and a key that cannot sign moves nothing |
-| `feature-auto-upgrade-signed` | always, on `x86_64-linux` | a machine with `signers` refuses an unsigned commit, one signed by another key, one signed for another host, one signed with GPG by a key of root's keyring and one changed after signing, builds nothing and names the source and reason; it applies a correctly signed one, takes it from a mirror when the first source serves an unsigned one, follows a promotion commit whose parent is the running one, refuses an older signed promotion replayed, and follows a new promotion after the deploy branch was reset to an unsigned commit of `main` |
-| `feature-auto-upgrade-sources` | always, on `x86_64-linux` | a host whose `mirrors` holds an `http://`, a `git://` or a relative URL fails to evaluate with a message naming each one, an `ssh://` or `user@host:path` one evaluates with one warning naming each and the root SSH key and known host it needs, while `https://`, `file://` and absolute paths pass silently |
-| `ci-mirror` | always, on `x86_64-linux` | on local git repositories, `main` and every `deploy/<host>` reach the mirror and nothing else does, a deploy branch deleted or moved back in the fork follows on the mirror while other mirror branches stay, a diverged `main` is refused without holding the deploy branches back, and a local http server receives the Basic auth header of `MIRROR_TOKEN`, none without it |
-| `ci-report` | always, on `x86_64-linux` | `ci-build` keeps a clean log excerpt and retries a VM test once; `ci-report` turns sample runs into the right verdict, a table per host that never mixes two hosts, the cause of a failure, the boot time beside the base's with `n/a` when one is missing, the performance tables with the metrics past both their thresholds compared on the best boot, none on a steady run or past the relative threshold alone, `n/a` for a side not measured, the hosts left out with their reason, even when none was measured, and no section without readable measures, never a red verdict, the screenshot artifacts, a comment cut to fit, the static note under the verdict of a green, a red and an unplanned run; `ci-build` keeps the boot time, measures and screenshots of a passing check's output |
-| `ci-badges` | always, on `x86_64-linux` | `ci-badges` turns sample runs into the right badges (every check passing, a failing count in red, cached checks and VM tests counted, the boot time of the badge host from the run or the binary cache and none when neither has it, only `checks` when the flake does not evaluate) and a nightly summary into `reproducible`, `N paths differ` or `not finished`; on local git repositories, a publish adds its files to an orphan `badges` branch, keeps the ones it does not write and adds no commit when nothing changed |
-| `reproducibility` | always, on `x86_64-linux` | with a stand-in for `nix`, `reproducibility` says an identical rebuild is identical, shows the diffoscope lines of a differing one without failing, and fails only when a system does not build, after trying the other machines |
-
-## Reproducibility
-
-`nix build --rebuild` builds the system derivation of a machine once more and compares the result with the first build, byte for byte. It rebuilds the last derivation only, the one that assembles the system, not every package under it, so it catches what that step adds (timestamps, ordering) rather than the reproducibility of nixpkgs. Published measurements put the share of NixOS builds that rebuild identically between 69 and 91 %, so a difference now and then is expected: the job stays green and its summary shows diffoscope's first 200 lines for each machine that differs. It fails only when a system does not build.
+- `main` moves without force: a mirror whose `main` has diverged refuses the push, and the job fails and needs a look, while the `deploy/*` branches still go through.
+- `deploy/*` is pushed with force, and a `deploy/<host>` deleted in the fork is deleted on the mirror; nothing else on the mirror is pruned. The mirror holds a copy of the fork's pointer, so a machine reading the mirror never follows a version the fork withdrew.
 
 ## Live badges
 
-The README badges under "Proved by CI" read [shields.io endpoint](https://shields.io/badges/endpoint-badge) files from the orphan branch `badges`, so they follow every run instead of going stale. On a push to `main`, the `badges` job of `check` runs `nix run .#ci-badges -- checks badges` on the run's results and writes `checks.json` (`36/36 passing`, or the failing count in red), `vm-tests.json` (boot and VM tests), `hosts.json` (hosts built) and `boot-time.json` (the host named by `BADGE_HOST` to `multi-user.target`, or the first host with a boot test). The nightly `reproducibility` workflow writes `reproducibility.json` (`reproducible` or `N paths differ`). `nix run .#ci-badges -- publish badges` commits them to `badges` with `GITHUB_TOKEN`, the only place where a job gets `contents: write`. Publishing never turns a check red: a failure is a warning on the step.
+The README can show badges that follow every run instead of going stale. They read [shields.io endpoint](https://shields.io/badges/endpoint-badge) files from the orphan branch `badges`:
 
-A fork gets its own badges once its CI has run on `main`: point the badge URLs at `https://raw.githubusercontent.com/<owner>/<repo>/badges/<file>.json`.
+| File | Written by | Shows |
+|---|---|---|
+| `checks.json` | the `badges` job of `check`, on a push to `main` | `36/36 passing`, or the failing count in red |
+| `vm-tests.json` | the same | boot and VM tests |
+| `hosts.json` | the same | hosts built |
+| `boot-time.json` | the same | the time to `multi-user.target` of the host named by the `BADGE_HOST` environment variable of `ci-badges` (`example` by default), else of the first host, by name, with a boot test <!-- docs-check: allow example --> |
+| `reproducibility.json` | the nightly `reproducibility` workflow | `reproducible` or `N paths differ` |
 
-## aarch64 VM tests
+`nix run .#ci-badges -- publish badges` commits them to `badges` with `GITHUB_TOKEN`, the only place where a job gets `contents: write`. Publishing never turns a check red: a failure is a warning on the step.
 
-`vmCheck` and the boot tests run on `x86_64-linux` only, because they need KVM. Read on 17/10/2026, GitHub's arm64 Linux runner `ubuntu-24.04-arm` does not expose `/dev/kvm`, so they stay there:
-
-- GitHub's runner reference lists the arm64 Linux runners but says nothing about KVM; the only virtualization it mentions is hardware acceleration for the Android SDK on Linux runners, and that nested virtualization is not supported on arm64 macOS runners ([Supported runners and hardware resources](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [Larger runners reference](https://docs.github.com/en/actions/reference/runners/larger-runners)).
-- The two announcements do not contradict each other on KVM, they cover different offers and neither mentions KVM: [arm64 hosted runners for public repositories are now generally available](https://github.blog/changelog/2025-08-07-arm64-hosted-runners-for-public-repositories-are-now-generally-available/) (07/08/2025, the free standard runners) and [arm64 Linux and Windows runners are now generally available](https://github.blog/changelog/2026-09-03-github-actions-arm64-linux-and-windows-runners-are-now-generally-available/) (its URL says 03/09/2026 while the page is dated 03/09/2024; the paid larger runners, Team and Enterprise Cloud plans only). Between them, [arm64 standard runners are now available in private repositories](https://github.blog/changelog/2026-01-29-arm64-standard-runners-are-now-available-in-private-repositories/) (29/01/2026).
-- The request for KVM on these runners, [actions/runner-images#14062](https://github.com/actions/runner-images/issues/14062) (opened 03/12/2025), was closed as not planned on 20/08/2026: a maintainer of the Arm image answered on 05/12/2025 that the runners are virtual machines that do not expose KVM, nested virtualization on AArch64 not being available in Azure yet, and the runner-images maintainers that `/dev/kvm` has to come from the host, that the image cannot add it, and that nested virtualization is not officially supported on GitHub-hosted runners in general.
-
-An `aarch64-linux` VM test would run under emulation (TCG), many times slower than the 60 minute job limit allows for a boot test. Until GitHub ships KVM on arm64, `vmCheck` stays `x86_64-linux` only; a fork with a self-hosted `aarch64-linux` runner exposing `/dev/kvm` can run them there.
-
-## Running the CI scripts locally
-
-The matrix and scripts live in Nix (`modules/flake/ci/`), so they run the same on your machine.
-
-| Command | What it does |
-|---|---|
-| `nix eval --json .#ci.matrix` | every check with its system, runner and `retry` (true for a NixOS VM test), except `treefmt` (the `lint` job) and `perf-regression` (the `perf` job, listed by `nix eval --json .#ci.perfMatrix`) |
-| `nix run .#ci-plan -- pull_request` | plan a run as CI does (`pull_request` or `push`), skipping what your store or substituters hold |
-| `nix build -L .#checks.x86_64-linux.<host>-boots` | build one check |
-| `nix run .#ci-build -- x86_64-linux <host>-boots results --retry` | build one check as CI does: with `--retry`, a failure is rebuilt once and a pass on the second attempt is `unstable`; `--base-input <input> --base <flake-ref>` overrides that input of the check, as CI does for a job whose plan names a `baseInput` (`feature-migration`) with `github:<owner>/<repo>/<base commit>`, and keeps the locked input when the commit is all zeros; writes `results/x86_64-linux-<host>-boots.json` with the outcome, the attempts, an excerpt of the failing log, after each failed attempt and at the end, and from a passing check's output its `bootTime` (from `boot-time.json`) and `screenshots` (its `.png` files, copied to `results/screenshots/<system>-<check>-<name>.png`); a `perf.json` is copied to `results/perf/<system>.json`, which `ci-report` reads |
-| `nix run .#ci-boot-time -- <flake ref> results/base` | read the boot time of every `<host>-boots` of `<flake ref>` (for instance `github:<owner>/<repo>/<sha>`) that the binary cache or your store already holds, without building anything, into `results/base/boot-time.json`, which `ci-report` shows as the base |
-| `nix run .#reproducibility [-- <host>...]` | build each host's system (every host of your platform by default), rebuild it with `nix build --rebuild` and print a Markdown summary, with diffoscope's first 200 lines for a difference; exits 1 only when a system does not build |
-| `RESULTS_DIR=results HOST_CHECKS=... PLANNED=... SKIPPED=... LINT_RESULT=success nix run .#ci-badges -- checks badges` | write the shields endpoint files of a run's results to `badges/`; `reproducibility <summary.md> badges` writes `reproducibility.json` from the output of `nix run .#reproducibility`; `publish badges` commits the files of `badges/` to the `badges` branch of `origin` |
-| `nix eval --json .#ci.hostChecks` | the checks of each host, the exact list the report groups them by |
-| `nix eval --json .#ci.descriptions` | what each check proves, as the report says it |
-| `HOST_CHECKS=$(nix eval --json .#ci.hostChecks) DESCRIPTIONS=$(nix eval --json .#ci.descriptions) RESULTS_DIR=results nix run .#ci-report` | write the report of the results in `results/` to stdout; `PLANNED`, `SKIPPED`, `HOST_CHECKS` and `DESCRIPTIONS` take the `checks`, `skipped`, `hostChecks` and `descriptions` JSON of `ci-plan`, `CACHE_OUTCOME`, `LINT_RESULT` and `PLAN_RESULT` the outcome of the cache step, the lint job and the plan job, `RUN_URL` the link to the run; `--comment` cuts it to fit a PR comment |
-| `HOST_CHECKS=$(nix eval --json .#ci.hostChecks) PLANNED='[...]' SKIPPED='[...]' nix run .#ci-promote -- results <sha>` | move each `deploy/<host>` of `origin` to `<sha>` when every check of that host in `results/` passed; `PLANNED` and `SKIPPED` take the `checks` and `skipped` JSON of `ci-plan`, `DEPLOY_SIGNING_KEY` the private key that signs the promotion commits |
-| `MIRROR_TOKEN=<token> nix run .#ci-mirror -- <mirror url>` | push `main` and every `deploy/<host>` as `origin` held them at the last fetch to the mirror, pruning the deploy branches `origin` no longer has; `MIRROR_TOKEN` is optional |
-| `nix run .#closure-diff -- <base rev or branch>` | package diff of the hosts in `nix eval --json .#ci.hosts` for the current platform |
-| `nix run .#sync-develop` | merge `main` into `develop` and push, from a checkout of `develop` |
+A fork gets its own badges once its CI has run on `main`. `nix run .#init` leaves the README's badges pointing at upstream's repository: point each badge URL at `https://raw.githubusercontent.com/<owner>/<repo>/badges/<file>.json`, and the workflow badges at your own repository.

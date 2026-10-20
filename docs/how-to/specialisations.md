@@ -35,7 +35,7 @@ With `secure-boot`, lanzaboote signs an entry for each variant, like systemd-boo
 
 | Name | What it brings |
 |---|---|
-| `steam` (app) | Steam with [Proton-GE](https://github.com/GloriousEggroll/proton-ge-custom) and protontricks, 32-bit graphics, the `ntsync` kernel module that recent Wine and Proton use for Windows synchronization when `/dev/ntsync` exists, its library in `~/.local/share/Steam` kept with `wipe-home` |
+| `steam` (app) | Steam with [Proton-GE](https://github.com/GloriousEggroll/proton-ge-custom) and protontricks, 32-bit graphics, the `ntsync` kernel module that recent Wine and Proton use for Windows synchronization when `/dev/ntsync` exists, `~/.steam` and its library in `~/.local/share/Steam` kept with `wipe-home` |
 | `gamemode` (app) | [Feral GameMode](https://github.com/FeralInteractive/gamemode): put `gamemoderun %command%` in a game's launch options; every user is in the `gamemode` group, which lets it set the CPU governor |
 | `mangohud` (app) | an overlay with FPS, frame times, the average and 1% low FPS, CPU and GPU load: put `mangohud %command%` in a game's launch options; Shift+F2 starts and stops a log in `~/.local/state/mangohud`, kept with `wipe-home` |
 

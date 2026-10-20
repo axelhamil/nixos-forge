@@ -7,9 +7,7 @@
 
 <h3 align="center">Not a distro. The forge where you make your own.</h3>
 
-<p align="center">A NixOS starter you fork and forge: every machine you describe is built, booted and installed in a VM by CI before it reaches yours.</p>
-
-<p align="center"><sub>Fork, friend, and enter.</sub></p>
+<p align="center">nixos-forge is a NixOS configuration for your own machines that you fork and edit: CI builds, boots and installs each machine in a VM before it reaches the real one.</p>
 
 <div align="center">
 
@@ -26,7 +24,7 @@
       <a href="docs/how-to/ci.md#live-badges"><img alt="VM tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fvm-tests.json&style=flat-square&logo=qemu&logoColor=white"></a>
       <a href="docs/how-to/ci.md#live-badges"><img alt="hosts built" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fhosts.json&style=flat-square&logo=nixos&logoColor=white"></a>
       <a href="docs/how-to/ci.md#live-badges"><img alt="boot time" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fboot-time.json&style=flat-square&logo=nixos&logoColor=white"></a>
-      <a href="docs/how-to/ci.md#reproducibility"><img alt="reproducibility" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Freproducibility.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/reference/ci.md#reproducibility"><img alt="reproducibility" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Freproducibility.json&style=flat-square&logo=nixos&logoColor=white"></a>
     </td>
   </tr>
   <tr>
@@ -88,7 +86,15 @@ Why it is different:
 }
 ```
 
-`users.alice` gives an account to a person defined once, in `modules/users/alice/default.nix`: name, email, SSH keys, apps and her own home-manager config. Every machine that names her gets the same person.
+The words this README uses:
+
+- A **host** is one machine: an entry `configurations.nixos.<name>` in one file under `modules/hosts/`. Together, the hosts form the **registry**.
+- Its **profile** is its role (`desktop`, `laptop`, `server` or `pi`), which sets the kernel, power and memory tuning.
+- Its **features** are system modules by name, such as the encrypted `disk` or `secure-boot`; its **hardware** names drivers and firmware, or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile.
+- Its **apps** are what users run, each with its config, or any nixpkgs package by name.
+- A **person** is defined once in `modules/users/<name>`, and `users.<name>` in a host gives that person an account there.
+
+`users.alice` above gives an account to the person defined in `modules/users/alice/default.nix`: name, email, SSH keys, apps and her own home-manager config. Every machine that names her gets the same person.
 
 ```nix
 {
@@ -104,6 +110,46 @@ That is the whole host. It gets a `nixosConfigurations` entry, a build check, a 
 
 The commented [`example`](modules/hosts/example/default.nix) host lists every profile, feature, hardware module and app the starter ships, one line each to uncomment. `example-server` shows a headless machine with `wipe-home`, `example-pi` a Raspberry Pi. Read them top to bottom and keep what you like.
 
+## Quick start
+
+You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests and the VM. Steps 1 to 4 need no GitHub setting.
+
+1. **Fork and clone** the repo.
+2. **Make it yours** with `nix run .#init`. It asks for your host name, profile, login, name, email, time zone, keyboard, locale, features, hardware and apps, then:
+   - writes `modules/hosts/<host>/default.nix` from the [example host](modules/hosts/example/default.nix) and `modules/users/<login>/default.nix` from the [example person](modules/users/alice/default.nix);
+   - removes the examples you do not keep and stages the result;
+   - generates the SSH key that signs your deploy branches: the public key goes in the `signers` of your hosts, the private key in a file outside the repository that only you can read, and init prints the `gh secret set` command that stores it and shreds the file ([ci](docs/how-to/ci.md#sign-the-deploy-branches));
+   - points the `flake` of the example hosts you keep at your fork, read from the `origin` remote. Without an `origin` of your own, `flake` and `auto-upgrade` are commented out there, so a kept host never pulls from someone else's repository.
+
+   `--help` lists a flag for every answer, `--yes` asks nothing. The rest of this README stays upstream's: rewrite it for your fork, and point its badges at your repository ([live badges](docs/how-to/ci.md#live-badges)).
+
+   <details>
+   <summary>Rather do it by hand?</summary>
+
+   Copy the example host to `modules/hosts/<host>` and the example person to `modules/users/<login>`, rename `example` and `alice`, uncomment what you want, and `git add` them: a flake only sees what git tracks.
+
+   </details>
+
+3. **Check it and boot it** in a VM:
+
+   ```sh
+   nix develop        # installs a pre-push hook that runs in seconds
+   nix fmt
+   nix flake check -L # ends with: all checks passed!
+   nix build .#nixosConfigurations.<host>.config.system.build.vm
+   ./result/bin/run-<host>-vm
+   ```
+
+   Log in with your user and the password `test`, set for the VM only. Nothing touches a physical disk.
+4. **Install** on a real machine, following [docs/tutorials/install.md](docs/tutorials/install.md) step by step: try the installer in a local VM, then build the ISO, write it to a USB stick and boot it. The assistant asks for the disk, the passphrase and the passwords.
+
+   ```sh
+   nix run .#try-install -- <host> # the whole install, in a local VM first
+   nix build .#installer-<host>    # result/iso/<host>-installer.iso
+   ```
+
+5. **Turn on the CI** of your fork with [docs/how-to/ci.md](docs/how-to/ci.md#turn-ci-on-in-your-fork). Plan about 15 minutes: enabling the workflows is enough for CI on every PR; a GitHub App, three rulesets, one environment and an optional binary cache add the lock PR, deploy branches and signing.
+
 ## What CI proves
 
 Checks are generated from the registry: a machine you add is tested without touching a workflow. Each run ends in one report per machine, in the run summary and as a single PR comment, that opens with a verdict and what to do next ([docs/how-to/ci.md](docs/how-to/ci.md#the-ci-report)).
@@ -111,22 +157,15 @@ Checks are generated from the registry: a machine you add is tested without touc
 | Check | What it proves |
 |---|---|
 | `<host>-toplevel` | The system builds with its real revision; this closure is what `auto-upgrade` installs. |
-| `<host>-boots` | The machine boots in a VM to `multi-user.target` and every user's home-manager service starts. |
-| `<host>-sd-image` | For a Raspberry Pi, in place of the boot test: its SD card image builds. |
-| `<host>-disk` | It installs on a blank encrypted disk, reboots, wipes `/` and takes a snapshot; with `secure-boot`, it boots under Secure Boot and unlocks the disk with the TPM2. |
-| `<host>-installer` | The installer ISO installs the host without questions and the installed disk boots. |
-| `<host>-wipe-home` | The same install with `wipe-home` added, so `/home` starts empty at every boot. |
-| `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit` | A new generation whose health check fails, or whose service fails after boot, is never blessed: after 3 tries the machine boots the one before. |
-| `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot` | Windows on its own disk or installed beside NixOS starts from the systemd-boot menu, under Secure Boot or on plain systemd-boot, with or without BitLocker; its MSR, `C:` and recovery partition stay byte for byte the same. |
+| `<host>-boots` | The machine boots in a VM to `multi-user.target` and every user's home-manager service starts. For a Raspberry Pi, `<host>-sd-image` builds its SD card image instead. |
+| `<host>-disk` | With `disk`, it installs on a blank encrypted disk, reboots, wipes `/` and takes a snapshot; with `secure-boot`, it boots under Secure Boot and unlocks the disk with the TPM2. A host without `wipe-home` also gets `<host>-wipe-home`, the same install with `/home` emptied at every boot. |
+| `<host>-installer` | For the hosts listed in `installer.testedHosts`: the installer ISO installs the host without questions and the installed disk boots. |
+| `feature-rollback` and its variants | A new generation whose health check fails, or whose service fails after boot, is never blessed: after 3 tries the machine boots the one before. |
 | `feature-migration` | A machine installed from the base revision (the PR's base, or the commit before a push) upgrades to this one in place and keeps its state. |
 | `ci-promote`, `feature-auto-upgrade-signed` | `deploy/<host>` moves only once every check of that host passed, signed by CI, and a machine applies only a commit signed for it, never an older one replayed. |
-| `app-*`, `feature-*`, `profile-*`, `base-*` | Each module with a `check.nix` boots in its own VM test, from the Hyprland session to hibernate and resume. |
-| Reproducibility, nightly | Every system is rebuilt with `nix build --rebuild` and compared, with a diffoscope summary when it differs. |
-| Boot time | Each boot test records `systemd-analyze`, shown in the report beside the base revision's. |
-| `perf-regression`, every PR | The base revision and this one boot in turn in one VM job; the report flags boot time, idle RAM, closure size or running services over a threshold, without blocking the merge. |
-| Package diff, every PR | [nvd](https://git.sr.ht/~khumba/nvd) lists the packages each system gains, loses or changes. |
+| `app-*`, `feature-*`, `profile-*`, `base-*` | Each module with a `check.nix` boots in its own VM test, from the Hyprland session to hibernate and resume, and dual boot with Windows. |
 
-The full list, with when each check runs, is in [docs/how-to/ci.md](docs/how-to/ci.md#checks).
+Every PR also gets the package diff of each system ([nvd](https://git.sr.ht/~khumba/nvd)), its boot time beside the base's, and a performance comparison that flags regressions without blocking the merge. A nightly workflow rebuilds every system and checks it is reproducible. Every check, with when it runs, is in [docs/reference/ci.md](docs/reference/ci.md#checks).
 
 ## What your fork gets on day one
 
@@ -158,47 +197,6 @@ Fork it, run `nix run .#init`, [turn CI on](docs/how-to/ci.md#turn-ci-on-in-your
 | **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, the last auto-upgrade, signed deploys and rollbacks, and lists what the next boot erases from `/`. [doctor](docs/how-to/doctor.md) |
 | **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, only what the cache lacks is built ([above](#what-ci-proves)). [ci](docs/how-to/ci.md) |
 
-## Quick start
-
-You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests and the VM.
-
-1. **Fork and clone** the repo.
-2. **Make it yours** with `nix run .#init`. It asks for your host name, profile, login, name, email, time zone, keyboard, locale, features, hardware and apps, then:
-   - writes `modules/hosts/<host>/default.nix` from the [example host](modules/hosts/example/default.nix) and `modules/users/<login>/default.nix` from the [example person](modules/users/alice/default.nix);
-   - removes the examples you do not keep and stages the result;
-   - generates the SSH key that signs your deploy branches: the public key goes in the `signers` of your hosts, the private key in a file outside the repository that only you can read, and init prints the `gh secret set` command that stores it and shreds the file ([ci](docs/how-to/ci.md#sign-the-deploy-branches));
-   - points the `flake` of the example hosts you keep at your fork, read from the `origin` remote. Without an `origin` of your own, `flake` and `auto-upgrade` are commented out there, so a kept host never pulls from someone else's repository.
-
-   `--help` lists a flag for every answer, `--yes` asks nothing.
-
-   <details>
-   <summary>Rather do it by hand?</summary>
-
-   Copy the example host to `modules/hosts/<host>` and the example person to `modules/users/<login>`, rename `example` and `alice`, uncomment what you want, and `git add` them: a flake only sees what git tracks.
-
-   </details>
-
-3. **Check it and boot it** in a VM:
-
-   ```sh
-   nix develop        # installs a pre-push hook that runs in seconds
-   nix fmt
-   nix flake check -L # ends with: all checks passed!
-   nix build .#nixosConfigurations.<host>.config.system.build.vm
-   ./result/bin/run-<host>-vm
-   ```
-
-   Log in with your user and the password `test`, set for the VM only. Nothing touches a physical disk.
-4. **Install** on a real machine: build the installer ISO, write it to a USB stick and boot it; the assistant asks for the disk, the passphrase and the passwords.
-
-   ```sh
-   nix build .#installer-<host>   # result/iso/<host>-installer.iso
-   nix run .#try-install -- <host> # the same install, in a local VM first
-   ```
-
-   Other paths (nixos-anywhere, disko-install) are in [docs/tutorials/install.md](docs/tutorials/install.md).
-5. **Turn on the CI** of your fork with [docs/how-to/ci.md](docs/how-to/ci.md#turn-ci-on-in-your-fork).
-
 ## Make it yours
 
 | Field | What it takes |
@@ -215,7 +213,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 A person (`modules/users/<name>`, every field in [docs/reference/options.md](docs/reference/options.md#person-options)) has `fullName`, `email`, `sshKeys`, `apps` that follow them on every machine (none by default) and `module`, their own home-manager config.
 
 > [!NOTE]
-> Typos do not slip through. An unknown name stops the evaluation and lists the known ones: in `apps`, a name that is no app and no nixpkgs package; in `users`, a person with no folder in `modules/users`.
+> An unknown name stops the evaluation with the list of known ones, so a typo never builds a machine without what you asked for. In `apps`, that is a name that is no app and no nixpkgs package; in `users`, a person with no folder in `modules/users`.
 
 **Add a feature.** Publish `features.<name>` from a file under `modules/features/<name>` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as an app, a sibling of `hyprland`.
 
@@ -248,18 +246,22 @@ modules/
 │              auto-upgrade, docker, libvirt, nix-ld, greetd, plymouth, printing
 ├── apps/      everything a user runs, with its config: hyprland, waybar, fuzzel, kitty, mako,
 │              lock, zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop, direnv,
-│              stow, firefox, upgrade-notify, nix-index, gh
+│              stow, firefox, upgrade-notify, steam, gamemode, mangohud, nix-index, gh
 ├── users/     one folder per person: name, email, SSH and security keys, apps, home config
 └── hosts/     one file per machine, giving accounts to people
 ```
 
 ## Docs
 
+[docs/README.md](docs/README.md) lists every page. Where to start:
+
 | Read | When you want to |
 |---|---|
-| [install](docs/tutorials/install.md) | put a host on real hardware: ISO, nixos-anywhere, disko-install, Secure Boot, TPM2, rollback |
+| [install](docs/tutorials/install.md) | put a host on real hardware, step by step: VM rehearsal, ISO, Secure Boot, TPM2, rollback |
+| [install without the ISO](docs/how-to/install-without-iso.md) | install over SSH with nixos-anywhere, or by hand with disko-install |
 | [updates](docs/explanation/updates.md) | follow the starter, edit and switch, let machines upgrade on their own, sign deploys |
 | [ci](docs/how-to/ci.md) | turn CI on in your fork, read the report, rename the bot, mirror to a second forge |
+| [ci reference](docs/reference/ci.md) | every workflow and check, and the CI scripts you can run locally |
 | [apps](docs/reference/apps.md) | add an app, change a default, set up the shell, bring your dotfiles |
 | [desktop](docs/reference/desktop.md) | Hyprland and its neighbours, keybinds, monitors, themes |
 | [specialisations](docs/how-to/specialisations.md) | switch one machine between variants, such as work and games, Steam included |

@@ -4,7 +4,7 @@ Ask a machine how it is doing. Every host has a `doctor` command that checks the
 
 One line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feature, with a hint under each problem. Run it as `sudo doctor`: without root it skips the checks that need it and says so. It exits non-zero when a check fails.
 
-```
+```text
 [  OK] Secure Boot    enforced, keys enrolled
 [  OK] LUKS unlock    TPM2 token, passphrase kept as a fallback
 [  OK] Snapshots      last btrbk run 12 min ago, scheduled every 1 h
@@ -39,7 +39,7 @@ One line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feat
 
 `doctor --history` prints the last 10 runs of `auto-upgrade` from `/var/lib/auto-upgrade/history.tsv`, without running the checks:
 
-```
+```text
 TIME                       OUTCOME      FROM          TO            SOURCE
 2026-05-11T04:12:09+02:00  up-to-date   3f9c2a1b7d40  3f9c2a1b7d40  https://github.com/<owner>/<repo>.git
 2026-05-12T04:21:44+02:00  upgraded     3f9c2a1b7d40  8e01d4c9a2b7  https://github.com/<owner>/<repo>.git

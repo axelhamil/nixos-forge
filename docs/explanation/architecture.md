@@ -51,6 +51,16 @@ flowchart LR
 - A person is defined once in `modules/users/<user>`; a host's `users.<user>` creates the account on that machine, with per-machine fields only.
 - A host's `specialisations` add `features`, `apps`, `hardware` and a `module` on top of the host, resolved the same way ([specialisations.md](../how-to/specialisations.md)).
 
+### An example
+
+The file `modules/hosts/my-laptop/default.nix` sets `configurations.nixos.my-laptop`, an entry of the **registry** (every host entry of the fork). Its `features = [ "disk" ]` names `features.disk`, which `modules/features/disk` **publishes** in the `features` **namespace**. From that one entry, the flake builds:
+
+- `nixosConfigurations.my-laptop`, the system you switch to;
+- the checks `my-laptop-toplevel`, `my-laptop-boots` and, with `disk`, `my-laptop-disk`;
+- with `disk`, the package `installer-my-laptop`, its installer ISO.
+
+`nix flake show` lists them all.
+
 ## Checks follow the registry
 
-Nobody lists checks: every host gets `<host>-toplevel` and a boot test, a host with `disk` an install test, and each module with a `check.nix` its own VM test. A new host or module reaches CI without touching a workflow ([ci.md](../how-to/ci.md#checks)).
+Nobody lists checks: every host gets `<host>-toplevel` and a boot test, a host with `disk` an install test, and each module with a `check.nix` its own VM test. A new host or module reaches CI without touching a workflow ([reference/ci.md](../reference/ci.md#checks)).

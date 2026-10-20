@@ -55,7 +55,7 @@ in
 
 - Real ones: `nix-ld` (smallest), `printing` (`doctor.ephemeralPaths`), `docker` (home state through `persistInEveryHome`, reached with an outer `{ config, ... }:` and an inner NixOS module).
 - Test: `config.helpers.featureCheck "<name>" { machine = { }; testScripts = [ ./test.py ]; }`, giving `feature-<name>`. Persistence in the test: `machine.environment.persistence."/persist".enable = true;`. An emulated device that needs another QEMU build: `qemu = pkgs: pkgs.qemu_test.override { canokeySupport = true; };`, as `fido2`.
-- Docs: the README feature table and the matching `docs/` page (`reference/services.md`, `reference/dev.md`...).
+- Docs: a section in the matching `docs/` page (`reference/services.md`, `reference/dev.md`...), whose heading names the feature in backticks (the `docs` check fails otherwise), and its name in the `features` row of the README's "Make it yours" table.
 
 ## Hardware: `modules/features/hardware/<name>/`
 
@@ -129,7 +129,7 @@ in
 ```
 
 - Run with `nix run .#<tool>`. Test: `check.nix` plus `<tool>-test.sh`, as `modules/flake/upstream/`.
-- A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people is static, written by the script itself. Document it in `docs/how-to/ci.md`.
+- A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people is static, written by the script itself. Document it in `docs/reference/ci.md` (a check or a script) or `docs/how-to/ci.md` (a setting a fork must make).
 
 ## Flake input: `flake.nix`
 

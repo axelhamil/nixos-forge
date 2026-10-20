@@ -19,7 +19,7 @@
       # "secure-boot" # lanzaboote, for a PC with UEFI (docs/tutorials/install.md)
       # "fido2" # a security key logs in and runs sudo without a password and, once enrolled, unlocks the disk (docs/how-to/fido2.md)
       # "wipe-home" # an empty /home at every boot, needs disk (docs/how-to/wipe-home.md)
-      # "hibernate" # hibernation to an encrypted swap file, and suspend-then-hibernate when the lid closes, needs disk (docs/how-to/hibernate.md)
+      # "hibernate" # hibernation to an encrypted swap file, suspend-then-hibernate on lid close; needs disk (docs/how-to/hibernate.md)
       # "dual-boot" # Windows in the boot menu, Secure Boot kept, its disk read-only, needs disk (docs/how-to/dual-boot.md)
       # "plymouth" # graphical boot splash and quiet boot (docs/reference/desktop.md)
       # "greetd" # the tuigreet login screen, which starts Hyprland by default when `hyprland` is listed (docs/reference/desktop.md)
@@ -29,7 +29,7 @@
       "ssh" # key-only SSH server, no root login, its host key kept (docs/reference/services.md)
       # "printing" # CUPS with driverless network printers found through Avahi (docs/reference/services.md)
       # "secrets" # sops-nix secrets, decrypted with an age key kept in /persist (docs/reference/services.md)
-      # "auto-upgrade" # daily, the version CI validated for this machine: applies at next boot, no automatic rollback on a Pi (docs/how-to/raspberry-pi.md)
+      # "auto-upgrade" # daily, the version CI validated: applied at next boot, no automatic rollback on a Pi (docs/how-to/raspberry-pi.md)
     ];
 
     # Hardware: a module of the starter, or any nixos-hardware profile by name
@@ -52,7 +52,7 @@
     # package by name ("htop", "tmux"); unfree ones are allowed. Each app stands alone and
     # brings no other: list every one you want. Shell tools usually go in the person's apps.
     apps = [
-      # "hyprland" # the Hyprland window manager through uwsm, with a polkit agent, a Nerd Font and the key binds of the apps below (docs/reference/desktop.md)
+      # "hyprland" # Hyprland through uwsm, with a polkit agent, a Nerd Font and binds for the apps below (docs/reference/desktop.md)
       # "waybar" # a top bar: workspaces, clock, tray, volume, network, battery (docs/reference/desktop.md)
       # "fuzzel" # an app launcher on Super+D, and the clipboard history on Super+C (docs/reference/desktop.md)
       # "kitty" # a terminal, the default one of Super+Return (docs/reference/desktop.md)
@@ -87,7 +87,7 @@
     # "github:<you>/<fork>", whose deploy/<host> branch auto-upgrade pulls once CI passed.
     # flake = "github:alice/nixos";
     # mirrors = [ "https://codeberg.org/alice/nixos.git" ]; # other copies of your fork, tried in order when the first is unreachable
-    # signers = [ "ssh-ed25519 AAAA... deploy" ]; # keys signing deploy/<host>: auto-upgrade applies only what they signed, `nix run .#init` writes yours
+    # signers = [ "ssh-ed25519 AAAA... deploy" ]; # keys signing deploy/<host>: auto-upgrade applies only their commits; init writes yours
 
     # timeZone = "UTC"; # such as "Europe/Paris"
     # locale = "en_US.UTF-8"; # language and formats, such as "fr_FR.UTF-8"
@@ -105,7 +105,7 @@
     # Any other NixOS setting, as plain config.
     # module.services.fail2ban.enable = true;
 
-    # Python lines appended to this host's boot test; a Pi has none, its image only boots on the board.
+    # Optional, for CI: Python lines appended to the boot test; a Pi has none, its image boots only on the board.
     # testScript = "";
   };
 }

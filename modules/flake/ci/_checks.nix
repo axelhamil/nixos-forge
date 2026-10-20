@@ -12,11 +12,11 @@ let
     }
     {
       suffix = "disk";
-      proves = "it installs on an encrypted disk, wipes / at boot and restores a snapshot";
+      proves = "it installs on an encrypted disk, wipes / at boot and takes a snapshot";
     }
     {
       suffix = "wipe-home";
-      proves = "/home survives a reboot";
+      proves = "with wipe-home added, it installs and starts each boot with an empty /home";
     }
     {
       suffix = "installer";

@@ -68,7 +68,7 @@ Starter-owned modules stay generic: no user name, host name, path or personal va
 
 ## CI
 
-Workflows in `.github/workflows/` only chain one-line calls. Any logic goes into Nix (`flake.ci.*`) or into a shell script under `modules/flake/ci/` (or the folder of its tool, such as `modules/flake/upstream/`), packaged with `writeShellApplication` and called with `nix run .#<name>`. Never write a multi-line script inside a workflow. The `ci-ok` job is the single required status check on `main`. `release` runs in the starter only and `sync-upstream` in forks only, both keyed on `github.repository`; `sync-upstream` also waits for the fork to set `SYNC_UPSTREAM` to `true`. Every text the CI writes for people is static, in the script that writes it (`ci-report.sh`, `upstream.sh`); release-please writes the release notes alone. Details: `docs/how-to/ci.md`.
+Workflows in `.github/workflows/` only chain one-line calls. Any logic goes into Nix (`flake.ci.*`) or into a shell script under `modules/flake/ci/` (or the folder of its tool, such as `modules/flake/upstream/`), packaged with `writeShellApplication` and called with `nix run .#<name>`. Never write a multi-line script inside a workflow. The `ci-ok` job is the single required status check on `main`. `release` runs in the starter only and `sync-upstream` in forks only, both keyed on `github.repository`; `sync-upstream` also waits for the fork to set `SYNC_UPSTREAM` to `true`. Every text the CI writes for people is static, in the script that writes it (`ci-report.sh`, `upstream.sh`); release-please writes the release notes alone. Details: `docs/reference/ci.md` (workflows, checks, scripts) and `docs/how-to/ci.md` (fork settings, report).
 
 ## Conventions
 

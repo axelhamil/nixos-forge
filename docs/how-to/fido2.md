@@ -47,7 +47,7 @@ At boot, the initrd finds the key, asks for a touch, and opens the disk without 
 > [!WARNING]
 > Enroll the key before you set `unlockLuks`: a boot with `unlockLuks` on a disk with no FIDO2 key enrolled stops in the emergency shell.
 
-Enroll first, switch second: `unlockLuks` adds `fido2-device=auto` to every volume of `boot.initrd.luks.devices`, and systemd-cryptsetup stops the boot (`No valid FIDO2 token data found`, then the emergency shell) on a volume that has the TPM2 options of `disk` and no FIDO2 key enrolled. That is why the feature does not set it on its own. If it happens, pick the previous generation in the boot menu.
+`unlockLuks` adds `fido2-device=auto` to every LUKS volume, and systemd-cryptsetup stops on a volume with no FIDO2 key enrolled (`No valid FIDO2 token data found`), so the feature never sets it on its own. If it happens, pick the previous generation in the boot menu.
 
 ## With the TPM2
 
@@ -63,4 +63,6 @@ Importing `fido2` without `unlockLuks` changes nothing in the initrd, so TPM2 un
 
 The passphrase stays in its keyslot: `fido2-enroll` adds a key, it never removes one. A lost key is wiped from the disk with `sudo systemd-cryptenroll --wipe-slot=fido2 /dev/disk/by-partlabel/disk-main-luks` (this removes every enrolled key, enroll the others again), and from PAM by deleting its line in `u2fKeys`.
 
-The `feature-fido2` check registers an emulated CanoKey with `pamu2fcfg`, runs `sudo` without a password with it and proves a user without a key still needs one, then enrolls it with `fido2-enroll` on a LUKS volume next to the TPM2 options of `disk` and boots from that volume without typing the passphrase.
+## Check it worked
+
+`sudo -k && sudo true` asks for a touch of the key instead of your password. With `unlockLuks`, the next boot without a TPM2 token asks for a touch, then opens the disk. The `feature-fido2` check proves both in a VM with an emulated key ([reference/ci.md](../reference/ci.md#checks-of-the-modules)).

@@ -107,4 +107,4 @@ An app with its config lives in `modules/apps/<name>` and is named in a host's o
 
 ## VM
 
-`nix build .#nixosConfigurations.<host>.config.system.build.vm` uses a virtio GPU (`-vga none -device virtio-gpu-pci`), since Hyprland needs a DRM device. VM tests are listed in [ci.md](../how-to/ci.md).
+`nix build .#nixosConfigurations.<host>.config.system.build.vm` uses a virtio GPU (`-vga none -device virtio-gpu-pci`), since Hyprland needs a DRM device. VM tests are listed in [ci.md](ci.md#checks-of-the-modules).

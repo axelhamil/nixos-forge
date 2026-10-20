@@ -38,6 +38,19 @@ zstdcat result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=4M status=progress co
 
 The first build compiles the vendor kernel, which is slow under emulation: a native `aarch64-linux` builder is faster. nixos-raspberrypi's binary cache has no hit for it.
 
+## Check it worked
+
+Put the card in the Pi, plug in Ethernet and power, and give it a minute: the first boot grows the root file system to the card. Find its address in your router's DHCP leases, since nothing answers for its hostname on the LAN by default (no Avahi, and `resolved` has LLMNR off), then:
+
+```sh
+ssh <you>@<address>
+systemctl is-system-running
+```
+
+**It worked when** SSH logs you in with your key and `systemctl is-system-running` prints `running`. `degraded` names failed units: `systemctl --failed` lists them, and `sudo doctor` says more ([doctor.md](doctor.md)).
+
+## Boot from NVMe
+
 To boot from NVMe on a Pi 5, write the same image to the drive and put NVMe first in the EEPROM boot order (`sudo rpi-eeprom-config --edit`, `BOOT_ORDER=0xf416`).
 
 ## Update it
@@ -51,6 +64,8 @@ By hand, build on your machine and push the result, so the Pi never builds anyth
 ```sh
 nh os switch --hostname <host> --target-host <you>@<host> --elevation-strategy passwordless .
 ```
+
+### Optional: a build machine
 
 For `nh os switch` on the Pi itself, give it a builder. On the builder, `nix.sshServe` opens a Nix-only SSH endpoint (no shell) for the Pi's `root` key:
 

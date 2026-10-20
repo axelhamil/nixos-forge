@@ -144,7 +144,7 @@ Fork it, run `nix run .#init`, [turn CI on](docs/ci.md#turn-ci-on-in-your-fork),
 | | |
 |---|---|
 | **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/install.md), [wipe-home](docs/wipe-home.md), [hibernate](docs/hibernate.md) |
-| **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback. [install](docs/install.md) |
+| **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback; opt-in FIDO2 security key to log in, run `sudo` and unlock the disk. [install](docs/install.md), [fido2](docs/fido2.md) |
 | **Variants** | `specialisations.<name>` adds features, apps and hardware to a host as a boot menu entry, switched to without a reboot by `update -s <name>`; `steam`, `gamemode` and `mangohud` for a gaming one. [specialisations](docs/specialisations.md) |
 | **Dual boot** | opt-in Windows in the systemd-boot menu, started by the firmware so Secure Boot and BitLocker stay intact, on its own disk or beside NixOS on the same disk, readable from NixOS read-only. [dual-boot](docs/dual-boot.md) |
 | **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
@@ -203,7 +203,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | Field | What it takes |
 |---|---|
 | `profile` | the role: `desktop`, `laptop`, `server` or `pi` |
-| `features` | NixOS modules by name: `disk` (the encrypted layout, on the disk picked at install), `secure-boot`, `wipe-home`, `hibernate`, `dual-boot`, `greetd`, `plymouth`, `printing`, `ssh`, `secrets`, `docker`, `libvirt`, `nix-ld`, `auto-upgrade`, yours |
+| `features` | NixOS modules by name: `disk` (the encrypted layout, on the disk picked at install), `secure-boot`, `fido2`, `wipe-home`, `hibernate`, `dual-boot`, `greetd`, `plymouth`, `printing`, `ssh`, `secrets`, `docker`, `libvirt`, `nix-ld`, `auto-upgrade`, yours |
 | `apps` | an app of `modules/apps/<name>` with its config (`hyprland`, `direnv`, `firefox`, `stow`, ...), else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
 | `hardware` | a starter module (`firmware`, `audio`, `bluetooth`, `nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
 | `users.<name>` | an account for the person of `modules/users/<name>`: `admin`, `groups` and `apps` on this machine, added to the person's |
@@ -243,12 +243,12 @@ modules/
 ├── features/  the system: base/ (nix, home-manager, impermanence, resolved, journald,
 │              doctor, update), profiles/ (desktop, laptop, server, pi),
 │              hardware/ (firmware, audio, bluetooth, GPUs, Raspberry Pi), and disk,
-│              wipe-home, hibernate, secure-boot, dual-boot, ssh, secrets, auto-upgrade,
-│              docker, libvirt, nix-ld, greetd, plymouth, printing
+│              wipe-home, hibernate, secure-boot, fido2, dual-boot, ssh, secrets,
+│              auto-upgrade, docker, libvirt, nix-ld, greetd, plymouth, printing
 ├── apps/      everything a user runs, with its config: hyprland, waybar, fuzzel, kitty, mako,
 │              lock, zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop, direnv,
 │              stow, firefox, upgrade-notify, nix-index, gh
-├── users/     one folder per person: name, email, SSH keys, apps and home config
+├── users/     one folder per person: name, email, SSH and security keys, apps, home config
 └── hosts/     one file per machine, giving accounts to people
 ```
 
@@ -265,6 +265,7 @@ modules/
 | [dual-boot](docs/dual-boot.md) | keep Windows, with Secure Boot and BitLocker intact |
 | [wipe-home](docs/wipe-home.md) | start `/home` empty at every boot and keep only what you declare |
 | [hibernate](docs/hibernate.md) | hibernate to an encrypted swap file |
+| [fido2](docs/fido2.md) | log in, run `sudo` and unlock the disk with a security key |
 | [services](docs/services.md) | DNS, SSH, secrets, printing, snapshots |
 | [dev](docs/dev.md) | nh, nix-index, Docker, libvirt, nix-ld, direnv |
 | [performance](docs/performance.md) | what each profile tunes |

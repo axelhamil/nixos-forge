@@ -17,6 +17,7 @@
     features = [
       # "disk" # LUKS and btrfs, `/` wiped at every boot, hourly snapshots, for a PC (docs/install.md)
       # "secure-boot" # lanzaboote, for a PC with UEFI (docs/install.md)
+      # "fido2" # a security key logs in and runs sudo without a password and, once enrolled, unlocks the disk (docs/fido2.md)
       # "wipe-home" # an empty /home at every boot, needs disk (docs/wipe-home.md)
       # "hibernate" # hibernation to an encrypted swap file, and suspend-then-hibernate when the lid closes, needs disk (docs/hibernate.md)
       # "dual-boot" # Windows in the boot menu, Secure Boot kept, its disk read-only, needs disk (docs/dual-boot.md)

@@ -12,11 +12,12 @@ let
     name: modules:
     {
       machine ? { },
+      qemu ? null,
       testScripts,
     }:
     config.helpers.vmCheck name {
       nodes.machine.imports = [ base ] ++ modules ++ [ machine ];
-      inherit testScripts;
+      inherit qemu testScripts;
     };
 in
 {
@@ -26,7 +27,11 @@ in
 
   helpers.vmCheck =
     name:
-    { nodes, testScripts }:
+    {
+      nodes,
+      qemu ? null,
+      testScripts,
+    }:
     {
       lib,
       pkgs,
@@ -36,6 +41,7 @@ in
     lib.mkIf (system == "x86_64-linux") {
       checks.${name} = pkgs.testers.runNixOSTest {
         inherit name nodes;
+        qemu = lib.optionalAttrs (qemu != null) { package = qemu pkgs; };
         defaults = {
           imports = [ config.helpers.testRevision ];
           system.stateVersion = "26.05";

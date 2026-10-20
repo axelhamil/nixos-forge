@@ -137,6 +137,15 @@ let
     };
   };
 
+  securityKeys =
+    name: user:
+    { lib, options, ... }:
+    {
+      config = lib.optionalAttrs (options ? fido2) {
+        fido2.u2fKeys.${name} = user.u2fKeys;
+      };
+    };
+
   userModule =
     host: hostApps: system: name: account:
     {
@@ -162,7 +171,7 @@ let
           ];
     in
     {
-      imports = appModules "nixos" userApps;
+      imports = appModules "nixos" userApps ++ [ (securityKeys name user) ];
 
       users.users.${name} = {
         isNormalUser = true;

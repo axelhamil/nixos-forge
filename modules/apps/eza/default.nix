@@ -9,6 +9,10 @@ in
       enable = true;
       git = true;
       enableZshIntegration = false;
+      enableBashIntegration = false;
+      enableFishIntegration = false;
+      enableIonIntegration = false;
+      enableNushellIntegration = false;
     };
 
     home.shellAliases = {

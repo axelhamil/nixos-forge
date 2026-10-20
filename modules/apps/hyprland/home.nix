@@ -1,7 +1,7 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) mkDefaults;
+  inherit (config.helpers) mkDefaults relativeToHome;
 in
 {
   apps.hyprland.homeManager =
@@ -18,6 +18,13 @@ in
       hasLock = config.programs.hyprlock.enable;
       hasAudio = osConfig.services.pipewire.wireplumber.enable;
       hasTerminal = config.xdg.terminal-exec.settings.default or [ ] != [ ];
+
+      pictures =
+        if config.xdg.userDirs.enable && config.xdg.userDirs.pictures != null then
+          config.xdg.userDirs.pictures
+        else
+          "${config.home.homeDirectory}/Pictures";
+      screenshots = "${pictures}/Screenshots";
 
       bindWith = flags: key: dispatcher: {
         _args = [
@@ -56,7 +63,9 @@ in
           libnotify
           coreutils
         ];
-        text = builtins.readFile ./screenshot.sh;
+        text = ''
+          directory="${lib.escape [ "\"" "\\" "`" ] screenshots}"
+          ${builtins.readFile ./screenshot.sh}'';
       };
 
       workspaces = lib.concatMap (
@@ -111,6 +120,11 @@ in
         gtk.enable = true;
         hyprcursor.enable = true;
       };
+
+      home.persistence."/persist".directories =
+        lib.optional (lib.hasPrefix "${config.home.homeDirectory}/" screenshots) (
+          relativeToHome config screenshots
+        );
 
       xdg.userDirs = mkDefaults {
         enable = true;

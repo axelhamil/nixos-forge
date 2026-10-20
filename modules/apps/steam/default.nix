@@ -5,7 +5,7 @@ let
 in
 {
   apps.steam.nixos =
-    { pkgs, ... }:
+    { lib, pkgs, ... }:
     {
       nixpkgs.config.allowUnfreePackages = [
         "steam"
@@ -14,7 +14,7 @@ in
 
       programs.steam = {
         enable = true;
-        protontricks.enable = true;
+        protontricks.enable = lib.mkDefault true;
         extraCompatPackages = [ pkgs.proton-ge-bin ];
       };
 

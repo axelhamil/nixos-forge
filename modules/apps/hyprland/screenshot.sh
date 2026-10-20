@@ -1,4 +1,3 @@
-directory="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
 file="$directory/$(date +%Y-%m-%d_%H-%M-%S).png"
 mkdir -p "$directory"
 
@@ -12,4 +11,4 @@ case "${1:-area}" in
 esac
 
 wl-copy <"$file"
-notify-send --app-name screenshot "Screenshot copied" "$file"
+notify-send --app-name screenshot "Screenshot copied" "$file" || true

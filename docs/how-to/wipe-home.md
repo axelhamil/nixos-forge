@@ -35,6 +35,8 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 | `docker` | `~/.local/share/docker` |
 | `audio` | `~/.local/state/wireplumber` |
 | `firefox` | the Firefox profile |
+| `hyprland` | `~/Pictures/Screenshots`, under the pictures directory (`xdg.userDirs.pictures`) |
+| `upgrade-notify` | `~/.local/state/upgrade-notify` |
 | `wipe-home` | `~/.local/share/systemd/timers` (missed user timers still catch up) |
 
 Declare yours in your person's `module` ([apps.md](../reference/apps.md#change-a-starter-default)), relative to your home:

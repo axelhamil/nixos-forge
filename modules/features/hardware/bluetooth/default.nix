@@ -1,11 +1,13 @@
 {
-  hardware.bluetooth = {
-    hardware.bluetooth = {
-      enable = true;
-      powerOnBoot = true;
-      settings.General.Experimental = true;
-    };
+  hardware.bluetooth =
+    { lib, ... }:
+    {
+      hardware.bluetooth = {
+        enable = true;
+        powerOnBoot = lib.mkDefault true;
+        settings.General.Experimental = lib.mkDefault true;
+      };
 
-    environment.persistence."/persist".directories = [ "/var/lib/bluetooth" ];
-  };
+      environment.persistence."/persist".directories = [ "/var/lib/bluetooth" ];
+    };
 }

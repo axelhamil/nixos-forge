@@ -7,7 +7,7 @@
         theme = lib.mkDefault "bgrt";
       };
 
-      boot.consoleLogLevel = lib.mkDefault 3;
+      boot.consoleLogLevel = lib.mkOverride 900 3;
       boot.initrd.verbose = lib.mkDefault false;
       boot.kernelParams = [
         "quiet"

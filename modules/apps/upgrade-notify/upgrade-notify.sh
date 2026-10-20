@@ -17,7 +17,10 @@ if [[ $running != "$(jq -r .to "$state")" ]]; then
   body+=$'\nRestart to use it.'
 fi
 
-notify-send --app-name=auto-upgrade "System updated" "$body"
+if ! notify-send --app-name=auto-upgrade "System updated" "$body"; then
+  echo "no notification daemon answered; the upgrade is announced at the next session" >&2
+  exit 0
+fi
 
 mkdir -p "$seen_dir"
 printf '%s\n' "$upgrade" >"$seen"

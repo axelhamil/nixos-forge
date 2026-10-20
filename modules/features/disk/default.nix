@@ -111,7 +111,7 @@
           editor = false;
           bootCounting = {
             enable = true;
-            tries = 3;
+            tries = lib.mkDefault 3;
           };
         };
         boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;

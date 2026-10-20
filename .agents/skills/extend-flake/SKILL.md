@@ -133,7 +133,7 @@ in
 
 ## Flake input: `flake.nix`
 
-- `<name> = { url = "github:owner/repo"; inputs.nixpkgs.follows = "nixpkgs"; };`, then read it as `{ inputs, ... }:` in the module that uses it (`modules/features/base/nix-index`).
+- `<name> = { url = "github:owner/repo"; inputs.nixpkgs.follows = "nixpkgs"; };`, then read it as `{ inputs, ... }:` in the module that uses it (`modules/apps/nix-index`).
 - `nix flake lock`, then `git add flake.nix flake.lock`.
 
 ## Finish

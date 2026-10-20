@@ -57,6 +57,7 @@ let
         {
           nixpkgs.hostPlatform = system;
           networking.hostName = "hibernate";
+          zramSwap.enable = true;
           system.stateVersion = "26.05";
         }
       ];

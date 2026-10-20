@@ -1,7 +1,7 @@
 { inputs, ... }:
 
 {
-  base =
+  apps.nix-index.nixos =
     { lib, pkgs, ... }:
     {
       imports = [ inputs.nix-index-database.nixosModules.default ];

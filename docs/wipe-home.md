@@ -21,7 +21,8 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 
 | Declared by | Path |
 |---|---|
-| `base` | `~/.ssh`, `~/.gnupg` and `~/.config/gh`, mode `0700`, in every home |
+| `base` | `~/.ssh` and `~/.gnupg`, mode `0700`, in every home |
+| `gh` | `~/.config/gh`, mode `0700` |
 | `update` | the host's `flake` checkout, when it is a path in `/home/<you>/` (do not list it again) |
 | `zsh` | `~/.local/state/zsh` |
 | `zoxide` | `~/.local/share/zoxide` |

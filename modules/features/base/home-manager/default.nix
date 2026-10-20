@@ -13,9 +13,9 @@ in
 
       sharedModules = [
         (
-          { config, ... }:
+          { lib, config, ... }:
           {
-            xdg.enable = true;
+            xdg.enable = lib.mkDefault true;
 
             home.persistence."/persist".directories =
               map
@@ -26,7 +26,6 @@ in
                 [
                   "${config.home.homeDirectory}/.ssh"
                   config.programs.gpg.homedir
-                  "${config.xdg.configHome}/gh"
                 ];
           }
         )

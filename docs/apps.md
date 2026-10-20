@@ -42,6 +42,8 @@ Three rules keep apps honest:
 | `zsh`, `starship`, `git`, `delta`, `neovim` | the shell, its prompt, git, its diff pager, the editor ([below](#the-shell)) |
 | `fzf`, `zoxide`, `eza`, `bat`, `btop` | command line tools with their config ([below](#the-shell)) |
 | `steam`, `gamemode`, `mangohud` | Steam with Proton-GE, Feral GameMode, and an FPS overlay that logs runs ([specialisations.md](specialisations.md#games)) |
+| `nix-index` | `nix-locate` on a prebuilt database, and `, <command>` to run a command without installing it ([dev.md](dev.md#nix-index-opt-in-app)) |
+| `gh` | the GitHub CLI, its login kept with `wipe-home` |
 | `stow` | links your dotfiles repository, for those who keep one ([below](#keep-your-dotfiles-with-stow)) |
 
 Tools with nothing to configure, such as `ripgrep`, `fd` or `jq`, are plain nixpkgs names.

@@ -241,14 +241,14 @@ Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) modul
 modules/
 ├── flake/     flake wiring: host registry and its checks, installer ISO, init, upstream,
 │              formatter, dev shell, CI scripts, helpers/ (functions shared by modules)
-├── features/  the system: base/ (nix, home-manager, impermanence, memory, resolved, journald,
-│              nix-index, doctor, update), profiles/ (desktop, laptop, server, pi),
+├── features/  the system: base/ (nix, home-manager, impermanence, resolved, journald,
+│              doctor, update), profiles/ (desktop, laptop, server, pi),
 │              hardware/ (firmware, audio, bluetooth, GPUs, Raspberry Pi), and disk,
 │              wipe-home, hibernate, secure-boot, dual-boot, ssh, secrets, auto-upgrade,
 │              docker, libvirt, nix-ld, greetd, plymouth, printing
 ├── apps/      everything a user runs, with its config: hyprland, waybar, fuzzel, kitty, mako,
 │              lock, zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop, direnv,
-│              stow, firefox, upgrade-notify
+│              stow, firefox, upgrade-notify, nix-index, gh
 ├── users/     one folder per person: name, email, SSH keys, apps and home config
 └── hosts/     one file per machine, giving accounts to people
 ```

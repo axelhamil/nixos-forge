@@ -12,7 +12,7 @@ module.hibernate.swapSize = "32G";
 | | |
 |---|---|
 | Swap | a `@swap` btrfs subvolume on `/swap`, inside LUKS, holding `/swap/swapfile` of `hibernate.swapSize` (`16G` by default: match the RAM). Not snapshotted by btrbk, not touched by the rollback of `/`. |
-| zram | stays first: its priority (5) is above the swap file's (0), so the swap file only fills when zram is full, and at hibernation. |
+| zram | when the profile brings it (`desktop`, `laptop`, `pi`), stays first: its priority (5) is above the swap file's (0), so the swap file only fills when zram is full, and at hibernation. |
 | Resume | the systemd initrd resumes from the `HibernateLocation` EFI variable that systemd writes at hibernation: no `resume=` nor `resume_offset` on the kernel command line, so nothing to compute after the install. |
 | Lid | `HandleLidSwitch = "suspend-then-hibernate"` (a default you can override), hibernating after `hibernate.delay` (`2h`) asleep. |
 

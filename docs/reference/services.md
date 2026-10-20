@@ -45,7 +45,7 @@ Add `secrets` to the features of a host to decrypt [sops](https://github.com/get
 Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipient: a file is only as strong as its weakest recipient.
 
 1. Create your own key on your workstation, once: `mkdir -p ~/.config/sops/age && age-keygen -pq -o ~/.config/sops/age/keys.txt`.
-2. Create the machine key during the install, as in [install.md](../tutorials/install.md#by-hand-with-disko-install). Its public key is about 2,000 characters: set a password for the installer's user with `passwd`, then fetch it from your workstation with `scp nixos@<installer-ip>:age.pub .`.
+2. Create the machine key during the install, as in [install-without-iso.md](../how-to/install-without-iso.md#by-hand-with-disko-install). Its public key is about 2,000 characters: set a password for the installer's user with `passwd`, then fetch it from your workstation with `scp nixos@<installer-ip>:age.pub .`.
 3. On your workstation, add both public keys to `.sops.yaml`:
 
    ```yaml
@@ -65,7 +65,7 @@ Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipi
    sops.secrets.wifi-password = { };
    ```
 
-5. Commit, pull in the installer's `~/nixos`, then finish the [disko-install](../tutorials/install.md#by-hand-with-disko-install) with the key's `--extra-files`. A machine whose key is missing from a file boots without that file's secrets.
+5. Commit, pull in the installer's `~/nixos`, then finish the [disko-install](../how-to/install-without-iso.md#by-hand-with-disko-install) with the key's `--extra-files`. A machine whose key is missing from a file boots without that file's secrets.
 
 The value is at `/run/secrets/wifi-password` (root only by default; `owner`, `mode` and `restartUnits` per secret). User passwords can move there too, instead of `/persist/passwords`: `sops.secrets.<you>-password.neededForUsers = true;` and `users.users.<you>.hashedPasswordFile = config.sops.secrets.<you>-password.path;`.
 

@@ -7,15 +7,7 @@ features = [ "disk" "secure-boot" "dual-boot" ];
 module.dualBoot.windowsPartition = "/dev/disk/by-uuid/0123456789ABCDEF";
 ```
 
-It works with and without `secure-boot`, with Windows on its own disk or on the same disk as NixOS. This page explains how Windows starts, both install layouts, how to read Windows from NixOS, and what to do when the menu misbehaves.
-
-## How Windows starts
-
-systemd-boot lists Windows when `EFI/Microsoft/Boot/bootmgfw.efi` is on its own ESP, as the entry `auto-windows`. `dual-boot` turns on systemd-boot's `reboot-for-bitlocker`: picking Windows does not run Microsoft's boot manager from systemd-boot, it sets the firmware's `BootNext` to the firmware entry named `Windows Boot Manager` and restarts. The firmware then starts Windows itself, so the Secure Boot chain and the TPM measurements are exactly those of a machine without Linux, and BitLocker unlocks without asking for its recovery key.
-
-systemd-boot (systemd 261) takes that path only when the machine has a TPM, a BitLocker volume and a `Windows Boot Manager` entry in `BootOrder`. Otherwise it gives the entry up, and the firmware goes on to the next entry of its boot order. The `dual-boot` service, run at every boot and after every switch, keeps that order right: `Linux Boot Manager` first, `Windows Boot Manager` second, the rest after. So without BitLocker the firmware still starts Windows next, and starting Windows never returns you to its own menu. When the firmware lost one of the two entries (a firmware update, a reset of its settings), the service creates it again at the next boot of NixOS.
-
-The `feature-dual-boot` and `feature-dual-boot-same-disk` checks prove it under OVMF with Secure Boot and a TPM: a fake Windows (the UEFI shell, signed, in `EFI/Microsoft/Boot/bootmgfw.efi`) reports that Secure Boot is on and that the firmware started it from `Windows Boot Manager`. With a BitLocker volume it starts even when another entry sits between NixOS and Windows in the boot order, which only `BootNext` explains; without one the firmware boots whatever entry comes after NixOS, so Windows with the order the service keeps; with its firmware entry deleted the firmware boots NixOS again and the service recreates the entry. `feature-dual-boot-systemd-boot` runs the same checks without `secure-boot`, on plain systemd-boot with Secure Boot off.
+It works with and without `secure-boot`, with Windows on its own disk or on the same disk as NixOS. This page covers both install layouts, how to check the menu works, how Windows starts, how to read Windows from NixOS, and what to do when the menu misbehaves.
 
 ## Windows on its own disk
 
@@ -50,7 +42,25 @@ The MSR, `C:` and the recovery partition are left byte for byte as they were, wh
 
 ## Secure Boot keys
 
-`secure-boot` enrolls its own keys alongside Microsoft's ([install.md](../tutorials/install.md#before-you-start-secure-boot-setup-mode)): Microsoft's keys stay, so the firmware keeps trusting Windows' boot manager and both systems start with Secure Boot on. Never enroll its keys alone on a dual-boot machine: Windows would no longer start.
+`secure-boot` enrolls its own keys alongside Microsoft's ([install.md](../tutorials/install.md#step-2-put-the-firmware-in-setup-mode)): Microsoft's keys stay, so the firmware keeps trusting Windows' boot manager and both systems start with Secure Boot on. Never enroll its keys alone on a dual-boot machine: Windows would no longer start.
+
+## Check it worked
+
+On NixOS, after the first boot with `dual-boot`:
+
+```sh
+bootctl list | grep auto-windows   # the menu has a Windows entry
+efibootmgr                         # BootOrder: Linux Boot Manager first, Windows Boot Manager second
+journalctl -b -u dual-boot         # what the service found and changed
+```
+
+Then reboot and pick Windows in the menu: it starts without asking for its BitLocker recovery key, and `msinfo32` in Windows shows Secure Boot State `On` on a host with `secure-boot`.
+
+## How Windows starts
+
+systemd-boot lists Windows as the entry `auto-windows` when `EFI/Microsoft/Boot/bootmgfw.efi` is on its own ESP. `dual-boot` turns on systemd-boot's `reboot-for-bitlocker`. Picking Windows then does not run Microsoft's boot manager from systemd-boot: it sets the firmware's `BootNext` to the firmware entry named `Windows Boot Manager` and restarts. The firmware starts Windows itself, so the Secure Boot chain and the TPM measurements are those of a machine without Linux, and BitLocker unlocks without its recovery key.
+
+systemd-boot (systemd 261) takes that path only when the machine has a TPM, a BitLocker volume and a `Windows Boot Manager` entry in `BootOrder`. Otherwise it gives the entry up, and the firmware goes on to the next entry of its boot order. The `dual-boot` service runs at every boot and after every switch, and keeps that order right: `Linux Boot Manager` first, `Windows Boot Manager` second, the rest after. So without BitLocker the firmware still starts Windows next, never its own menu. When the firmware lost one of the two entries (a firmware update, a reset of its settings), the service creates it again at the next boot of NixOS.
 
 ## Reading Windows from NixOS
 

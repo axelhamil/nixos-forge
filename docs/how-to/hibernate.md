@@ -31,6 +31,17 @@ sudo umount /mnt
 
 Changing `hibernate.swapSize` later also takes a new swap file: `swapoff /swap/swapfile`, delete it, `mkswapfile` again, `swapon`.
 
+## Check it worked
+
+After the switch (or the first boot of a new install), the swap file is on and hibernation is allowed. Save your work before the first try: a resume that fails boots a fresh session, and what was open is lost.
+
+```sh
+swapon --show                  # lists /swap/swapfile, beside /dev/zram0 when the profile brings zram
+systemctl hibernate            # the machine powers off; at the next start, unlock the disk and the session comes back
+```
+
+When the machine stays on instead, `journalctl -b -u systemd-hibernate.service` says why.
+
 ## Secure Boot and the TPM2
 
 Linux refuses to hibernate under kernel lockdown, since nothing signs the image. NixOS kernels are built without the lockdown module (`SECURITY_LOCKDOWN_LSM` off) and lanzaboote does not turn it on, so hibernation works with `secure-boot`. A kernel built with that module and booted with `lockdown=integrity` or `confidentiality` loses it.

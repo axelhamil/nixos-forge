@@ -150,7 +150,7 @@ expect_first_line all-green "**Everything works: every machine builds, boots and
 expect_rows all-green example "example-toplevel=passed example-boots=passed example-disk=passed example-wipe-home=passed"
 expect_rows all-green example-pi "example-pi-sd-image=passed"
 expect_line all-green '| `example-server-installer` | the USB installer installs it | passed |'
-expect_line all-green '| `example-disk` | it installs on an encrypted disk, wipes / at boot and restores a snapshot | passed |'
+expect_line all-green '| `example-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |'
 expect_line all-green '| `feature-ssh` | ssh works in a VM | passed |'
 expect_line all-green '| `treefmt` | the code is formatted | passed |'
 expect_line all-green "<summary>Module checks: 3 passed</summary>"

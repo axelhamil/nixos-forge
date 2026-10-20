@@ -1,6 +1,6 @@
 # Start `/home` empty at every boot
 
-A host with `disk` that adds `wipe-home` to its features forgets `/home` like `/`: every boot starts from an empty home, and only the paths you declared come back. No more mystery dotfiles piling up for years.
+A host with `disk` that adds `wipe-home` to its features forgets `/home` like `/`: every boot starts from an empty home, and only the paths you declared come back. A fresh home at every boot shows you which files you actually use.
 
 > [!WARNING]
 > Anything in a home that you did not declare is gone at the next boot, kept only in a snapshot that a later boot deletes after 7 days, unless it is one of the 2 most recent. On a home in use, follow [Turn it on for a home in use](#turn-it-on-for-a-home-in-use).
@@ -36,6 +36,8 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 | `audio` | `~/.local/state/wireplumber` |
 | `firefox` | the Firefox profile |
 | `hyprland` | `~/Pictures/Screenshots`, under the pictures directory (`xdg.userDirs.pictures`) |
+| `steam` | `~/.steam` and `~/.local/share/Steam` |
+| `mangohud` | `~/.local/state/mangohud`, its logs |
 | `upgrade-notify` | `~/.local/state/upgrade-notify` |
 | `wipe-home` | `~/.local/share/systemd/timers` (missed user timers still catch up) |
 
@@ -80,13 +82,26 @@ find /.snapshots/home-wiped.<date>/<you> -xdev -type f -printf '%P\n' | cut -d/ 
 ## Turn it on for a home in use
 
 1. Declare your paths, then apply at the next boot rather than live: `nh os boot` (or `nixos-rebuild boot`), and reboot.
-2. Log in on a console, before a browser or another app writes fresh state, and copy each declared path back from `/.snapshots/home-wiped.<date>` within 7 days, those of the shipped modules included. It lands in `/persist`:
+2. Check that the home is now wiped and your paths are mounted from `/persist`:
+
+   ```sh
+   ls /.snapshots                # a home-wiped.<date> folder: the home you had
+   findmnt ~/projects            # a path you declared: SOURCE ends in [/@persist/home/<you>/projects]
+   ```
+
+3. Log in on a console, before a browser or another app writes fresh state, and copy every declared path back from `/.snapshots/home-wiped.<date>` within 7 days. The loop below reads the declared paths from the mounts of `/persist` in your home, so it covers those of the shipped modules too, paths with spaces included. What it copies lands in `/persist`:
 
    ```sh
    systemctl --user stop docker
    old=/.snapshots/home-wiped.<date>/$USER
-   for path in projects nixos dotfiles .ssh .gnupg .config/gh .local/state/zsh .local/share/zoxide .local/share/direnv .local/share/docker; do
-     [ -e "$old/$path" ] && cp -a --reflink=auto "$old/$path/." ~/"$path/"
+   findmnt -rn -o TARGET,SOURCE | while read -r target device; do
+     case $device in *"[/@persist/"*) ;; *) continue ;; esac
+     target=$(printf '%b' "$target")
+     case $target in "$HOME"/*) ;; *) continue ;; esac
+     from="$old/${target#"$HOME"/}"
+     if [ -d "$from" ]; then cp -a --reflink=auto "$from/." "$target/"
+     elif [ -e "$from" ]; then cp -a --reflink=auto "$from" "$target"
+     fi
    done
    sudo systemctl restart home-manager-$USER
    ```

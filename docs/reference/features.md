@@ -21,11 +21,11 @@ The encrypted disk layout and the wiped `/`.
 Secure Boot through [lanzaboote](https://github.com/nix-community/lanzaboote), in place of plain systemd-boot.
 
 > [!WARNING]
-> The keys are enrolled alongside Microsoft's, which GPU option ROMs and Windows need: never enroll your own keys alone ([setup mode](../tutorials/install.md#before-you-start-secure-boot-setup-mode)).
+> The keys are enrolled alongside Microsoft's, which GPU option ROMs and Windows need: never enroll your own keys alone ([setup mode](../tutorials/install.md#step-2-put-the-firmware-in-setup-mode)).
 
 - Keys generated at the first boot in `/var/lib/sbctl`, kept in `/persist`, and enrolled from the firmware's setup mode.
 - 3 tries for each new generation, as with `disk`.
-- `sbctl` installed, and with `disk` the TPM2 enrolled at the first boot under Secure Boot ([after the first boot](../tutorials/install.md#after-the-first-boot)).
+- `sbctl` installed, and with `disk` the TPM2 enrolled at the first boot under Secure Boot ([step 6](../tutorials/install.md#step-6-check-the-tpm2-unlocks-the-disk)).
 
 ## `auto-upgrade`
 

@@ -124,7 +124,7 @@ fi
 [[ $(ssh-keygen -y -f "$key_file" | cut -d' ' -f1,2) == "${signing_key% deploy}" ]] || fail "the private key file does not match the public key in $host_file"
 cp "$key_file" "$TMPDIR/deploy-key"
 key_line=$(sed -n 2p "$TMPDIR/deploy-key")
-if grep -rqF -- "$key_line" --exclude-dir=.git . || git grep --cached -qF -- "$key_line"; then
+if grep -rqF --exclude-dir=.git -- "$key_line" . || git grep --cached -qF -- "$key_line"; then
   fail "init wrote the private deploy key into the fork"
 fi
 

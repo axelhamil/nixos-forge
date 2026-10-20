@@ -39,7 +39,8 @@ let
   otherChecks = {
     treefmt = "the code is formatted";
     facter = "a hardware report from the installer configures the machine";
-    options-doc = "docs/options.md matches the host options";
+    options-doc = "docs/reference/options.md matches the host options";
+    docs = "every link and anchor of the docs resolves, every page is in the docs index, and no new page names an example of the starter or leaves a module without a section";
     init = "`nix run .#init` writes a first host and person whose system evaluates";
     ci-report = "the CI report reads every result correctly";
     ci-badges = "the live badges count the checks, VM tests, hosts, boot time and reproducibility of a run, and a publish keeps the badges it does not write";

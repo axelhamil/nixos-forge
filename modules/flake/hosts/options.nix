@@ -281,14 +281,14 @@ let
         flake = mkOption {
           type = types.nullOr types.str;
           default = null;
-          example = "/home/alice/nixos";
-          description = "Where the machine updates from: a git checkout on the machine, which the `update` command pulls then switches to, or a flake reference such as `github:alice/nixos`. The `auto-upgrade` feature pulls the `deploy/<host>` branch of that fork (of the checkout's `origin` remote).";
+          example = "/home/<user>/nixos";
+          description = "Where the machine updates from: a git checkout on the machine, which the `update` command pulls then switches to, or a flake reference such as `github:<owner>/<repo>`. The `auto-upgrade` feature pulls the `deploy/<host>` branch of that fork (of the checkout's `origin` remote).";
         };
 
         mirrors = mkOption {
           type = types.listOf types.str;
           default = [ ];
-          example = [ "https://codeberg.org/alice/nixos.git" ];
+          example = [ "https://codeberg.org/<owner>/<repo>.git" ];
           description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted.";
         };
 

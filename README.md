@@ -22,11 +22,11 @@
       <a href="https://github.com/axelhamil/nixos-forge/actions/workflows/update-flake-lock.yml"><img alt="update-flake-lock" src="https://img.shields.io/github/actions/workflow/status/axelhamil/nixos-forge/update-flake-lock.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=update-flake-lock"></a>
       <a href="https://github.com/axelhamil/nixos-forge/actions/workflows/release.yml"><img alt="release" src="https://img.shields.io/github/actions/workflow/status/axelhamil/nixos-forge/release.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=release"></a>
       <br>
-      <a href="docs/ci.md#live-badges"><img alt="checks passing" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fchecks.json&style=flat-square&logo=nixos&logoColor=white"></a>
-      <a href="docs/ci.md#live-badges"><img alt="VM tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fvm-tests.json&style=flat-square&logo=qemu&logoColor=white"></a>
-      <a href="docs/ci.md#live-badges"><img alt="hosts built" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fhosts.json&style=flat-square&logo=nixos&logoColor=white"></a>
-      <a href="docs/ci.md#live-badges"><img alt="boot time" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fboot-time.json&style=flat-square&logo=nixos&logoColor=white"></a>
-      <a href="docs/ci.md#reproducibility"><img alt="reproducibility" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Freproducibility.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/how-to/ci.md#live-badges"><img alt="checks passing" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fchecks.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/how-to/ci.md#live-badges"><img alt="VM tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fvm-tests.json&style=flat-square&logo=qemu&logoColor=white"></a>
+      <a href="docs/how-to/ci.md#live-badges"><img alt="hosts built" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fhosts.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/how-to/ci.md#live-badges"><img alt="boot time" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Fboot-time.json&style=flat-square&logo=nixos&logoColor=white"></a>
+      <a href="docs/how-to/ci.md#reproducibility"><img alt="reproducibility" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faxelhamil%2Fnixos-forge%2Fbadges%2Freproducibility.json&style=flat-square&logo=nixos&logoColor=white"></a>
     </td>
   </tr>
   <tr>
@@ -100,13 +100,13 @@ Why it is different:
 }
 ```
 
-That is the whole host. It gets a `nixosConfigurations` entry, a build check, a VM boot test and, with `disk`, an installer ISO (`nix build .#installer-my-laptop`). The disk it erases is picked at install, never written in the host. Every field is in [docs/options.md](docs/options.md), and `module` takes any other NixOS setting.
+That is the whole host. It gets a `nixosConfigurations` entry, a build check, a VM boot test and, with `disk`, an installer ISO (`nix build .#installer-my-laptop`). The disk it erases is picked at install, never written in the host. Every field is in [docs/reference/options.md](docs/reference/options.md), and `module` takes any other NixOS setting.
 
 The commented [`example`](modules/hosts/example/default.nix) host lists every profile, feature, hardware module and app the starter ships, one line each to uncomment. `example-server` shows a headless machine with `wipe-home`, `example-pi` a Raspberry Pi. Read them top to bottom and keep what you like.
 
 ## What CI proves
 
-Checks are generated from the registry: a machine you add is tested without touching a workflow. Each run ends in one report per machine, in the run summary and as a single PR comment, that opens with a verdict and what to do next ([docs/ci.md](docs/ci.md#the-ci-report)).
+Checks are generated from the registry: a machine you add is tested without touching a workflow. Each run ends in one report per machine, in the run summary and as a single PR comment, that opens with a verdict and what to do next ([docs/how-to/ci.md](docs/how-to/ci.md#the-ci-report)).
 
 | Check | What it proves |
 |---|---|
@@ -126,37 +126,37 @@ Checks are generated from the registry: a machine you add is tested without touc
 | `perf-regression`, every PR | The base revision and this one boot in turn in one VM job; the report flags boot time, idle RAM, closure size or running services over a threshold, without blocking the merge. |
 | Package diff, every PR | [nvd](https://git.sr.ht/~khumba/nvd) lists the packages each system gains, loses or changes. |
 
-The full list, with when each check runs, is in [docs/ci.md](docs/ci.md#checks).
+The full list, with when each check runs, is in [docs/how-to/ci.md](docs/how-to/ci.md#checks).
 
 ## What your fork gets on day one
 
-Fork it, run `nix run .#init`, [turn CI on](docs/ci.md#turn-ci-on-in-your-fork), and your repository works the same way for your machines:
+Fork it, run `nix run .#init`, [turn CI on](docs/how-to/ci.md#turn-ci-on-in-your-fork), and your repository works the same way for your machines:
 
 - **The same CI on your hosts**: each one built, booted in a VM and, with `disk`, installed on a blank disk with Secure Boot and TPM2.
-- **Your own live badges**, published by your CI once it runs on `main` ([docs/ci.md](docs/ci.md#live-badges)).
+- **Your own live badges**, published by your CI once it runs on `main` ([docs/how-to/ci.md](docs/how-to/ci.md#live-badges)).
 - **A lock PR every Monday** with fresh inputs in `flake.lock`, merged on its own once CI is green.
 - **A package diff** on every pull request.
-- **Signed deploy branches**: CI signs them with a key `init` generates, and your machines accept nothing else ([docs/ci.md](docs/ci.md#sign-the-deploy-branches)).
-- **`auto-upgrade`**, which takes only the version CI validated for that machine and, on a host with `disk`, goes back to the previous generation when the new one does not boot ([docs/updates.md](docs/updates.md)).
-- **`nix run .#upstream`**, which shows what the starter changed and prepares the merge of its release when you choose ([docs/updates.md](docs/updates.md#your-fork-follows-the-starter)).
+- **Signed deploy branches**: CI signs them with a key `init` generates, and your machines accept nothing else ([docs/how-to/ci.md](docs/how-to/ci.md#sign-the-deploy-branches)).
+- **`auto-upgrade`**, which takes only the version CI validated for that machine and, on a host with `disk`, goes back to the previous generation when the new one does not boot ([docs/explanation/updates.md](docs/explanation/updates.md)).
+- **`nix run .#upstream`**, which shows what the starter changed and prepares the merge of its release when you choose ([docs/explanation/updates.md](docs/explanation/updates.md#your-fork-follows-upstream)).
 
 ## What you get
 
 | | |
 |---|---|
-| **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/install.md), [wipe-home](docs/wipe-home.md), [hibernate](docs/hibernate.md) |
-| **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback; opt-in FIDO2 security key to log in, run `sudo` and unlock the disk. [install](docs/install.md), [fido2](docs/fido2.md) |
-| **Variants** | `specialisations.<name>` adds features, apps and hardware to a host as a boot menu entry, switched to without a reboot by `update -s <name>`; `steam`, `gamemode` and `mangohud` for a gaming one. [specialisations](docs/specialisations.md) |
-| **Dual boot** | opt-in Windows in the systemd-boot menu, started by the firmware so Secure Boot and BitLocker stay intact, on its own disk or beside NixOS on the same disk, readable from NixOS read-only. [dual-boot](docs/dual-boot.md) |
-| **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/install.md) |
-| **Shell** | zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop through home-manager in the XDG layout, each its own app; your dotfiles with [stow](https://www.gnu.org/software/stow/). [apps](docs/apps.md) |
-| **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land), and as apps of their own waybar, fuzzel, kitty, mako, hyprlock with hypridle, Firefox with telemetry off: no app brings another, you list each one. [desktop](docs/desktop.md) |
-| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd), each bringing only what its role needs. [performance](docs/performance.md) |
-| **Hardware** | firmware with CPU microcode, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/raspberry-pi.md) |
-| **Services and dev** | systemd-resolved, key-only SSH, driverless printing, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/services.md), [dev](docs/dev.md) |
-| **Updates** | a weekly lock PR, the starter's releases merged when you choose, `update` on a desktop, `auto-upgrade` daily on its own with only what CI validated for that machine (and, with `signers`, signed for it), and a desktop notification of what changed. [updates](docs/updates.md) |
-| **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, the last auto-upgrade, signed deploys and rollbacks, and lists what the next boot erases from `/`. [doctor](docs/doctor.md) |
-| **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, only what the cache lacks is built ([above](#what-ci-proves)). [ci](docs/ci.md) |
+| **Disk** | [disko](https://github.com/nix-community/disko) layout with LUKS and btrfs, `/` wiped at every boot with [impermanence](https://github.com/nix-community/impermanence), hourly btrbk snapshots, opt-in empty `/home` at every boot, opt-in hibernation to an encrypted swap file. [install](docs/tutorials/install.md), [wipe-home](docs/how-to/wipe-home.md), [hibernate](docs/how-to/hibernate.md) |
+| **Boot** | opt-in Secure Boot with [lanzaboote](https://github.com/nix-community/lanzaboote); the disk then unlocks with the TPM2, enrolled on its own, passphrase kept as a fallback; opt-in FIDO2 security key to log in, run `sudo` and unlock the disk. [install](docs/tutorials/install.md), [fido2](docs/how-to/fido2.md) |
+| **Variants** | `specialisations.<name>` adds features, apps and hardware to a host as a boot menu entry, switched to without a reboot by `update -s <name>`; `steam`, `gamemode` and `mangohud` for a gaming one. [specialisations](docs/how-to/specialisations.md) |
+| **Dual boot** | opt-in Windows in the systemd-boot menu, started by the firmware so Secure Boot and BitLocker stay intact, on its own disk or beside NixOS on the same disk, readable from NixOS read-only. [dual-boot](docs/how-to/dual-boot.md) |
+| **Install** | `nix build .#installer-<host>` makes an offline ISO of your host: pick a disk, type a passphrase and the passwords, reboot. [install](docs/tutorials/install.md) |
+| **Shell** | zsh, starship, git, delta, neovim, fzf, zoxide, eza, bat, btop through home-manager in the XDG layout, each its own app; your dotfiles with [stow](https://www.gnu.org/software/stow/). [apps](docs/reference/apps.md) |
+| **Desktop** | Plymouth, greetd with tuigreet, [Hyprland](https://hypr.land), and as apps of their own waybar, fuzzel, kitty, mako, hyprlock with hypridle, Firefox with telemetry off: no app brings another, you list each one. [desktop](docs/reference/desktop.md) |
+| **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd), each bringing only what its role needs. [performance](docs/reference/performance.md) |
+| **Hardware** | firmware with CPU microcode, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/how-to/raspberry-pi.md) |
+| **Services and dev** | systemd-resolved, key-only SSH, driverless printing, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/reference/services.md), [dev](docs/reference/dev.md) |
+| **Updates** | a weekly lock PR, the starter's releases merged when you choose, `update` on a desktop, `auto-upgrade` daily on its own with only what CI validated for that machine (and, with `signers`, signed for it), and a desktop notification of what changed. [updates](docs/explanation/updates.md) |
+| **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, the last auto-upgrade, signed deploys and rollbacks, and lists what the next boot erases from `/`. [doctor](docs/how-to/doctor.md) |
+| **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, only what the cache lacks is built ([above](#what-ci-proves)). [ci](docs/how-to/ci.md) |
 
 ## Quick start
 
@@ -166,7 +166,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 2. **Make it yours** with `nix run .#init`. It asks for your host name, profile, login, name, email, time zone, keyboard, locale, features, hardware and apps, then:
    - writes `modules/hosts/<host>/default.nix` from the [example host](modules/hosts/example/default.nix) and `modules/users/<login>/default.nix` from the [example person](modules/users/alice/default.nix);
    - removes the examples you do not keep and stages the result;
-   - generates the SSH key that signs your deploy branches: the public key goes in the `signers` of your hosts, the private key in a file outside the repository that only you can read, and init prints the `gh secret set` command that stores it and shreds the file ([ci](docs/ci.md#sign-the-deploy-branches));
+   - generates the SSH key that signs your deploy branches: the public key goes in the `signers` of your hosts, the private key in a file outside the repository that only you can read, and init prints the `gh secret set` command that stores it and shreds the file ([ci](docs/how-to/ci.md#sign-the-deploy-branches));
    - points the `flake` of the example hosts you keep at your fork, read from the `origin` remote. Without an `origin` of your own, `flake` and `auto-upgrade` are commented out there, so a kept host never pulls from someone else's repository.
 
    `--help` lists a flag for every answer, `--yes` asks nothing.
@@ -196,8 +196,8 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
    nix run .#try-install -- <host> # the same install, in a local VM first
    ```
 
-   Other paths (nixos-anywhere, disko-install) are in [docs/install.md](docs/install.md).
-5. **Turn on the CI** of your fork with [docs/ci.md](docs/ci.md#turn-ci-on-in-your-fork).
+   Other paths (nixos-anywhere, disko-install) are in [docs/tutorials/install.md](docs/tutorials/install.md).
+5. **Turn on the CI** of your fork with [docs/how-to/ci.md](docs/how-to/ci.md#turn-ci-on-in-your-fork).
 
 ## Make it yours
 
@@ -212,14 +212,14 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 | `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
 | `module` | anything else, as plain NixOS config |
 
-A person (`modules/users/<name>`, every field in [docs/options.md](docs/options.md#person-options)) has `fullName`, `email`, `sshKeys`, `apps` that follow them on every machine (none by default) and `module`, their own home-manager config.
+A person (`modules/users/<name>`, every field in [docs/reference/options.md](docs/reference/options.md#person-options)) has `fullName`, `email`, `sshKeys`, `apps` that follow them on every machine (none by default) and `module`, their own home-manager config.
 
 > [!NOTE]
 > Typos do not slip through. An unknown name stops the evaluation and lists the known ones: in `apps`, a name that is no app and no nixpkgs package; in `users`, a person with no folder in `modules/users`.
 
 **Add a feature.** Publish `features.<name>` from a file under `modules/features/<name>` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as an app, a sibling of `hyprland`.
 
-**Add an app with its config** ([docs/apps.md](docs/apps.md)). Create `modules/apps/<name>/default.nix` and name it in `apps`. An app brings no other app: it reads their home-manager options to fit with them when they are listed. A `check.nix` with `helpers.appCheck` gives it a VM test, `app-<name>`. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the model: swap it for the browser you like the same way.
+**Add an app with its config** ([docs/reference/apps.md](docs/reference/apps.md)). Create `modules/apps/<name>/default.nix` and name it in `apps`. An app brings no other app: it reads their home-manager options to fit with them when they are listed. A `check.nix` with `helpers.appCheck` gives it a VM test, `app-<name>`. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the model: swap it for the browser you like the same way.
 
 ```nix
 {
@@ -229,9 +229,9 @@ A person (`modules/users/<name>`, every field in [docs/options.md](docs/options.
 }
 ```
 
-**Add your home config.** `users.<you>.module` in `modules/users/<you>` is home-manager config that follows you on every machine ([docs/apps.md](docs/apps.md#change-a-starter-default)). Every setting a starter app writes, its `enable` flags aside, is a default you override there without `mkForce`.
+**Add your home config.** `users.<you>.module` in `modules/users/<you>` is home-manager config that follows you on every machine ([docs/reference/apps.md](docs/reference/apps.md#change-a-starter-default)). Every setting a starter app writes, its `enable` flags aside, is a default you override there without `mkForce`.
 
-**Change your system.** Edit the checkout, try it with `nh os test`, switch with `nh os switch`, then commit and push so your other machines follow ([docs/updates.md](docs/updates.md#the-edit-loop)).
+**Change your system.** Edit the checkout, try it with `nh os test`, switch with `nh os switch`, then commit and push so your other machines follow ([docs/explanation/updates.md](docs/explanation/updates.md#the-edit-loop)).
 
 ## Layout
 
@@ -257,26 +257,26 @@ modules/
 
 | Read | When you want to |
 |---|---|
-| [install](docs/install.md) | put a host on real hardware: ISO, nixos-anywhere, disko-install, Secure Boot, TPM2, rollback |
-| [updates](docs/updates.md) | follow the starter, edit and switch, let machines upgrade on their own, sign deploys |
-| [ci](docs/ci.md) | turn CI on in your fork, read the report, rename the bot, mirror to a second forge |
-| [apps](docs/apps.md) | add an app, change a default, set up the shell, bring your dotfiles |
-| [desktop](docs/desktop.md) | Hyprland and its neighbours, keybinds, monitors, themes |
-| [specialisations](docs/specialisations.md) | switch one machine between variants, such as work and games, Steam included |
-| [dual-boot](docs/dual-boot.md) | keep Windows, with Secure Boot and BitLocker intact |
-| [wipe-home](docs/wipe-home.md) | start `/home` empty at every boot and keep only what you declare |
-| [hibernate](docs/hibernate.md) | hibernate to an encrypted swap file |
-| [fido2](docs/fido2.md) | log in, run `sudo` and unlock the disk with a security key |
-| [services](docs/services.md) | DNS, SSH, secrets, printing, snapshots |
-| [dev](docs/dev.md) | nh, nix-index, Docker, libvirt, nix-ld, direnv |
-| [performance](docs/performance.md) | what each profile tunes |
-| [raspberry-pi](docs/raspberry-pi.md) | flash and update a Pi |
-| [doctor](docs/doctor.md) | ask a machine how it is doing |
-| [options](docs/options.md) | every host and person field, generated from the code |
+| [install](docs/tutorials/install.md) | put a host on real hardware: ISO, nixos-anywhere, disko-install, Secure Boot, TPM2, rollback |
+| [updates](docs/explanation/updates.md) | follow the starter, edit and switch, let machines upgrade on their own, sign deploys |
+| [ci](docs/how-to/ci.md) | turn CI on in your fork, read the report, rename the bot, mirror to a second forge |
+| [apps](docs/reference/apps.md) | add an app, change a default, set up the shell, bring your dotfiles |
+| [desktop](docs/reference/desktop.md) | Hyprland and its neighbours, keybinds, monitors, themes |
+| [specialisations](docs/how-to/specialisations.md) | switch one machine between variants, such as work and games, Steam included |
+| [dual-boot](docs/how-to/dual-boot.md) | keep Windows, with Secure Boot and BitLocker intact |
+| [wipe-home](docs/how-to/wipe-home.md) | start `/home` empty at every boot and keep only what you declare |
+| [hibernate](docs/how-to/hibernate.md) | hibernate to an encrypted swap file |
+| [fido2](docs/how-to/fido2.md) | log in, run `sudo` and unlock the disk with a security key |
+| [services](docs/reference/services.md) | DNS, SSH, secrets, printing, snapshots |
+| [dev](docs/reference/dev.md) | nh, nix-index, Docker, libvirt, nix-ld, direnv |
+| [performance](docs/reference/performance.md) | what each profile tunes |
+| [raspberry-pi](docs/how-to/raspberry-pi.md) | flash and update a Pi |
+| [doctor](docs/how-to/doctor.md) | ask a machine how it is doing |
+| [options](docs/reference/options.md) | every host and person field, generated from the code |
 
 ## Releases
 
-Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x`, every release is a pre-release, and your fork takes each one when you run `nix run .#upstream` ([docs/updates.md](docs/updates.md#your-fork-follows-the-starter)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
+Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x`, every release is a pre-release, and your fork takes each one when you run `nix run .#upstream` ([docs/explanation/updates.md](docs/explanation/updates.md#your-fork-follows-upstream)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

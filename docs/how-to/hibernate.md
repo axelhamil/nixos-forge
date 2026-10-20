@@ -1,4 +1,4 @@
-# Hibernate
+# Hibernate (`hibernate`)
 
 Close the lid, walk away, come back to the same session days later. A host with `disk` that adds `hibernate` to its features can hibernate, and closing the lid suspends, then hibernates after a while. This page covers what it sets up, how to add it to a machine already installed, and how it lives with Secure Boot.
 

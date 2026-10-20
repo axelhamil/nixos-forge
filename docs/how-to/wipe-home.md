@@ -2,6 +2,9 @@
 
 A host with `disk` that adds `wipe-home` to its features forgets `/home` like `/`: every boot starts from an empty home, and only the paths you declared come back. No more mystery dotfiles piling up for years.
 
+> [!WARNING]
+> Anything in a home that you did not declare is gone at the next boot, kept only in a snapshot that a later boot deletes after 7 days, unless it is one of the 2 most recent. On a home in use, follow [Turn it on for a home in use](#turn-it-on-for-a-home-in-use).
+
 This page shows what happens at boot, how to declare what you keep, how to find what you forgot, and how to switch a home already in use.
 
 ```nix
@@ -12,12 +15,12 @@ features = [ "disk" "wipe-home" ];
 
 - The initrd moves the previous `@home` to `/.snapshots/home-wiped.<UTC date>`, read-only, and creates an empty one.
 - A wiped home is deleted by a later boot after 7 days; the 2 most recent always stay. Copy a forgotten file back from there.
-- btrbk stops snapshotting `/home` and keeps snapshotting `/persist`, where declared paths live ([services.md](services.md#snapshots-btrbk)).
+- btrbk stops snapshotting `/home` and keeps snapshotting `/persist`, where declared paths live ([services.md](../reference/services.md#snapshots-btrbk)).
 - home-manager links its files again, so your config, shell and tools are there as usual. `~/.cache` starts empty, so the first launch of some tools and the first `nh os switch` after a boot are slower.
 
 ## Declare what to keep
 
-Declared paths live in `/persist/home/<you>` and are bind-mounted into your home at boot. The starter's modules already declare their own state when `wipe-home` is on:
+Declared paths live in `/persist/home/<you>` and are bind-mounted into your home at boot. The shipped modules already declare their own state when `wipe-home` is on:
 
 | Declared by | Path |
 |---|---|
@@ -34,7 +37,7 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 | `firefox` | the Firefox profile |
 | `wipe-home` | `~/.local/share/systemd/timers` (missed user timers still catch up) |
 
-Declare yours in your person's `module` ([apps.md](apps.md#change-a-starter-default)), relative to your home:
+Declare yours in your person's `module` ([apps.md](../reference/apps.md#change-a-starter-default)), relative to your home:
 
 ```nix
 users.<you>.module = {
@@ -53,7 +56,7 @@ users.<you>.module = {
 - Prefer directories to files: a persisted file is a bind mount, so an app that saves by renaming a new file over it fails.
 - `mode` only applies when the directory is first created in `/persist`.
 - Without `wipe-home` these lines do nothing, so the same user works on hosts that keep their home.
-- Packages installed with `nix profile add` are lost at reboot: name them in your `apps` ([apps.md](apps.md)).
+- Packages installed with `nix profile add` are lost at reboot: name them in your `apps` ([apps.md](../reference/apps.md)).
 
 ## Find what is missing
 
@@ -75,7 +78,7 @@ find /.snapshots/home-wiped.<date>/<you> -xdev -type f -printf '%P\n' | cut -d/ 
 ## Turn it on for a home in use
 
 1. Declare your paths, then apply at the next boot rather than live: `nh os boot` (or `nixos-rebuild boot`), and reboot.
-2. Log in on a console, before a browser or another app writes fresh state, and copy each declared path back from `/.snapshots/home-wiped.<date>` within 7 days, the starter's own included. It lands in `/persist`:
+2. Log in on a console, before a browser or another app writes fresh state, and copy each declared path back from `/.snapshots/home-wiped.<date>` within 7 days, those of the shipped modules included. It lands in `/persist`:
 
    ```sh
    systemctl --user stop docker

@@ -12,7 +12,7 @@ Clone the repo and run `nix develop` once: it installs a pre-push hook (treefmt,
 |---|---|
 | `nix fmt` | always |
 | `nix flake check -L` | always: lint, host builds, boot tests |
-| `nix run .#options-doc` | after touching `modules/flake/hosts/options.nix`, to regenerate `docs/options.md` |
+| `nix run .#options-doc` | after touching `modules/flake/hosts/options.nix`, to regenerate `docs/reference/options.md` |
 | `nix run nixpkgs#actionlint` | after touching `.github/workflows/` |
 
 New files must be `git add`ed before any `nix` command, or the flake does not see them.

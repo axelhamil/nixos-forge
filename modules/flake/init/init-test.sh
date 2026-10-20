@@ -41,6 +41,11 @@ fork_fails() {
   grep -qF -- "$expected" <<<"$output" || fail "the fork in $PWD failed with: $output"
 }
 
+docs_pass() {
+  local output
+  output=$(check-docs "$PWD" 2>&1) || fail "the docs of the fork in $PWD fail: $output"
+}
+
 refuses() {
   local expected=$1 output
   shift
@@ -151,6 +156,7 @@ expected=$(printf '%s\n' \
   "D  modules/hosts/example-server/default.nix" \
   "D  modules/hosts/example/default.nix" \
   "D  modules/users/alice/default.nix" \
+  "M  README.md" \
   "M  modules/hosts/example-pi/default.nix" | sort)
 [[ $changes == "$expected" ]] || fail "unexpected changes: $changes"
 fork_evaluates '["example-pi","my-box"]'
@@ -212,6 +218,9 @@ person_has_line '      "zsh" # .*'
 person_has_line '  users\."in" = \{'
 person_has_line '.* an account with .users\."in".*'
 fork_evaluates '["rec"]'
+docs_pass
+grep -qF "Your [\`rec\`](modules/hosts/rec/default.nix) host" README.md || fail "README.md does not point at the host init wrote"
+grep -qF "[\`modules/users/in/default.nix\`](modules/users/in/default.nix)" README.md || fail "README.md does not point at the person init wrote"
 
 fourth=$TMPDIR/fourth
 fresh_fork "$fourth"
@@ -241,6 +250,7 @@ has_line '    flake = "github:bob/my-nixos";'
 host_file=modules/hosts/example-pi/default.nix
 has_line '    # flake = "github:bob/my-nixos";'
 fork_evaluates '["box","example-pi","example-server"]'
+docs_pass
 
 kept_flake "$TMPDIR/seventh" https://git.example.org/bob/nixos.git
 has_line '      "auto-upgrade" # .*'

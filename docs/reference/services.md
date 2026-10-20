@@ -1,6 +1,6 @@
 # Services
 
-DNS, SSH, secrets, printing and snapshots: the services a machine runs, with the defaults the starter picked and how to change them.
+DNS, SSH, secrets, printing and snapshots: the services a machine runs, with the defaults they ship with and how to change them.
 
 Nothing here depends on a third-party cloud service: DNS comes from your network, secrets are decrypted with a key that stays on the machine, snapshots stay on the disk.
 
@@ -45,7 +45,7 @@ Add `secrets` to the features of a host to decrypt [sops](https://github.com/get
 Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipient: a file is only as strong as its weakest recipient.
 
 1. Create your own key on your workstation, once: `mkdir -p ~/.config/sops/age && age-keygen -pq -o ~/.config/sops/age/keys.txt`.
-2. Create the machine key during the install, as in [install.md](install.md#by-hand-with-disko-install). Its public key is about 2,000 characters: set a password for the installer's user with `passwd`, then fetch it from your workstation with `scp nixos@<installer-ip>:age.pub .`.
+2. Create the machine key during the install, as in [install.md](../tutorials/install.md#by-hand-with-disko-install). Its public key is about 2,000 characters: set a password for the installer's user with `passwd`, then fetch it from your workstation with `scp nixos@<installer-ip>:age.pub .`.
 3. On your workstation, add both public keys to `.sops.yaml`:
 
    ```yaml
@@ -65,7 +65,7 @@ Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipi
    sops.secrets.wifi-password = { };
    ```
 
-5. Commit, pull in the installer's `~/nixos`, then finish the [disko-install](install.md#by-hand-with-disko-install) with the key's `--extra-files`. A machine whose key is missing from a file boots without that file's secrets.
+5. Commit, pull in the installer's `~/nixos`, then finish the [disko-install](../tutorials/install.md#by-hand-with-disko-install) with the key's `--extra-files`. A machine whose key is missing from a file boots without that file's secrets.
 
 The value is at `/run/secrets/wifi-password` (root only by default; `owner`, `mode` and `restartUnits` per secret). User passwords can move there too, instead of `/persist/passwords`: `sops.secrets.<you>-password.neededForUsers = true;` and `users.users.<you>.hashedPasswordFile = config.sops.secrets.<you>-password.path;`.
 
@@ -84,6 +84,6 @@ ls /.snapshots
 cp -a /.snapshots/home.20261015T1400/<you>/notes.md ~/notes.md
 ```
 
-On a host with `wipe-home`, btrbk snapshots `/persist` only: a declared home path is in `/.snapshots/persist.<date>/home/<you>/`, and the rest of each wiped home in `/.snapshots/home-wiped.<date>` for 7 days ([wipe-home.md](wipe-home.md)).
+On a host with `wipe-home`, btrbk snapshots `/persist` only: a declared home path is in `/.snapshots/persist.<date>/home/<you>/`, and the rest of each wiped home in `/.snapshots/home-wiped.<date>` for 7 days ([wipe-home.md](../how-to/wipe-home.md)).
 
 Snapshots of `/persist` keep what it held for up to 4 weeks, passwords and the age key included: after rotating a leaked secret, delete the older snapshots too (`sudo btrfs subvolume delete /.snapshots/persist.<date>`).

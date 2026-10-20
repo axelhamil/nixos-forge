@@ -20,7 +20,7 @@ Installs $HOST_NAME on a whole disk and erases everything on it, or beside Windo
 Every value not given on the command line is asked for, unless --yes is set.
 
   --disk DEVICE              disk to erase, such as /dev/nvme0n1
-  --beside-windows           keep Windows on the disk: NixOS goes in its free space and shares its ESP (docs/dual-boot.md)
+  --beside-windows           keep Windows on the disk: NixOS goes in its free space and shares its ESP (docs/how-to/dual-boot.md)
   --passphrase-file FILE     file holding the disk encryption passphrase
   --password-file USER=FILE  file holding the login password of USER
   --yes                      ask nothing: erase without confirmation, fail on a missing value, reboot at the end

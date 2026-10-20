@@ -11,7 +11,7 @@ live in $XDG_STATE_HOME/try-install/<host>/, so running it again boots the insta
   --reset            erase the disk, the firmware variables and the TPM, then start again
   -h, --help         show this help
 
-It never touches a real disk: to install on a machine, boot the ISO on it (docs/install.md).
+It never touches a real disk: to install on a machine, boot the ISO on it (docs/tutorials/install.md).
 EOF_USAGE
 }
 
@@ -21,7 +21,7 @@ die() {
 }
 
 for arg in "$@"; do
-  [[ $arg != /dev/* ]] || die "$arg looks like a device: try-install never touches a real disk, it installs on a disk image. To install on a machine, boot the ISO on it (docs/install.md)."
+  [[ $arg != /dev/* ]] || die "$arg looks like a device: try-install never touches a real disk, it installs on a disk image. To install on a machine, boot the ISO on it (docs/tutorials/install.md)."
 done
 
 host="" disk_size=32G reset=false

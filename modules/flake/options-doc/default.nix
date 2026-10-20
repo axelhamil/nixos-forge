@@ -15,7 +15,7 @@ in
       header = pkgs.writeText "options-header.md" ''
         # Host options
 
-        Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.nix`. Generated from [`modules/flake/hosts/options.nix`](../modules/flake/hosts/options.nix) by `nix run .#options-doc`: do not edit by hand.
+        Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.nix`. Generated from [`modules/flake/hosts/options.nix`](../../modules/flake/hosts/options.nix) by `nix run .#options-doc`: do not edit by hand.
 
       '';
 
@@ -23,7 +23,7 @@ in
 
         # Person options
 
-        Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the person a host gives an account with `users.<person>`. Generated from [`modules/flake/hosts/users.nix`](../modules/flake/hosts/users.nix).
+        Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the person a host gives an account with `users.<person>`. Generated from [`modules/flake/hosts/users.nix`](../../modules/flake/hosts/users.nix).
 
       '';
 
@@ -49,14 +49,14 @@ in
         name = "options-doc";
         runtimeInputs = [ pkgs.coreutils ];
         text = ''
-          install -m 644 ${reference} docs/options.md
+          install -m 644 ${reference} docs/reference/options.md
         '';
       };
 
       checks = lib.optionalAttrs (system == "x86_64-linux") {
         options-doc = pkgs.runCommand "options-doc" { } ''
-          if ! diff -u ${../../../docs/options.md} ${reference}; then
-            echo "docs/options.md is stale: run nix run .#options-doc" >&2
+          if ! diff -u ${../../../docs/reference/options.md} ${reference}; then
+            echo "docs/reference/options.md is stale: run nix run .#options-doc" >&2
             exit 1
           fi
           touch $out

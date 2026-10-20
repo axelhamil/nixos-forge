@@ -82,7 +82,7 @@ On a PR, the `perf` job boots the base revision's generation and this one in tur
 
 - The job runs whenever an `x86_64-linux` host boots in a VM here, so a fork whose hosts upstream lacks gets it too. Every such host that also boots in a VM on the base is measured, each boot a fresh VM of 2 GiB and 2 cores.
 - A host absent from the base, or that does not boot in a VM there, is listed under the section as not measured, with the reason; when no host is left, the check writes that list without booting anything.
-- A line under the heading names each metric past both its thresholds. The source of these values is `perfThresholds` in `modules/flake/ci/ci-report.sh`:
+- A line under the heading names each metric past both its thresholds. The source of these values is `perfThresholds` in `modules/flake/ci/ci-report.jq`:
 
   | Metric | Flagged when it grows by more than | and by at least |
   |---|---|---|

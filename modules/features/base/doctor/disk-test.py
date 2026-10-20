@@ -2,7 +2,7 @@ import re
 
 
 def doctor_report():
-    status, output = machine.execute("doctor --all 2>&1")
+    _, output = machine.execute("doctor --all 2>&1")
     print(output)
     return output
 

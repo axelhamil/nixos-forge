@@ -45,56 +45,62 @@ hardware="" hardware_set=false
 apps="" apps_set=false
 keep_server="" keep_pi="" yes=false
 
-while (($# > 0)); do
-  option=$1
-  value=""
-  has_value=false
-  if [[ $option == --*=* ]]; then
-    value=${option#*=}
-    option=${option%%=*}
-    has_value=true
-  fi
-  shift
-
-  case $option in
-  --host | --system | --profile | --login | --full-name | --email | --time-zone | --keyboard | --locale | --features | --hardware | --apps)
-    if [[ $has_value == false ]]; then
-      (($# > 0)) || die "$option needs a value"
-      value=$1
-      shift
+parse_args() {
+  local option value has_value
+  while (($# > 0)); do
+    option=$1
+    value=""
+    has_value=false
+    if [[ $option == --*=* ]]; then
+      value=${option#*=}
+      option=${option%%=*}
+      has_value=true
     fi
-    ;;
-  esac
+    shift
 
-  case $option in
-  --host) host=$value ;;
-  --system) system=$value ;;
-  --profile) profile=$value ;;
-  --login) login=$value ;;
-  --full-name) full_name=$value ;;
-  --email) email=$value email_set=true ;;
-  --time-zone) time_zone=$value ;;
-  --keyboard) keyboard=$value ;;
-  --locale) locale=$value ;;
-  --features) features=$value features_set=true ;;
-  --hardware) hardware=$value hardware_set=true ;;
-  --apps) apps=$value apps_set=true ;;
-  --keep-server) keep_server=yes ;;
-  --keep-pi) keep_pi=yes ;;
-  --yes) yes=true ;;
-  -h | --help)
-    usage
-    exit 0
-    ;;
-  *) die "unknown option $option (see --help)" ;;
-  esac
-done
+    case $option in
+    --host | --system | --profile | --login | --full-name | --email | --time-zone | --keyboard | --locale | --features | --hardware | --apps)
+      if [[ $has_value == false ]]; then
+        (($# > 0)) || die "$option needs a value"
+        value=$1
+        shift
+      fi
+      ;;
+    esac
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || die "run it inside a git checkout of your fork"
-cd "$root"
+    case $option in
+    --host) host=$value ;;
+    --system) system=$value ;;
+    --profile) profile=$value ;;
+    --login) login=$value ;;
+    --full-name) full_name=$value ;;
+    --email) email=$value email_set=true ;;
+    --time-zone) time_zone=$value ;;
+    --keyboard) keyboard=$value ;;
+    --locale) locale=$value ;;
+    --features) features=$value features_set=true ;;
+    --hardware) hardware=$value hardware_set=true ;;
+    --apps) apps=$value apps_set=true ;;
+    --keep-server) keep_server=yes ;;
+    --keep-pi) keep_pi=yes ;;
+    --yes) yes=true ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *) die "unknown option $option (see --help)" ;;
+    esac
+  done
+}
 
-[[ -f $template ]] || die "$template is missing: init starts from the example host, which a previous run already replaced"
-[[ -f $person_template ]] || die "$person_template is missing: init starts from the example person, which a previous run already replaced"
+enter_checkout() {
+  local root
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || die "run it inside a git checkout of your fork"
+  cd "$root"
+
+  [[ -f $template ]] || die "$template is missing: init starts from the example host, which a previous run already replaced"
+  [[ -f $person_template ]] || die "$person_template is missing: init starts from the example person, which a previous run already replaced"
+}
 
 list_block() {
   awk -v block="$1" '
@@ -103,8 +109,6 @@ list_block() {
     inside && match($0, /^ *(# )?"([^"]+)"( # (.*))?$/, m) { print m[2] "\t" m[4] }
   ' "$template"
 }
-
-mapfile -t known_features < <(list_block features | cut -f1)
 
 contains() {
   local needle=$1 item
@@ -283,6 +287,13 @@ default_features() {
   done
 }
 
+default_hardware() {
+  case $1 in
+  desktop | laptop) printf 'firmware audio bluetooth' ;;
+  pi) printf raspberry-pi-5 ;;
+  esac
+}
+
 default_apps() {
   case $1 in
   desktop | laptop) printf 'hyprland waybar fuzzel kitty mako lock upgrade-notify direnv firefox' ;;
@@ -302,61 +313,61 @@ show_list() {
   done < <(list_block "$block")
 }
 
-ask host host "Host name" "" check_host
-ask system system "System (${systems[*]})" x86_64-linux check_system
-default_profile=desktop
-[[ $system == aarch64-linux ]] && default_profile=pi
-ask profile profile "Profile (${profiles[*]})" "$default_profile" check_profile
-ask login login "Login" "" check_login
-ask full_name full-name "Full name" "" check_text
-
-if [[ $email_set == true ]]; then
-  ask email email "" "" check_email set
-elif [[ $yes == true ]]; then
-  die "--email is required with --yes (--email '' for none)"
-else
+ask_email() {
+  if [[ $email_set == true ]]; then
+    ask email email "" "" check_email set
+    return
+  fi
+  if [[ $yes == true ]]; then
+    die "--email is required with --yes (--email '' for none)"
+  fi
   ask email email "Email, for git (blank for none)" "" check_email true
-fi
+}
 
-ask time_zone time-zone "Time zone" "$(detected_time_zone)" check_word
-ask keyboard keyboard "Keyboard layout" us check_word
-ask locale locale "Locale" "$(detected_locale)" check_word
+ask_list() {
+  local name=$1 given=$2 suggested=$3 check=$4 prompt=$5 title=${6:-}
+  if [[ $given == true ]]; then
+    ask "$name" "$name" "" "" "$check" set
+    return
+  fi
+  if [[ $yes == true ]]; then
+    printf -v "$name" '%s' "$suggested"
+    return
+  fi
+  if [[ -n $title ]]; then
+    show_list "$name" "$title" "$suggested"
+  fi
+  ask "$name" "$name" "$prompt" "$suggested" "$check" true
+}
 
-suggested_features=$(default_features "$profile" "$system")
-if [[ $features_set == true ]]; then
-  ask features features "" "" check_features set
-elif [[ $yes == true ]]; then
-  features=$suggested_features
-else
-  show_list features Features "$suggested_features"
-  ask features features "Features, space separated (blank keeps the ones marked)" "$suggested_features" check_features true
-fi
+collect_answers() {
+  local default_profile=desktop
+  ask host host "Host name" "" check_host
+  ask system system "System (${systems[*]})" x86_64-linux check_system
+  [[ $system == aarch64-linux ]] && default_profile=pi
+  ask profile profile "Profile (${profiles[*]})" "$default_profile" check_profile
+  ask login login "Login" "" check_login
+  ask full_name full-name "Full name" "" check_text
+  ask_email
 
-case $profile in
-desktop | laptop) suggested_hardware="firmware audio bluetooth" ;;
-pi) suggested_hardware=raspberry-pi-5 ;;
-*) suggested_hardware="" ;;
-esac
-if [[ $hardware_set == true ]]; then
-  ask hardware hardware "" "" check_names set
-elif [[ $yes == true ]]; then
-  hardware=$suggested_hardware
-else
-  ask hardware hardware "Hardware: starter modules or nixos-hardware profiles, space separated (blank for none)" "$suggested_hardware" check_names true
-fi
+  ask time_zone time-zone "Time zone" "$(detected_time_zone)" check_word
+  ask keyboard keyboard "Keyboard layout" us check_word
+  ask locale locale "Locale" "$(detected_locale)" check_word
 
-suggested_apps=$(default_apps "$profile")
-if [[ $apps_set == true ]]; then
-  ask apps apps "" "" check_names set
-elif [[ $yes == true ]]; then
-  apps=$suggested_apps
-else
-  show_list apps Apps "$suggested_apps"
-  ask apps apps "Apps for every user: starter apps or nixpkgs packages, space separated (blank keeps the ones marked)" "$suggested_apps" check_names true
-fi
+  ask_list features "$features_set" "$(default_features "$profile" "$system")" check_features \
+    "Features, space separated (blank keeps the ones marked)" Features
+  ask_list hardware "$hardware_set" "$(default_hardware "$profile")" check_names \
+    "Hardware: starter modules or nixos-hardware profiles, space separated (blank for none)"
+  ask_list apps "$apps_set" "$(default_apps "$profile")" check_names \
+    "Apps for every user: starter apps or nixpkgs packages, space separated (blank keeps the ones marked)" Apps
 
-[[ -d modules/hosts/example-server ]] && ask_yes_no keep_server "Keep the example-server host"
-[[ -d modules/hosts/example-pi ]] && ask_yes_no keep_pi "Keep the example-pi host"
+  if [[ -d modules/hosts/example-server ]]; then
+    ask_yes_no keep_server "Keep the example-server host"
+  fi
+  if [[ -d modules/hosts/example-pi ]]; then
+    ask_yes_no keep_pi "Keep the example-pi host"
+  fi
+}
 
 nix_string() {
   local text=$1
@@ -374,25 +385,29 @@ nix_attribute() {
   fi
 }
 
-target_dir=modules/hosts/$host
-target=$target_dir/default.nix
-person_dir=modules/users/$login
-person=$person_dir/default.nix
-login_attribute=$(nix_attribute "$login")
-generated=$(mktemp)
-generated_person=$(mktemp)
-if [[ -d ${XDG_RUNTIME_DIR:-} ]]; then
-  key_dir=$(mktemp -d -p "$XDG_RUNTIME_DIR" deploy-key.XXXXXX)
-else
-  key_dir=$(mktemp -d)
-fi
-key_file=$key_dir/deploy
-trap 'status=$?; rm -f "$generated" "$generated_person" "$key_file.pub"; if ((status != 0)) && [[ -f $key_file ]]; then echo "init: the deploy signing key is kept in $key_file, its public key may already be in the signers of your hosts" >&2; fi' EXIT
+cleanup() {
+  local status=$?
+  rm -f "$generated" "$generated_person" "$key_file.pub"
+  if ((status != 0)) && [[ -f $key_file ]]; then
+    echo "init: the deploy signing key is kept in $key_file, its public key may already be in the signers of your hosts" >&2
+  fi
+}
 
-ssh-keygen -q -t ed25519 -N "" -C deploy -f "$key_file" </dev/null
-read -r key_type key_body _ <"$key_file.pub"
-rm -f -- "$key_file.pub"
-signer="$key_type $key_body deploy"
+make_deploy_key() {
+  local key_dir key_type key_body
+  if [[ -d ${XDG_RUNTIME_DIR:-} ]]; then
+    key_dir=$(mktemp -d -p "$XDG_RUNTIME_DIR" deploy-key.XXXXXX)
+  else
+    key_dir=$(mktemp -d)
+  fi
+  key_file=$key_dir/deploy
+  trap cleanup EXIT
+
+  ssh-keygen -q -t ed25519 -N "" -C deploy -f "$key_file" </dev/null
+  read -r key_type key_body _ <"$key_file.pub"
+  rm -f -- "$key_file.pub"
+  signer="$key_type $key_body deploy"
+}
 
 trust_signer() {
   SIGNER=$signer awk '
@@ -407,109 +422,112 @@ trust_signer() {
   '
 }
 
-HOST_ATTRIBUTE=$(nix_attribute "$host") \
-  SYSTEM=$system \
-  PROFILE=$profile \
+render_host() {
+  HOST_ATTRIBUTE=$(nix_attribute "$host") \
+    SYSTEM=$system \
+    PROFILE=$profile \
+    LOGIN=$login \
+    LOGIN_ATTRIBUTE=$login_attribute \
+    TIME_ZONE=$time_zone \
+    KEYBOARD=$keyboard \
+    LOCALE=$locale \
+    FEATURES=$(words "$features" | tr '\n' ' ') \
+    HARDWARE=$(words "$hardware" | tr '\n' ' ') \
+    APPS=$(words "$apps" | tr '\n' ' ') \
+    awk -f "$SET_STRING" --source '
+      function choose(block, list,    names, count, i) {
+        order[block] = list
+        count = split(list, names, " ")
+        for (i = 1; i <= count; i++) wanted[block, names[i]] = 1
+      }
+
+      BEGIN {
+        choose("features", ENVIRON["FEATURES"])
+        choose("hardware", ENVIRON["HARDWARE"])
+        choose("apps", ENVIRON["APPS"])
+      }
+
+      match($0, /^( *)(features|hardware|apps) = \[$/, m) {
+        block = m[2]
+        delete seen
+        print
+        next
+      }
+
+      block != "" && match($0, /^( *)(# )?"([^"]+)"(.*)$/, m) {
+        indent = m[1]
+        seen[m[3]] = 1
+        print indent (((block, m[3]) in wanted) ? "" : "# ") "\"" m[3] "\"" m[4]
+        next
+      }
+
+      block != "" && /^ *\];/ {
+        count = split(order[block], names, " ")
+        for (i = 1; i <= count; i++) if (!(names[i] in seen)) print indent "\"" names[i] "\""
+        block = ""
+        print
+        next
+      }
+
+      /^  configurations\.nixos\.example = \{$/ { sub(/example/, ENVIRON["HOST_ATTRIBUTE"]); print; next }
+      /^    system = "/ { print set_string($0, ENVIRON["SYSTEM"]); next }
+      /^    profile = "/ { print set_string($0, ENVIRON["PROFILE"]); next }
+      /^    flake = "\/home\/alice\// { print set_string($0, "/home/" ENVIRON["LOGIN"] "/nixos"); next }
+      /^    # mirrors = / { gsub(/alice/, ENVIRON["LOGIN"]); print; next }
+      /^    timeZone = "/ { print set_string($0, ENVIRON["TIME_ZONE"]); next }
+      /^    locale = "/ { print set_string($0, ENVIRON["LOCALE"]); next }
+      /^    keyboard = "/ { print set_string($0, ENVIRON["KEYBOARD"]); next }
+      /^    users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
+
+      { print }
+    ' "$template" | trust_signer
+}
+
+render_person() {
   LOGIN=$login \
-  LOGIN_ATTRIBUTE=$login_attribute \
-  TIME_ZONE=$time_zone \
-  KEYBOARD=$keyboard \
-  LOCALE=$locale \
-  FEATURES=$(words "$features" | tr '\n' ' ') \
-  HARDWARE=$(words "$hardware" | tr '\n' ' ') \
-  APPS=$(words "$apps" | tr '\n' ' ') \
-  awk '
-    function set_string(line, value,    start, rest) {
-      start = index(line, "\"")
-      rest = substr(line, start + 1)
-      return substr(line, 1, start) value substr(rest, index(rest, "\""))
-    }
+    LOGIN_ATTRIBUTE=$login_attribute \
+    FULL_NAME=$(nix_string "$full_name") \
+    EMAIL=$(nix_string "$email") \
+    awk -f "$SET_STRING" --source '
+      /^  users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
+      /^    fullName = "/ { print set_string($0, ENVIRON["FULL_NAME"]); next }
+      /^    email = "/ {
+        if (ENVIRON["EMAIL"] == "") { sub(/email/, "# email"); gsub(/alice/, ENVIRON["LOGIN"]); print }
+        else print set_string($0, ENVIRON["EMAIL"])
+        next
+      }
 
-    function choose(block, list,    names, count, i) {
-      order[block] = list
-      count = split(list, names, " ")
-      for (i = 1; i <= count; i++) wanted[block, names[i]] = 1
-    }
+      { gsub(/users\.alice/, "users." ENVIRON["LOGIN_ATTRIBUTE"]); gsub(/alice/, ENVIRON["LOGIN"]); print }
+    ' "$person_template"
+}
 
-    BEGIN {
-      choose("features", ENVIRON["FEATURES"])
-      choose("hardware", ENVIRON["HARDWARE"])
-      choose("apps", ENVIRON["APPS"])
-    }
+write_host_and_person() {
+  render_host >"$generated"
+  render_person >"$generated_person"
 
-    match($0, /^( *)(features|hardware|apps) = \[$/, m) {
-      block = m[2]
-      delete seen
-      print
-      next
-    }
+  install -D -m 644 "$generated" "$target"
+  install -D -m 644 "$generated_person" "$person"
 
-    block != "" && match($0, /^( *)(# )?"([^"]+)"(.*)$/, m) {
-      indent = m[1]
-      seen[m[3]] = 1
-      print indent (((block, m[3]) in wanted) ? "" : "# ") "\"" m[3] "\"" m[4]
-      next
-    }
+  if command -v nix >/dev/null; then
+    nix fmt -- "$target" "$person" >/dev/null 2>&1 || echo "init: nix fmt failed, run it yourself" >&2
+  fi
 
-    block != "" && /^ *\];/ {
-      count = split(order[block], names, " ")
-      for (i = 1; i <= count; i++) if (!(names[i] in seen)) print indent "\"" names[i] "\""
-      block = ""
-      print
-      next
-    }
+  git add -- "$target" "$person"
+}
 
-    /^  configurations\.nixos\.example = \{$/ { sub(/example/, ENVIRON["HOST_ATTRIBUTE"]); print; next }
-    /^    system = "/ { print set_string($0, ENVIRON["SYSTEM"]); next }
-    /^    profile = "/ { print set_string($0, ENVIRON["PROFILE"]); next }
-    /^    flake = "\/home\/alice\// { print set_string($0, "/home/" ENVIRON["LOGIN"] "/nixos"); next }
-    /^    # mirrors = / { gsub(/alice/, ENVIRON["LOGIN"]); print; next }
-    /^    timeZone = "/ { print set_string($0, ENVIRON["TIME_ZONE"]); next }
-    /^    locale = "/ { print set_string($0, ENVIRON["LOCALE"]); next }
-    /^    keyboard = "/ { print set_string($0, ENVIRON["KEYBOARD"]); next }
-    /^    users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
+remove_examples() {
+  local removed=(example) example
+  [[ $keep_server == yes ]] || removed+=(example-server)
+  [[ $keep_pi == yes ]] || removed+=(example-pi)
+  for example in "${removed[@]}"; do
+    [[ $example == "$host" || ! -d modules/hosts/$example ]] && continue
+    git rm -r -q -- "modules/hosts/$example"
+  done
 
-    { print }
-  ' "$template" | trust_signer >"$generated"
-
-LOGIN=$login \
-  LOGIN_ATTRIBUTE=$login_attribute \
-  FULL_NAME=$(nix_string "$full_name") \
-  EMAIL=$(nix_string "$email") \
-  awk '
-    function set_string(line, value,    start, rest) {
-      start = index(line, "\"")
-      rest = substr(line, start + 1)
-      return substr(line, 1, start) value substr(rest, index(rest, "\""))
-    }
-
-    /^  users\.alice = \{$/ { sub(/alice/, ENVIRON["LOGIN_ATTRIBUTE"]); print; next }
-    /^    fullName = "/ { print set_string($0, ENVIRON["FULL_NAME"]); next }
-    /^    email = "/ {
-      if (ENVIRON["EMAIL"] == "") { sub(/email/, "# email"); gsub(/alice/, ENVIRON["LOGIN"]); print }
-      else print set_string($0, ENVIRON["EMAIL"])
-      next
-    }
-
-    { gsub(/users\.alice/, "users." ENVIRON["LOGIN_ATTRIBUTE"]); gsub(/alice/, ENVIRON["LOGIN"]); print }
-  ' "$person_template" >"$generated_person"
-
-install -D -m 644 "$generated" "$target"
-install -D -m 644 "$generated_person" "$person"
-
-if command -v nix >/dev/null; then
-  nix fmt -- "$target" "$person" >/dev/null 2>&1 || echo "init: nix fmt failed, run it yourself" >&2
-fi
-
-git add -- "$target" "$person"
-
-removed=(example)
-[[ $keep_server == yes ]] || removed+=(example-server)
-[[ $keep_pi == yes ]] || removed+=(example-pi)
-for example in "${removed[@]}"; do
-  [[ $example == "$host" || ! -d modules/hosts/$example ]] && continue
-  git rm -r -q -- "modules/hosts/$example"
-done
+  if [[ $login != "$example_person" ]]; then
+    git rm -r -q -- "modules/users/$example_person"
+  fi
+}
 
 github_repo() {
   local origin repo
@@ -532,19 +550,12 @@ fork_flake() {
   fi
 }
 
-kept_flake=$(fork_flake)
-for example in modules/hosts/example-server modules/hosts/example-pi; do
-  [[ -f $example/default.nix && $example != "$target_dir" ]] || continue
+update_kept_example() {
+  local example=$1 kept_flake=$2
   if [[ $login != "$example_person" ]]; then
     sed -i "s/^    users\.$example_person = {\$/    users.$login_attribute = {/" "$example/default.nix"
   fi
-  KEPT_FLAKE=$kept_flake awk '
-    function set_string(line, value,    start, rest) {
-      start = index(line, "\"")
-      rest = substr(line, start + 1)
-      return substr(line, 1, start) value substr(rest, index(rest, "\""))
-    }
-
+  KEPT_FLAKE=$kept_flake awk -f "$SET_STRING" --source '
     /^    (# )?flake = "github:/ {
       if (ENVIRON["KEPT_FLAKE"] != "") print set_string($0, ENVIRON["KEPT_FLAKE"])
       else { sub(/^    (# )?/, "    # "); print }
@@ -557,13 +568,19 @@ for example in modules/hosts/example-server modules/hosts/example-pi; do
   ' "$example/default.nix" | trust_signer >"$generated"
   cat -- "$generated" >"$example/default.nix"
   git add -- "$example/default.nix"
-done
+}
 
-if [[ $login != "$example_person" ]]; then
-  git rm -r -q -- "modules/users/$example_person"
-fi
+update_kept_examples() {
+  local kept_flake example
+  kept_flake=$(fork_flake)
+  for example in modules/hosts/example-server modules/hosts/example-pi; do
+    [[ -f $example/default.nix && $example != "$target_dir" ]] || continue
+    update_kept_example "$example" "$kept_flake"
+  done
+}
 
-if [[ -f README.md ]]; then
+point_readme() {
+  [[ -f README.md ]] || return 0
   HOST=$host TARGET=$target PERSON=$person awk '
     /^The commented \[`example`\]\(modules\/hosts\/example\/default\.nix\) host / {
       print "Your [`" ENVIRON["HOST"] "`](" ENVIRON["TARGET"] ") host lists every profile, feature, hardware module and app upstream shipped when you ran `nix run .#init`, one line each, commented out when you did not pick it. Read it top to bottom and keep what you like."
@@ -579,9 +596,11 @@ if [[ -f README.md ]]; then
   ' README.md >"$generated"
   cat -- "$generated" >README.md
   git add -- README.md
-fi
+}
 
-cat <<EOF
+print_next_steps() {
+  local repo quoted_key
+  cat <<EOF
 
 $target and $person are ready and staged; the example hosts you did not
 keep are removed. Read them top to bottom: every line you may want is there, commented out.
@@ -602,15 +621,36 @@ by you alone. In your fork, create the environment deploy limited to the main br
 
 EOF
 
-repo=$(github_repo)
-printf -v quoted_key '%q' "$key_file"
-if [[ -n $repo && ${repo,,} != "${upstream,,}" ]]; then
-  echo "  gh secret set DEPLOY_SIGNING_KEY --env deploy --repo $repo < $quoted_key && shred -u $quoted_key"
-else
-  echo "  gh secret set DEPLOY_SIGNING_KEY --env deploy < $quoted_key && shred -u $quoted_key"
-fi
-cat <<EOF
+  repo=$(github_repo)
+  printf -v quoted_key '%q' "$key_file"
+  if [[ -n $repo && ${repo,,} != "${upstream,,}" ]]; then
+    echo "  gh secret set DEPLOY_SIGNING_KEY --env deploy --repo $repo < $quoted_key && shred -u $quoted_key"
+  else
+    echo "  gh secret set DEPLOY_SIGNING_KEY --env deploy < $quoted_key && shred -u $quoted_key"
+  fi
+  cat <<EOF
 
 or, on GitHub, paste the content of the file in the secret DEPLOY_SIGNING_KEY of the
 environment deploy, then run: shred -u $quoted_key
 EOF
+}
+
+parse_args "$@"
+enter_checkout
+mapfile -t known_features < <(list_block features | cut -f1)
+collect_answers
+
+target_dir=modules/hosts/$host
+target=$target_dir/default.nix
+person=modules/users/$login/default.nix
+login_attribute=$(nix_attribute "$login")
+generated=$(mktemp)
+generated_person=$(mktemp)
+key_file=""
+make_deploy_key
+
+write_host_and_person
+remove_examples
+update_kept_examples
+point_readme
+print_next_steps

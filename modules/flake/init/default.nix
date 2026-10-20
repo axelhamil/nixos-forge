@@ -72,6 +72,7 @@ in
           pkgs.coreutils
           pkgs.openssh
         ];
+        runtimeEnv.SET_STRING = ./set-string.awk;
         text = builtins.readFile ./init.sh;
       };
 

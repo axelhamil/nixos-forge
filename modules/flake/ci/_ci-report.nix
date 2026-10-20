@@ -9,6 +9,7 @@ pkgs.writeShellApplication {
   ];
   runtimeEnv = {
     CAUSES = ./causes.tsv;
+    REPORT = ./ci-report.jq;
     TRUNCATE = ./truncate.awk;
   };
   excludeShellChecks = [ "SC2016" ];

@@ -4,7 +4,7 @@ Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.ni
 
 ## apps
 
-Apps for every user of the machine: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` hyprland ` is the window manager; its bar, launcher, terminal and lock screen are apps of their own), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
+Apps for every user of the machine: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` hyprland ` is the window manager; its bar, launcher, terminal and lock screen are apps of their own), else the package of that name in the host’s pkgs, overlays included (` kdePackages.kate ` works)\. Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (` steam `) still needs that name in ` nixpkgs.config.allowUnfreePackages `\.
 
 
 
@@ -218,7 +218,7 @@ string
 
 
 
-Extra git URLs of the fork, tried in order when the first one is unreachable: ` https:// `, ` ssh:// `, an scp-like ` user@host:path `, ` file:// ` or an absolute path\. ` http:// ` and ` git:// ` are refused, since they are not encrypted\.
+Extra git URLs of the fork, tried in order when the first one is unreachable: ` https:// `, ` ssh:// `, an scp-like ` user@host:path `, ` file:// ` or an absolute path\. ` http:// ` and ` git:// ` are refused, since they are not encrypted\. ` auto-upgrade ` runs as root, so an ssh mirror needs a root SSH key that survives a reboot and the mirror’s host in ` programs.ssh.knownHosts `, and warns otherwise\.
 
 
 
@@ -359,7 +359,7 @@ attribute set of (submodule)
 
 
 
-Apps this variant adds to the host’s ` apps ` for every user, by the same names: an app of ` modules/apps/<name> `, else a nixpkgs package\.
+Apps this variant adds to the host’s ` apps ` for every user, by the same names: an app of ` modules/apps/<name> `, else a package of the host’s pkgs, overlays included\.
 
 
 
@@ -609,7 +609,7 @@ true
 
 
 
-Apps for this user on this machine only, added to the person’s ` apps `: an app of ` modules/apps/<name> `, else the nixpkgs package of that name\. Unfree packages named here are allowed\.
+Apps for this user on this machine only, added to the person’s ` apps `: an app of ` modules/apps/<name> `, else the package of that name in the host’s pkgs, overlays included\. Unfree packages named here are allowed\.
 
 
 
@@ -674,7 +674,7 @@ Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the per
 
 ## apps
 
-Apps that follow the person on every host, none by default: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` zsh ` also becomes the login shell), else the nixpkgs package of that name (` kdePackages.kate ` works)\. Unfree packages named here are allowed\. A host adds its own with ` users.<name>.apps `\.
+Apps that follow the person on every host, none by default: an app of ` modules/apps/<name> ` with its NixOS and home-manager config when there is one (` zsh ` also becomes the login shell), else the package of that name in the host’s pkgs, overlays included (` kdePackages.kate ` works)\. Unfree packages named here are allowed\. A host adds its own with ` users.<name>.apps `\.
 
 
 

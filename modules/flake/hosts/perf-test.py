@@ -50,6 +50,7 @@ def summary(host, side):
 
 report = {
     "rounds": rounds,
+    "skipped": skipped,
     "hosts": {host: {side: summary(host, side) for side in ("base", "current")} for host in sorted(hosts)},
 }
 with open(driver.out_dir / "perf.json", "w") as file:

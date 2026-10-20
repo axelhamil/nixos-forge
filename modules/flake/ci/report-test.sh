@@ -363,6 +363,25 @@ expect_line perf-partial "No metric crossed its threshold."
 expect_line perf-partial "| Boot, total (best) | n/a | 7.0 s | n/a |"
 if grep -q "^#### example-server" perf-partial.md; then fail "perf-partial: a machine without measures gets a table"; fi
 
+perf_run perf-fork-host "$steady" "$steady"
+jq '.skipped = { laptop: "absent", pi: "no-vm" }' perf-fork-host/perf/x86_64-linux.json >perf-fork-host/tmp.json
+mv perf-fork-host/tmp.json perf-fork-host/perf/x86_64-linux.json
+report perf-fork-host
+expect_line perf-fork-host "#### example-server"
+expect_line perf-fork-host "2 machines are not measured:"
+expect_line perf-fork-host '- `laptop`: not on the base revision, so nothing to compare it with.'
+expect_line perf-fork-host '- `pi`: it does not boot in a VM on the base revision.'
+
+pass_all perf-none-on-base
+mkdir -p perf-none-on-base/perf
+echo '{ "rounds": 5, "hosts": {}, "skipped": { "laptop": "absent" } }' >perf-none-on-base/perf/x86_64-linux.json
+report perf-none-on-base
+expect_first_line perf-none-on-base "**Everything works: every machine builds, boots and passed its tests.**"
+expect_line perf-none-on-base "### Performance against the base"
+expect_line perf-none-on-base "1 machine is not measured:"
+expect_line perf-none-on-base '- `laptop`: not on the base revision, so nothing to compare it with.'
+if grep -q "No metric crossed its threshold." perf-none-on-base.md; then fail "perf-none-on-base: a run that measured nothing says no metric crossed its threshold"; fi
+
 pass_all perf-unreadable
 mkdir -p perf-unreadable/perf
 echo 'not json' >perf-unreadable/perf/x86_64-linux.json

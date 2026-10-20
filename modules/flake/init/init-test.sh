@@ -218,6 +218,8 @@ person_has_line '      "zsh" # .*'
 person_has_line '  users\."in" = \{'
 person_has_line '.* an account with .users\."in".*'
 fork_evaluates '["rec"]'
+perf_systems=$("$NIX_INSTANTIATE" --eval --strict --json --expr "import $FORK_PERF_SYSTEMS $PWD") || fail "ci.perfMatrix of the fork in $PWD does not evaluate"
+[[ $perf_systems == '["x86_64-linux"]' ]] || fail "the fork in $PWD, whose host is not on the starter, gets the perf job on $perf_systems, expected [\"x86_64-linux\"]"
 docs_pass
 grep -qF "Your [\`rec\`](modules/hosts/rec/default.nix) host" README.md || fail "README.md does not point at the host init wrote"
 grep -qF "[\`modules/users/in/default.nix\`](modules/users/in/default.nix)" README.md || fail "README.md does not point at the person init wrote"

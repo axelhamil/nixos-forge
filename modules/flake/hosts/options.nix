@@ -41,12 +41,17 @@ let
   package =
     where: pkgs: name:
     lib.attrByPath (lib.splitString "." name)
-      (throw "${where}: unknown name \"${name}\": neither an app of modules/apps (${known apps}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\".")
+      (throw "${where}: unknown name \"${name}\": neither an app of modules/apps (${known apps}) nor a package of the host's pkgs (nixpkgs with its overlays); any attribute path of pkgs works, such as \"kdePackages.kate\".")
       pkgs;
 
-  unfreeName =
-    where: system: name:
-    lib.getName (package where inputs.nixpkgs.legacyPackages.${system} name);
+  unfreeNames =
+    system: overlays: name:
+    let
+      path = lib.splitString "." name;
+      plain = inputs.nixpkgs.legacyPackages.${system};
+      resolved = if overlays == [ ] then plain else plain.appendOverlays overlays;
+    in
+    lib.optional (lib.hasAttrByPath path resolved) (lib.getName (lib.getAttrFromPath path resolved));
 
   bringsZsh = lib.elem "zsh";
 
@@ -57,7 +62,7 @@ let
       where = "configurations.nixos.${host}.${field "apps"}";
       packages = packagedApps chosen.apps;
     in
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     {
       imports =
         map (pick host (field "features") features) chosen.features
@@ -66,7 +71,7 @@ let
 
       environment.systemPackages = map (package where pkgs) packages;
       home-manager.sharedModules = appModules "homeManager" chosen.apps;
-      nixpkgs.config.allowUnfreePackages = map (unfreeName where system) packages;
+      nixpkgs.config.allowUnfreePackages = lib.concatMap (unfreeNames system config.nixpkgs.overlays) packages;
     };
 
   specialisationOptions = {
@@ -86,7 +91,7 @@ let
           "gamemode"
           "mangohud"
         ];
-        description = "Apps this variant adds to the host's `apps` for every user, by the same names: an app of `modules/apps/<name>`, else a nixpkgs package.";
+        description = "Apps this variant adds to the host's `apps` for every user, by the same names: an app of `modules/apps/<name>`, else a package of the host's pkgs, overlays included.";
       };
 
       hardware = mkOption {
@@ -125,7 +130,7 @@ let
           "stow"
           "kdePackages.kate"
         ];
-        description = "Apps for this user on this machine only, added to the person's `apps`: an app of `modules/apps/<name>`, else the nixpkgs package of that name. Unfree packages named here are allowed.";
+        description = "Apps for this user on this machine only, added to the person's `apps`: an app of `modules/apps/<name>`, else the package of that name in the host's pkgs, overlays included. Unfree packages named here are allowed.";
       };
 
       groups = mkOption {
@@ -187,8 +192,8 @@ let
             "/persist/passwords/${name}";
       };
 
-      nixpkgs.config.allowUnfreePackages = map (
-        origin: unfreeName origin.where system origin.app
+      nixpkgs.config.allowUnfreePackages = lib.concatMap (
+        origin: unfreeNames system config.nixpkgs.overlays origin.app
       ) packages;
 
       virtualisation.vmVariant.users.users.${name} = {
@@ -252,7 +257,7 @@ let
             "firefox"
             "vlc"
           ];
-          description = "Apps for every user of the machine: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`hyprland` is the window manager; its bar, launcher, terminal and lock screen are apps of their own), else the nixpkgs package of that name (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
+          description = "Apps for every user of the machine: an app of `modules/apps/<name>` with its NixOS and home-manager config when there is one (`hyprland` is the window manager; its bar, launcher, terminal and lock screen are apps of their own), else the package of that name in the host's pkgs, overlays included (`kdePackages.kate` works). Unfree packages named here are allowed; a wrapper whose unfree part is an inner package (`steam`) still needs that name in `nixpkgs.config.allowUnfreePackages`.";
         };
 
         users = mkOption {
@@ -289,7 +294,7 @@ let
           type = types.listOf types.str;
           default = [ ];
           example = [ "https://codeberg.org/<owner>/<repo>.git" ];
-          description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted.";
+          description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted. `auto-upgrade` runs as root, so an ssh mirror needs a root SSH key that survives a reboot and the mirror's host in `programs.ssh.knownHosts`, and warns otherwise.";
         };
 
         signers = mkOption {

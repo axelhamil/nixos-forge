@@ -31,12 +31,24 @@ let
   bootsInVm =
     nixos: nixos.pkgs.stdenv.hostPlatform.system == system && !(nixos.config.system.build ? sdImage);
 
-  hosts = lib.filterAttrs (
-    name: _:
-    bootsInVm config.flake.nixosConfigurations.${name}
-    && baseFlake.nixosConfigurations ? ${name}
-    && bootsInVm baseFlake.nixosConfigurations.${name}
-  ) (hostsOn system);
+  candidates = lib.filterAttrs (name: _: bootsInVm config.flake.nixosConfigurations.${name}) (
+    hostsOn system
+  );
+
+  missingOnBase =
+    name:
+    if !(baseFlake.nixosConfigurations ? ${name}) then
+      "absent"
+    else if !(bootsInVm baseFlake.nixosConfigurations.${name}) then
+      "no-vm"
+    else
+      null;
+
+  skipped = lib.filterAttrs (_: reason: reason != null) (
+    lib.mapAttrs (name: _: missingOnBase name) candidates
+  );
+
+  hosts = removeAttrs candidates (lib.attrNames skipped);
 
   sideOf =
     pkgs: nixos:
@@ -58,18 +70,31 @@ in
 {
   perSystem =
     { pkgs, ... }:
-    lib.mkIf (pkgs.stdenv.hostPlatform.system == system && hosts != { }) {
+    lib.mkIf (pkgs.stdenv.hostPlatform.system == system && candidates != { }) {
       checks.perf-regression =
-        pkgs.testers.runNixOSTest {
-          name = "perf-regression";
-          nodes = { };
-          testScript = ''
-            hosts = ${builtins.toJSON (machinesOf pkgs)}
-            rounds = ${toString rounds}
-            ${builtins.readFile ./measure-boot.py}
-            ${builtins.readFile ./perf-test.py}
-          '';
-        }
+        (
+          if hosts == { } then
+            pkgs.writeTextFile {
+              name = "perf-regression";
+              destination = "/perf.json";
+              text = builtins.toJSON {
+                inherit rounds skipped;
+                hosts = { };
+              };
+            }
+          else
+            pkgs.testers.runNixOSTest {
+              name = "perf-regression";
+              nodes = { };
+              testScript = ''
+                hosts = ${builtins.toJSON (machinesOf pkgs)}
+                skipped = ${builtins.toJSON skipped}
+                rounds = ${toString rounds}
+                ${builtins.readFile ./measure-boot.py}
+                ${builtins.readFile ./perf-test.py}
+              '';
+            }
+        )
         // {
           baseInput = "migration-base";
         };

@@ -28,7 +28,7 @@ let
 
     wrong-apps = {
       host.apps = [ "disk" ];
-      message = "configurations.nixos.wrong-apps.apps: unknown name \"disk\": neither an app of modules/apps (${known "apps"}) nor a nixpkgs package; any attribute path of pkgs works, such as \"kdePackages.kate\".";
+      message = "configurations.nixos.wrong-apps.apps: unknown name \"disk\": neither an app of modules/apps (${known "apps"}) nor a package of the host's pkgs (nixpkgs with its overlays); any attribute path of pkgs works, such as \"kdePackages.kate\".";
     };
 
     wrong-specialisation = {

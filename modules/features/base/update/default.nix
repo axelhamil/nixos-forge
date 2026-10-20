@@ -49,7 +49,7 @@
           type = lib.types.listOf lib.types.str;
           default = [ ];
           example = [ "https://codeberg.org/alice/nixos.git" ];
-          description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted.";
+          description = "Extra git URLs of the fork, tried in order when the first one is unreachable: `https://`, `ssh://`, an scp-like `user@host:path`, `file://` or an absolute path. `http://` and `git://` are refused, since they are not encrypted. `auto-upgrade` runs as root, so an ssh mirror needs a root SSH key that survives a reboot and the mirror's host in `programs.ssh.knownHosts`, and warns otherwise.";
         };
 
         signers = lib.mkOption {

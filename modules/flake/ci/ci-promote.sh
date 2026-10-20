@@ -94,6 +94,60 @@ promotion() {
 }
 
 refused=0
+
+refuse() {
+  refused=1
+  echo "deploy/$1 refused: $2"
+}
+
+push_deploy() {
+  local host=$1 target=$2 moved=$3 output reason
+  shift 3
+  if output=$(git push --porcelain "$@" origin "$target:refs/heads/deploy/$host" 2>&1); then
+    echo "$moved"
+    return
+  fi
+
+  reason=$(awk -F'\t' '/^!/ { print $3; exit }' <<<"$output")
+  if grep -qE 'non-fast-forward|fetch first|stale info' <<<"$reason"; then
+    refuse "$host" "not a fast-forward"
+    return
+  fi
+  refuse "$host" "${reason:-$(grep -v '^Done$' <<<"$output" | tail -n 1)}"
+}
+
+promote_unsigned() {
+  local host=$1 tip=$2
+  if [ -n "$tip" ] && git merge-base --is-ancestor "$sha" "$tip"; then
+    echo "deploy/$host already at or past $short"
+    return
+  fi
+  push_deploy "$host" "$sha" "deploy/$host -> $short"
+}
+
+promote_signed() {
+  local host=$1 tip=$2 previous="" lease=() target
+  if [ -z "$tip" ] || verified "$host" "$tip"; then
+    previous=$tip
+  else
+    warn "deploy/$host warning: its tip $(git rev-parse --short "$tip") is not a promotion signed by DEPLOY_SIGNING_KEY, so the promotion replaces it instead of building on it"
+    lease=(--force-with-lease="refs/heads/deploy/$host:$tip")
+  fi
+  if [ -n "$previous" ] && git merge-base --is-ancestor "$sha" "$(carried "$host" "$previous")"; then
+    echo "deploy/$host already at or past $short"
+    return
+  fi
+  if [ -n "$previous" ] && ! git merge-base --is-ancestor "$(carried "$host" "$previous")" "$sha"; then
+    refuse "$host" "not a fast-forward"
+    return
+  fi
+  if ! target=$(promotion "$host" "$previous" 2>/dev/null); then
+    refuse "$host" "DEPLOY_SIGNING_KEY cannot sign, it must hold an OpenSSH private key without a passphrase"
+    return
+  fi
+  push_deploy "$host" "$target" "deploy/$host -> $short, signed as $(git rev-parse --short "$target")" "${lease[@]}"
+}
+
 while IFS=$'\t' read -r host verdict; do
   if [ "$verdict" != promote ]; then
     echo "deploy/$host $verdict"
@@ -101,50 +155,10 @@ while IFS=$'\t' read -r host verdict; do
   fi
 
   tip=$(git rev-parse -q --verify "refs/remotes/origin/deploy/$host" || true)
-  target=$sha
-  moved="deploy/$host -> $short"
-  lease=()
   if [ "${#signing[@]}" -eq 0 ]; then
-    if [ -n "$tip" ] && git merge-base --is-ancestor "$sha" "$tip"; then
-      echo "deploy/$host already at or past $short"
-      continue
-    fi
+    promote_unsigned "$host" "$tip"
   else
-    previous=""
-    if [ -z "$tip" ] || verified "$host" "$tip"; then
-      previous=$tip
-    else
-      warn "deploy/$host warning: its tip $(git rev-parse --short "$tip") is not a promotion signed by DEPLOY_SIGNING_KEY, so the promotion replaces it instead of building on it"
-      lease=(--force-with-lease="refs/heads/deploy/$host:$tip")
-    fi
-    if [ -n "$previous" ] && git merge-base --is-ancestor "$sha" "$(carried "$host" "$previous")"; then
-      echo "deploy/$host already at or past $short"
-      continue
-    fi
-    if [ -n "$previous" ] && ! git merge-base --is-ancestor "$(carried "$host" "$previous")" "$sha"; then
-      refused=1
-      echo "deploy/$host refused: not a fast-forward"
-      continue
-    fi
-    if ! target=$(promotion "$host" "$previous" 2>/dev/null); then
-      refused=1
-      echo "deploy/$host refused: DEPLOY_SIGNING_KEY cannot sign, it must hold an OpenSSH private key without a passphrase"
-      continue
-    fi
-    moved="$moved, signed as $(git rev-parse --short "$target")"
-  fi
-
-  if output=$(git push --porcelain "${lease[@]}" origin "$target:refs/heads/deploy/$host" 2>&1); then
-    echo "$moved"
-    continue
-  fi
-
-  refused=1
-  reason=$(awk -F'\t' '/^!/ { print $3; exit }' <<<"$output")
-  if grep -qE 'non-fast-forward|fetch first|stale info' <<<"$reason"; then
-    echo "deploy/$host refused: not a fast-forward"
-  else
-    echo "deploy/$host refused: ${reason:-$(grep -v '^Done$' <<<"$output" | tail -n 1)}"
+    promote_signed "$host" "$tip"
   fi
 done <<<"$verdicts"
 

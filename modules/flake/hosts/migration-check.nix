@@ -45,7 +45,7 @@ let
         }).config;
     in
     {
-      system.configurationRevision = lib.mkForce "test";
+      imports = [ testRevision ];
 
       environment.etc."migration-test/next".source = nextSystem.system.build.toplevel;
 

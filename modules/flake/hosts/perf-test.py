@@ -11,7 +11,7 @@ def measure(host, side, round_number):
     vm.start()
     boot_time, problem = measure_boot_time(vm, wait=300)
     if boot_time is None:
-        raise Exception(f"{host} ({side}, round {round_number}) could not be measured: {problem}")
+        raise RuntimeError(f"{host} ({side}, round {round_number}) could not be measured: {problem}")
 
     vm.succeed(f"sleep {settle_seconds}")
     memory = {

@@ -1,4 +1,4 @@
-{ config, ... }:
+{ lib, config, ... }:
 
 let
   inherit (config.helpers) mkDefaults relativeToHome;
@@ -6,7 +6,7 @@ in
 {
   apps.zsh.nixos.programs.zsh = {
     enable = true;
-    enableGlobalCompInit = false;
+    enableGlobalCompInit = lib.mkDefault false;
   };
 
   apps.zsh.homeManager =

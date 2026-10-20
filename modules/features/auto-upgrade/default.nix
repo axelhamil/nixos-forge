@@ -120,8 +120,8 @@
       systemd.timers.auto-upgrade = {
         wantedBy = [ "timers.target" ];
         timerConfig = {
-          OnCalendar = "04:00";
-          RandomizedDelaySec = "45min";
+          OnCalendar = lib.mkDefault "04:00";
+          RandomizedDelaySec = lib.mkDefault "45min";
           Persistent = true;
         };
       };

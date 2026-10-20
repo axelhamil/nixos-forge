@@ -42,7 +42,7 @@
         services.greetd = {
           enable = true;
           useTextGreeter = true;
-          settings.default_session.command = tuigreet;
+          settings.default_session.command = lib.mkDefault tuigreet;
         };
 
         environment.etc = lib.genAttrs' sessionKinds (

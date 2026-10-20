@@ -42,7 +42,7 @@
       # "bluetooth" # Bluetooth, powered on at boot, paired devices kept
       # "nvidia" # NVIDIA GPU with the open kernel module and power management, x86_64-linux only
       # "amd-gpu" # AMD GPU, loaded early in the initrd
-      # "intel-gpu" # Intel GPU with video decoding, for an Intel GPU that drives the screens
+      # "intel-gpu" # Intel GPU with video decoding, for an Intel GPU that drives the screens, x86_64-linux only
     ];
 
     # Hardware report from nixos-facter, saved next to this file (docs/tutorials/install.md).
@@ -74,7 +74,7 @@
       # "stow" # links your dotfiles repository, ~/dotfiles by default, into your home at each switch (docs/reference/apps.md)
       "nix-index" # nix-locate finds the package of a file, and `, <command>` runs a command without installing it (docs/reference/dev.md)
       # "gh" # the GitHub CLI, its login kept with wipe-home (docs/reference/apps.md)
-      # "steam" # Steam with Proton-GE and protontricks, its library kept (docs/how-to/specialisations.md)
+      # "steam" # Steam with Proton-GE and protontricks, its library kept, x86_64-linux only (docs/how-to/specialisations.md)
       # "gamemode" # Feral GameMode, for games started with `gamemoderun` (docs/how-to/specialisations.md)
       # "mangohud" # an FPS and frame time overlay, Shift+F2 logs a run (docs/how-to/specialisations.md)
     ];

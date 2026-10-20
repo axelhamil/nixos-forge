@@ -59,7 +59,7 @@ The boot splash, with the `bgrt` theme (the firmware logo, a `mkDefault`), a qui
 | `Super + arrows`, `Super + Shift + arrows` | move focus, swap windows |
 | `Super + 1` to `0`, `Super + Shift + 1` to `0` | go to workspace 1 to 10, move the window there |
 | `Super + left drag`, `Super + right drag` | move, resize a window |
-| `Print`, `Shift + Print` | screenshot of an area, of the screen, saved to `~/Pictures/Screenshots` and copied |
+| `Print`, `Shift + Print` | screenshot of an area, of the screen, saved to `Screenshots` in the pictures directory (`xdg.userDirs.pictures`, `~/Pictures` by default), kept with `wipe-home`, and copied |
 | media and brightness keys | volume and mute (with PipeWire, which nixpkgs turns on for a graphical session), brightness, player, also on the lock screen; volume and brightness repeat while held |
 
 The keyboard layout comes from the host's `keyboard` field (`services.xserver.xkb`).

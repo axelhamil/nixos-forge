@@ -6,12 +6,12 @@
     in
     {
       services.btrbk.instances.snapshots = {
-        onCalendar = "hourly";
+        onCalendar = lib.mkDefault "hourly";
         snapshotOnly = true;
         settings = {
-          snapshot_create = "onchange";
-          snapshot_preserve_min = "2d";
-          snapshot_preserve = "14d 4w";
+          snapshot_create = lib.mkDefault "onchange";
+          snapshot_preserve_min = lib.mkDefault "2d";
+          snapshot_preserve = lib.mkDefault "14d 4w";
           timestamp_format = "long";
           volume."/" = {
             snapshot_dir = ".snapshots";

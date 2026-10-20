@@ -5,7 +5,7 @@ let
 in
 {
   features.docker =
-    { config, ... }:
+    { lib, config, ... }:
     {
       imports = [ (persistInEveryHome (home: "${home.xdg.dataHome}/docker")) ];
 
@@ -14,7 +14,7 @@ in
         setSocketVariable = true;
         daemon.settings = {
           features.containerd-snapshotter = true;
-          log-driver = "local";
+          log-driver = lib.mkDefault "local";
         };
       };
 

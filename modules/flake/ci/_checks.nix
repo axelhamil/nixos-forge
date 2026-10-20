@@ -54,6 +54,7 @@ let
     example-hosts = "every example host and the example person list every option the starter ships";
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
     apps-once = "an app named by the host and the person is imported once, and an unfree package of an overlay works as an app";
+    fork-overrides = "a fork overrides the shipped policy values with plain definitions, a nixos-hardware profile keeps its NVIDIA choice, and firmware and plymouth evaluate on a Raspberry Pi";
     hyprland-alone = "hyprland alone evaluates, warns that no terminal is registered, and binds no key to an app or to audio the host lacks";
     feature-dual-boot = "Windows on its own disk starts from the systemd-boot menu under Secure Boot, with or without BitLocker or its firmware entry, its disk unchanged and readable from NixOS read-only";
     feature-dual-boot-same-disk = "NixOS installs beside Windows on one disk over an old LUKS header, refuses an ESP too small, keeps the Windows boot manager when another Windows disk comes and goes, and starts Windows from its menu under Secure Boot with the Windows partitions unchanged";

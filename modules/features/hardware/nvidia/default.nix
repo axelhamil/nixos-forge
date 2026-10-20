@@ -1,17 +1,19 @@
 {
-  hardware.nvidia = {
-    nixpkgs.config.allowUnfreePackages = [
-      "nvidia-x11"
-      "nvidia-settings"
-      "nvidia-persistenced"
-    ];
+  hardware.nvidia =
+    { lib, ... }:
+    {
+      nixpkgs.config.allowUnfreePackages = [
+        "nvidia-x11"
+        "nvidia-settings"
+        "nvidia-persistenced"
+      ];
 
-    hardware.graphics.enable = true;
-    services.xserver.videoDrivers = [ "nvidia" ];
+      hardware.graphics.enable = true;
+      services.xserver.videoDrivers = [ "nvidia" ];
 
-    hardware.nvidia = {
-      open = true;
-      powerManagement.enable = true;
+      hardware.nvidia = {
+        open = lib.mkOverride 1100 true;
+        powerManagement.enable = lib.mkOverride 1100 true;
+      };
     };
-  };
 }

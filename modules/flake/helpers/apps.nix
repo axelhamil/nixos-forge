@@ -26,7 +26,7 @@ in
             stateVersion = "26.05";
             users.${lib.head (lib.attrNames config.users)}.apps = personApps;
             module = {
-              fileSystems."/" = {
+              fileSystems."/" = lib.mkDefault {
                 device = "/dev/disk/by-label/${name}";
                 fsType = "ext4";
               };
@@ -40,7 +40,7 @@ in
     (inputs.nixpkgs.lib.nixosSystem {
       modules = [
         host.config.module
-        { nixpkgs.hostPlatform = "x86_64-linux"; }
+        { nixpkgs.hostPlatform = host.config.system; }
       ];
     }).config;
 }

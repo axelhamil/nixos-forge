@@ -80,3 +80,8 @@ machine.succeed(f"rm {seen_file}")
 seed_state("up-to-date", "2026-01-03T04:00:00+00:00", "test")
 run_notifier()
 assert notifications_after("probe-up-to-date") == 2, "a run with nothing upgraded is notified"
+
+machine.succeed("systemctl --user -M tester@ stop notification-stub.service")
+seed_state("upgraded", "2026-01-04T04:00:00+00:00", "c")
+run_notifier()
+machine.fail(f"test -e {seen_file}")

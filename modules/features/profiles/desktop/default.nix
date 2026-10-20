@@ -7,7 +7,7 @@
 
       services.scx = {
         enable = true;
-        scheduler = "scx_lavd";
+        scheduler = lib.mkDefault "scx_lavd";
       };
 
       services.power-profiles-daemon.enable = true;

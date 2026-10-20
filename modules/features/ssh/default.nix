@@ -1,6 +1,6 @@
 {
   features.ssh =
-    { config, ... }:
+    { lib, config, ... }:
     {
       services.openssh = {
         enable = true;
@@ -15,8 +15,8 @@
         settings = {
           PasswordAuthentication = false;
           KbdInteractiveAuthentication = false;
-          PermitRootLogin = "no";
-          KexAlgorithms = [
+          PermitRootLogin = lib.mkDefault "no";
+          KexAlgorithms = lib.mkDefault [
             "mlkem768x25519-sha256"
             "sntrup761x25519-sha512"
             "sntrup761x25519-sha512@openssh.com"

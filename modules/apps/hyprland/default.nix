@@ -20,12 +20,12 @@
             fontconfig.defaultFonts.monospace = lib.mkDefault [ "JetBrainsMono Nerd Font" ];
           };
 
-          environment.sessionVariables.NIXOS_OZONE_WL = "1";
+          environment.sessionVariables.NIXOS_OZONE_WL = lib.mkDefault "1";
 
           virtualisation.vmVariant.virtualisation.qemu.options = [ "-vga none -device virtio-gpu-pci" ];
         }
         (lib.optionalAttrs (options ? greetd) {
-          greetd.command = "uwsm start hyprland-uwsm.desktop";
+          greetd.command = lib.mkDefault "uwsm start hyprland-uwsm.desktop";
         })
       ];
     };

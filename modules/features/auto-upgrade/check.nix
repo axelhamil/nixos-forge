@@ -7,6 +7,10 @@ let
   stub =
     pkgs:
     pkgs.writeShellScript "nixos-rebuild-stub" ''
+      if [ -e /run/rebuild-fails ]; then
+        echo "error: attribute 'machine' missing" >&2
+        exit 1
+      fi
       echo "$*" >> /var/log/nixos-rebuild-calls
       if [ -e /run/cache-lacks-version ]; then
         shift 3

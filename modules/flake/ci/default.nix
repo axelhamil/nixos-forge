@@ -81,14 +81,9 @@ in
         text = builtins.readFile ./closure-diff.sh;
       };
 
-      packages.ci-plan = pkgs.writeShellApplication {
-        name = "ci-plan";
-        runtimeInputs = [
-          pkgs.nix-eval-jobs
-          pkgs.jq
-          pkgs.coreutils
-        ];
-        text = builtins.readFile ./ci-plan.sh;
+      packages.ci-plan = import ./_ci-plan.nix {
+        inherit pkgs;
+        inherit (pkgs) nix-eval-jobs;
       };
 
       packages.ci-build = import ./_ci-build.nix {

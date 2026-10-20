@@ -76,6 +76,14 @@ assert state["message"] == "the cache does not have this version yet", state
 assert "local builds are disabled" in machine.succeed("cat /var/lib/auto-upgrade/rebuild.log")
 machine.succeed("rm /run/cache-lacks-version")
 
+machine.succeed("touch /run/rebuild-fails", f"systemctl set-environment CURRENT_REV={a} NEXT_REV={a} NEXT_DID_NOT_START=false")
+machine.fail("systemctl start auto-upgrade.service")
+machine.succeed("rm /run/rebuild-fails", "systemctl unset-environment CURRENT_REV NEXT_REV NEXT_DID_NOT_START")
+state = json.loads(machine.succeed("cat /var/lib/auto-upgrade/state.json"))
+assert state["outcome"] == "failed", state
+assert state["message"] == "nixos-rebuild boot failed: journalctl -u auto-upgrade shows why", state
+assert "attribute 'machine' missing" in machine.succeed("cat /var/lib/auto-upgrade/rebuild.log")
+
 state = run(a, b, following_started=False)
 assert state["outcome"] == "rolled-back", state
 short_b = machine.succeed(f"git -C /tmp/work rev-parse --short {b}").strip()
@@ -148,7 +156,7 @@ assert len(rebuild_calls()) == 6, "auto-upgrade replaced a system deploy/machine
 machine.succeed("rm -rf /srv/mirror.git")
 state = run(b)
 assert state["outcome"] == "unreachable", state
-assert len(machine.succeed("cat /var/lib/auto-upgrade/history.tsv").splitlines()) == 14
+assert len(machine.succeed("cat /var/lib/auto-upgrade/history.tsv").splitlines()) == 15
 
 assert "CURRENT_REV" not in machine.succeed("systemctl cat auto-upgrade.service")
 machine.succeed("systemctl is-active auto-upgrade.timer")

@@ -67,6 +67,7 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 
 | Check | When | What it proves |
 |---|---|---|
+| `ci-plan` | always, on `x86_64-linux` | with stand-ins for `nix` and `nix-eval-jobs`, `ci-plan` builds every check the binary cache lacks, skips a check that compiles its system's host kernel in a pull request only, with a 240 minutes timeout on a push, never skips a check with a `baseInput` as cached, builds a system's closure only when no uncached check of it compiles its kernel, prints `checks=[]` when everything is cached, and stops naming the check that does not evaluate or is missing from the evaluation |
 | `ci-promote` | always, on `x86_64-linux` | `deploy/<host>` moves only when every check of that host passed, never backwards, and with `DEPLOY_SIGNING_KEY` only to a promotion commit signed by that key; a tip the key did not sign is replaced with a warning |
 | `ci-mirror` | always, on `x86_64-linux` | `main` and every `deploy/<host>` reach the mirror and nothing else does, a deploy branch moved back in the fork follows on the mirror, and the `MIRROR_TOKEN` header is sent |
 | `ci-report` | always, on `x86_64-linux` | `ci-build` keeps a clean log excerpt and retries a VM test once; `ci-report` turns sample runs into the right verdict, tables, failure causes, boot times and performance sections, with the hosts left out of the performance comparison and their reason |

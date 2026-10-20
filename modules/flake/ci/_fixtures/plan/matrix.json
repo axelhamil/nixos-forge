@@ -1,0 +1,7 @@
+[
+  { "check": "example-toplevel", "system": "x86_64-linux", "runner": "ubuntu-24.04", "retry": false, "baseInput": null },
+  { "check": "example-boots", "system": "x86_64-linux", "runner": "ubuntu-24.04", "retry": true, "baseInput": null },
+  { "check": "docs", "system": "x86_64-linux", "runner": "ubuntu-24.04", "retry": false, "baseInput": null },
+  { "check": "feature-migration", "system": "x86_64-linux", "runner": "ubuntu-24.04", "retry": true, "baseInput": "migration-base" },
+  { "check": "example-pi-sd-image", "system": "aarch64-linux", "runner": "ubuntu-24.04-arm", "retry": false, "baseInput": null }
+]

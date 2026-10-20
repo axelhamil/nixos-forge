@@ -8,7 +8,13 @@ let
 
   inherit (config.helpers) hostsOn;
 
-  buildChecksOn = system: lib.remove "treefmt" (lib.attrNames config.flake.checks.${system});
+  outsideBuild = [
+    "treefmt"
+    "perf-regression"
+  ];
+
+  buildChecksOn =
+    system: lib.subtractLists outsideBuild (lib.attrNames config.flake.checks.${system});
 
   jobsOn =
     system:
@@ -39,9 +45,13 @@ let
 
   matrix = lib.concatMap jobsOn config.systems;
 
-  descriptions = lib.genAttrs (lib.unique (map (job: job.check) matrix ++ [ "treefmt" ])) (
-    checks.describe hostChecks
-  );
+  descriptions = lib.genAttrs (lib.unique (
+    map (job: job.check) matrix
+    ++ [
+      "treefmt"
+      "perf-regression"
+    ]
+  )) (checks.describe hostChecks);
 in
 {
   flake.ci = {
@@ -52,6 +62,11 @@ in
       inherit system;
       runner = runners.${system};
     }) systemsWithHosts;
+    perfMatrix = map (system: {
+      inherit system;
+      runner = runners.${system};
+      inherit (config.flake.checks.${system}.perf-regression) baseInput;
+    }) (lib.filter (system: config.flake.checks.${system} ? perf-regression) config.systems);
   };
 
   perSystem =

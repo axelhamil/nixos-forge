@@ -123,6 +123,7 @@ Checks are generated from the registry: a machine you add is tested without touc
 | `app-*`, `feature-*`, `profile-*`, `base-*` | Each module with a `check.nix` boots in its own VM test, from the Hyprland session to hibernate and resume. |
 | Reproducibility, nightly | Every system is rebuilt with `nix build --rebuild` and compared, with a diffoscope summary when it differs. |
 | Boot time | Each boot test records `systemd-analyze`, shown in the report beside the base revision's. |
+| `perf-regression`, every PR | The base revision and this one boot in turn in one VM job; the report flags boot time, idle RAM, closure size or running services over a threshold, without blocking the merge. |
 | Package diff, every PR | [nvd](https://git.sr.ht/~khumba/nvd) lists the packages each system gains, loses or changes. |
 
 The full list, with when each check runs, is in [docs/ci.md](docs/ci.md#checks).

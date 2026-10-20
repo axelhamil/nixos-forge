@@ -52,6 +52,7 @@ in
                   [ (waitForUnit "multi-user.target") ]
                   ++ map waitForUnit homeManagerUnits
                   ++ [
+                    (builtins.readFile ./measure-boot.py)
                     (builtins.readFile ./boot-time.py)
                     host.testScript
                   ]

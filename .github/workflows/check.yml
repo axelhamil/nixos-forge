@@ -28,6 +28,7 @@ jobs:
     outputs:
       checks: ${{ steps.plan.outputs.checks }}
       closures: ${{ steps.plan.outputs.closures }}
+      perf: ${{ steps.plan.outputs.perf }}
       skipped: ${{ steps.plan.outputs.skipped }}
       hostChecks: ${{ steps.plan.outputs.hostChecks }}
       descriptions: ${{ steps.plan.outputs.descriptions }}
@@ -114,9 +115,40 @@ jobs:
           name: closure-${{ matrix.system }}
           path: closure-${{ matrix.system }}.md
 
+  perf:
+    needs: plan
+    if: github.event_name == 'pull_request' && needs.plan.outputs.perf != '[]'
+    name: perf (${{ matrix.system }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.perf) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            system-features = nixos-test benchmark big-parallel kvm
+      - uses: cachix/cachix-action@v17
+        if: vars.CACHIX_CACHE != ''
+        continue-on-error: true
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          skipPush: true
+      - run: nix run .#ci-build -- ${{ matrix.system }} perf-regression results --base-input ${{ matrix.baseInput }} --base github:${{ github.repository }}/${{ github.event.pull_request.base.sha }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: perf-${{ matrix.system }}
+          path: results/perf/
+          if-no-files-found: ignore
+          retention-days: 7
+
   report:
     if: ${{ !cancelled() }}
-    needs: [lint, plan, build, closure]
+    needs: [lint, plan, build, closure, perf]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -152,6 +184,11 @@ jobs:
         with:
           pattern: closure-*
           path: results
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: perf-*
+          path: results/perf
           merge-multiple: true
       - continue-on-error: true
         run: nix run .#ci-boot-time -- github:${{ github.repository }}/${{ github.event.pull_request.base.sha || github.event.before }} results/base

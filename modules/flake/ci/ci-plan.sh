@@ -3,6 +3,7 @@ event=$1
 kernels=$(nix eval --json .#ci.kernels)
 jobs=$(nix eval --json .#ci.matrix)
 closures=$(nix eval --json .#ci.closureMatrix)
+perf=$(nix eval --json .#ci.perfMatrix)
 host_checks=$(nix eval --json .#ci.hostChecks)
 descriptions=$(nix eval --json .#ci.descriptions)
 
@@ -52,5 +53,6 @@ fi
 echo "checks=$(jq -c .checks <<<"$plan")"
 echo "skipped=$(jq -c .skipped <<<"$plan")"
 echo "closures=$(jq -c .closures <<<"$plan")"
+echo "perf=$(jq -c . <<<"$perf")"
 echo "hostChecks=$(jq -c . <<<"$host_checks")"
 echo "descriptions=$(jq -c . <<<"$descriptions")"

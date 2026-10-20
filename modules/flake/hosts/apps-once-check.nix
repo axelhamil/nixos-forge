@@ -30,6 +30,8 @@ let
         "hyprland"
         "lock"
       ];
+  securityKeys = appMachine "apps-once" { features = [ "fido2" ]; } [ ];
+  person = lib.head (lib.attrNames config.users);
 in
 {
   perSystem =
@@ -42,6 +44,9 @@ in
         assert lib.assertMsg (
           once.system.build.toplevel.drvPath == twice.system.build.toplevel.drvPath
         ) "apps-once: an app named by the host and the person (zsh, hyprland, lock) changes the system";
+        assert lib.assertMsg (
+          securityKeys.fido2.u2fKeys ? ${person}
+        ) "apps-once: the person's u2fKeys do not reach fido2.u2fKeys";
         pkgs.writeText "apps-once" "an app named by the host and the person is imported once";
     };
 }

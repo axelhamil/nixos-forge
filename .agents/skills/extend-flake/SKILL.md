@@ -54,7 +54,7 @@ in
 ```
 
 - Real ones: `nix-ld` (smallest), `printing` (`doctor.ephemeralPaths`), `docker` (home state through `persistInEveryHome`, reached with an outer `{ config, ... }:` and an inner NixOS module).
-- Test: `config.helpers.featureCheck "<name>" { machine = { }; testScripts = [ ./test.py ]; }`, giving `feature-<name>`. Persistence in the test: `machine.environment.persistence."/persist".enable = true;`.
+- Test: `config.helpers.featureCheck "<name>" { machine = { }; testScripts = [ ./test.py ]; }`, giving `feature-<name>`. Persistence in the test: `machine.environment.persistence."/persist".enable = true;`. An emulated device that needs another QEMU build: `qemu = pkgs: pkgs.qemu_test.override { canokeySupport = true; };`, as `fido2`.
 - Docs: the README feature table and the matching `docs/` page (`services.md`, `dev.md`...).
 
 ## Hardware: `modules/features/hardware/<name>/`

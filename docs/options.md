@@ -826,3 +826,35 @@ list of string
 ```
 
 
+
+## u2fKeys
+
+
+
+Security keys that log the person in and run ` sudo ` without a password, on every host with the ` fido2 ` feature, one line of ` pamu2fcfg -n -o pam://nixos-forge -i pam://nixos-forge ` each\. Without a key plugged in, the password still works\.
+
+
+
+*Type:*
+list of string matching the pattern :?\[^:
+]+
+
+
+
+*Default:*
+
+```nix
+[ ]
+```
+
+
+
+*Example:*
+
+```nix
+[
+  ":owBYz...,pSJ7...,es256,+presence"
+]
+```
+
+

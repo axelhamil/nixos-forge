@@ -13,6 +13,10 @@
     # Public SSH keys allowed to log in as alice, on every machine where this person has an account.
     sshKeys = [ ]; # such as "ssh-ed25519 AAAA... alice@laptop"
 
+    # Security keys that log alice in and run sudo without a password on hosts with "fido2",
+    # one line of `pamu2fcfg -n -o pam://nixos-forge -i pam://nixos-forge` each (docs/fido2.md).
+    # u2fKeys = [ ":owBYz...,pSJ7...,es256,+presence" ];
+
     # Apps that follow this person on every machine (none by default); a host adds its own.
     # Each app stands alone: an app of modules/apps/<name>, else any nixpkgs package.
     apps = [

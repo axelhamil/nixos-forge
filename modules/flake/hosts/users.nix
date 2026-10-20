@@ -28,6 +28,13 @@ let
           description = "Public SSH keys allowed to log in as this person, on every host that gives them an account.";
         };
 
+        u2fKeys = mkOption {
+          type = types.listOf (types.strMatching ":?[^:\n]+");
+          default = [ ];
+          example = [ ":owBYz...,pSJ7...,es256,+presence" ];
+          description = "Security keys that log the person in and run `sudo` without a password, on every host with the `fido2` feature, one line of `pamu2fcfg -n -o pam://nixos-forge -i pam://nixos-forge` each. Without a key plugged in, the password still works.";
+        };
+
         apps = mkOption {
           type = types.listOf types.str;
           default = [ ];

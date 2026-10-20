@@ -9,6 +9,8 @@ in
     {
       imports = [ profiles.server ];
 
+      zramSwap.enable = true;
+
       nix.distributedBuilds = lib.mkDefault (config.nix.buildMachines != [ ]);
       nix.settings.builders-use-substitutes = true;
 

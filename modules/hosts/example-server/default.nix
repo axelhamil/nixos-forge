@@ -74,6 +74,8 @@
       # "bat" # bat, a `cat` with syntax highlighting (docs/apps.md)
       # "btop" # a resource monitor (docs/apps.md)
       # "stow" # links your dotfiles repository, ~/dotfiles by default, into your home at each switch (docs/apps.md)
+      "nix-index" # nix-locate finds the package of a file, and `, <command>` runs a command without installing it (docs/dev.md)
+      # "gh" # the GitHub CLI, its login kept with wipe-home (docs/apps.md)
       # "steam" # Steam with Proton-GE and protontricks, its library kept (docs/specialisations.md)
       # "gamemode" # Feral GameMode, for games started with `gamemoderun` (docs/specialisations.md)
       # "mangohud" # an FPS and frame time overlay, Shift+F2 logs a run (docs/specialisations.md)

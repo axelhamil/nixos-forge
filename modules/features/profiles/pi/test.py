@@ -1,3 +1,4 @@
+machine.succeed("swapon --show=NAME --noheadings | grep -qx /dev/zram0")
 machine.succeed("grep -q '^ssh://builder@builder.example aarch64-linux' /etc/nix/machines")
 assert machine.succeed("nix config show builders").strip() == "@/etc/nix/machines", "remote builders not in use"
 assert machine.succeed("nix config show builders-use-substitutes").strip() == "true"

@@ -6,7 +6,7 @@ Nothing here depends on a third-party cloud service: DNS comes from your network
 
 ## DNS: systemd-resolved
 
-Every host runs systemd-resolved (`modules/features/base/resolved`). It uses the DNS servers your network announces. Two defaults differ from systemd's:
+Every host runs systemd-resolved (`modules/features/base/resolved`). It uses the DNS servers your network announces. Two defaults differ from systemd's, and a host sets either one in its `module` to change it:
 
 - **No fallback DNS.** systemd ships with Cloudflare, Google and Quad9 compiled in as a fallback; `FallbackDNS=` is empty, so queries never leave for a provider you did not choose.
 - **LLMNR off.** It answers name lookups from anyone on the local network, the classic target of poisoning attacks.

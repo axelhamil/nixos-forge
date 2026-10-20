@@ -76,6 +76,8 @@
       # "bat" # bat, a `cat` with syntax highlighting (docs/apps.md)
       # "btop" # a resource monitor (docs/apps.md)
       # "stow" # links your dotfiles repository, ~/dotfiles by default, into your home at each switch (docs/apps.md)
+      "nix-index" # nix-locate finds the package of a file, and `, <command>` runs a command without installing it (docs/dev.md)
+      # "gh" # the GitHub CLI, its login kept with wipe-home (docs/apps.md)
     ];
 
     # Variants of the machine (docs/specialisations.md): each one is this host plus its own

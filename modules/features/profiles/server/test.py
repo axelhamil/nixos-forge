@@ -1,5 +1,4 @@
 machine.wait_for_unit("multi-user.target")
-machine.succeed("swapon --show=NAME --noheadings | grep -qx /dev/zram0")
 machine.wait_for_unit("tuned.service")
 machine.succeed("tuned-adm active")
 machine.fail("test -e /sys/kernel/sched_ext/root/ops")

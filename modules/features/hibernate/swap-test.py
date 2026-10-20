@@ -10,4 +10,4 @@ for line in machine.succeed("swapon --show=NAME,PRIO --noheadings --raw").splitl
 
 zram = [priority for name, priority in swap_priorities.items() if name.startswith("/dev/zram")]
 assert "/swap/swapfile" in swap_priorities, f"the swap file is not active: {swap_priorities}"
-assert zram and min(zram) > swap_priorities["/swap/swapfile"], f"zram must be used before the swap file: {swap_priorities}"
+assert all(priority > swap_priorities["/swap/swapfile"] for priority in zram), f"zram must be used before the swap file: {swap_priorities}"

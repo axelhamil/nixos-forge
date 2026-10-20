@@ -1,24 +1,31 @@
+{ config, ... }:
+
+let
+  inherit (config.helpers) mkDefaults;
+in
 {
-  base = {
-    nix.settings = {
-      experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
-      trusted-users = [ "@wheel" ];
-      use-xdg-base-directories = true;
-    };
+  base =
+    { lib, ... }:
+    {
+      nix.settings = {
+        experimental-features = [
+          "nix-command"
+          "flakes"
+        ];
+        trusted-users = [ "@wheel" ];
+      }
+      // mkDefaults { use-xdg-base-directories = true; };
 
-    nix.channel.enable = false;
+      nix.channel.enable = false;
 
-    nix.optimise.automatic = true;
+      nix.optimise.automatic = lib.mkDefault true;
 
-    programs.nh = {
-      enable = true;
-      clean = {
+      programs.nh = {
         enable = true;
-        extraArgs = "--keep-since 14d --keep 5 --keep-one";
+        clean = {
+          enable = true;
+          extraArgs = lib.mkDefault "--keep-since 14d --keep 5 --keep-one";
+        };
       };
     };
-  };
 }

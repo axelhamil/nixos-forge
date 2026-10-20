@@ -21,6 +21,8 @@
 
       boot.tmp.useTmpfs = true;
 
+      zramSwap.enable = true;
+
       environment.persistence."/persist".directories = [
         "/etc/NetworkManager/system-connections"
         "/var/lib/NetworkManager"

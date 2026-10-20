@@ -368,7 +368,7 @@ check_signers() {
   fi
 
   if [ "$deploy_signers" = 0 ]; then
-    report WARN "Signed deploys" "auto-upgrade applies any deploy commit its sources serve, signed or not" "set the host's signers to the public key of DEPLOY_SIGNING_KEY (update.signers, docs/updates.md)"
+    report WARN "Signed deploys" "auto-upgrade applies any deploy commit its sources serve, signed or not" "set the host's signers to the public key of DEPLOY_SIGNING_KEY (update.signers, docs/explanation/updates.md)"
     return
   fi
 

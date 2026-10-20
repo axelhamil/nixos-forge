@@ -1,6 +1,6 @@
 # Install on a machine
 
-From a host file to a real machine that boots, unlocks itself with the TPM2 and rolls back a bad upgrade on its own. The starter is developed and tested in VMs; this page is the path for your fork when you install it on real hardware.
+From a host file to a real machine that boots, unlocks itself with the TPM2 and rolls back a bad upgrade on its own. Upstream is developed and tested in VMs; this page is the path for your fork when you install it on real hardware.
 
 > [!WARNING]
 > A host that lists `disk` in `features` gets the encrypted layout below, and **the install erases the whole disk it is given**. Read every step before running one.
@@ -29,21 +29,21 @@ btrfs subvolumes, mounted with `compress=zstd` and `noatime` (`@swap` with `noat
 | `@root` | `/` | no: restored from `@root-blank` at every boot |
 | `@nix` | `/nix` | yes |
 | `@persist` | `/persist` | yes |
-| `@home` | `/home` | yes, unless the host imports `wipe-home`: then emptied at every boot ([wipe-home.md](wipe-home.md)) |
-| `@snapshots` | `/.snapshots` | yes: hourly snapshots of `@home` and `@persist` ([services.md](services.md#snapshots-btrbk)) |
-| `@swap` | `/swap` | yes: only with `hibernate`, a swap file for the hibernation image, never snapshotted ([hibernate.md](hibernate.md)) |
+| `@home` | `/home` | yes, unless the host imports `wipe-home`: then emptied at every boot ([wipe-home.md](../how-to/wipe-home.md)) |
+| `@snapshots` | `/.snapshots` | yes: hourly snapshots of `@home` and `@persist` ([services.md](../reference/services.md#snapshots-btrbk)) |
+| `@swap` | `/swap` | yes: only with `hibernate`, a swap file for the hibernation image, never snapshotted ([hibernate.md](../how-to/hibernate.md)) |
 
 Every boot, the initrd deletes `@root` and snapshots it again from the empty `@root-blank`. Anything outside `/nix`, `/home`, `/persist` and `/.snapshots` is gone unless it is declared in `environment.persistence."/persist"`:
 
-- **Kept by the starter**: logs, `/var/lib/nixos`, `/var/lib/systemd`, `machine-id` and the dhcpcd lease and DUID (`modules/features/base/impermanence`), NetworkManager state (`modules/features/profiles/desktop`).
+- **Kept by the shipped modules**: logs, `/var/lib/nixos`, `/var/lib/systemd`, `machine-id` and the dhcpcd lease and DUID (`modules/features/base/impermanence`), NetworkManager state (`modules/features/profiles/desktop`).
 - **Fresh at every boot, on purpose**: CUPS (with `printing`), power-profiles-daemon and fwupd (with `firmware`). Printers are found again through Avahi, the power profile is the default one, firmware metadata is fetched again.
-- **Yours**: declare what your own modules need next to them, in the same option. `sudo doctor` lists what the next boot would erase ([doctor.md](doctor.md)).
+- **Yours**: declare what your own modules need next to them, in the same option. `sudo doctor` lists what the next boot would erase ([doctor.md](../how-to/doctor.md)).
 
 Users are immutable (`users.mutableUsers = false`): passwords come from files under `/persist/passwords/`, never from `passwd`.
 
 ## Before you start: Secure Boot setup mode
 
-Hosts that import `secure-boot` (the `example` host does) boot through [lanzaboote](https://github.com/nix-community/lanzaboote): the starter generates its own Secure Boot keys and enrolls them in the firmware, alongside Microsoft's (GPU option ROMs and dual boot need them). Enrollment only works while the firmware is in **setup mode**, with its keys cleared: do it before every install, since a reinstall generates new keys.
+Hosts that import `secure-boot` boot through [lanzaboote](https://github.com/nix-community/lanzaboote): the feature generates its own Secure Boot keys and enrolls them in the firmware, alongside Microsoft's (GPU option ROMs and dual boot need them). Enrollment only works while the firmware is in **setup mode**, with its keys cleared: do it before every install, since a reinstall generates new keys.
 
 In the firmware settings, find the Secure Boot page and choose the option that clears or deletes the keys (often "Reset to Setup Mode" or "Clear Secure Boot keys"). Secure Boot is not enforced in setup mode, so an installer ISO still boots. Hosts without `secure-boot` skip this and boot plain systemd-boot.
 
@@ -56,7 +56,7 @@ nix build .#installer-<host>
 sudo dd if=result/iso/<host>-installer.iso of=/dev/<usb stick> bs=4M status=progress conv=fsync
 ```
 
-Rebuild it after changing the host: the ISO installs the system as it was when you built it. The starter publishes no ISO: each one embeds a single host, so build it from your fork.
+Rebuild it after changing the host: the ISO installs the system as it was when you built it. Upstream publishes no ISO: each one embeds a single host, so build it from your fork.
 
 Boot the stick in UEFI mode. An assistant starts on the first console:
 
@@ -68,10 +68,10 @@ Boot the stick in UEFI mode. An assistant starts on the first console:
 If you quit it, `install-host` starts it again. Without any question, for scripts and the CI test:
 
 ```sh
-install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file alice=./alice-password --yes --no-reboot
+install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file <you>=./password --yes --no-reboot
 ```
 
-To keep Windows on the disk, a host with `dual-boot` takes `install-host --beside-windows`: NixOS goes in the free space and shares the Windows ESP ([dual-boot.md](dual-boot.md#windows-on-the-same-disk)).
+To keep Windows on the disk, a host with `dual-boot` takes `install-host --beside-windows`: NixOS goes in the free space and shares the Windows ESP ([dual-boot.md](../how-to/dual-boot.md#windows-on-the-same-disk)).
 
 `--yes` asks nothing: it skips the confirmation, fails before erasing anything when a disk, passphrase or password is missing or empty, and reboots at the end unless `--no-reboot` is set. Without `--yes`, a value left out is asked for.
 
@@ -81,7 +81,7 @@ The hardware report comes from [nixos-facter](https://github.com/nix-community/n
 facter = ./facter.json;
 ```
 
-The prebuilt system boots on common hardware (SATA, NVMe and USB disks are in the default initrd); a machine that needs more, such as an unusual disk controller, needs the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`) and a new ISO. A host that imports `secrets` needs its age key before the first boot: use [disko-install](#by-hand-with-disko-install) for it, or create the key on the installed machine and rebuild ([services.md](services.md#secrets-secrets-opt-in)).
+The prebuilt system boots on common hardware (SATA, NVMe and USB disks are in the default initrd); a machine that needs more, such as an unusual disk controller, needs the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`) and a new ISO. A host that imports `secrets` needs its age key before the first boot: use [disko-install](#by-hand-with-disko-install) for it, or create the key on the installed machine and rebuild ([services.md](../reference/services.md#secrets-secrets-opt-in)).
 
 ## Try the install in a VM
 
@@ -137,7 +137,7 @@ From any NixOS installer ISO, with your fork cloned in `~/nixos`:
    mkpasswd -m yescrypt | install -m 600 /dev/stdin ~/password
    ```
 
-   On a host that imports `secrets`, create its post-quantum age key now (`age-keygen` 1.3 or later: run `nix --experimental-features 'nix-command flakes' develop ~/nixos` first to get the version your flake pins), then follow [services.md](services.md#secrets-secrets-opt-in) to encrypt the host's secrets for the public key it prints before installing:
+   On a host that imports `secrets`, create its post-quantum age key now (`age-keygen` 1.3 or later: run `nix --experimental-features 'nix-command flakes' develop ~/nixos` first to get the version your flake pins), then follow [services.md](../reference/services.md#secrets-secrets-opt-in) to encrypt the host's secrets for the public key it prints before installing:
 
    ```sh
    age-keygen -pq | install -m 600 /dev/stdin ~/key.txt

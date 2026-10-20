@@ -15,7 +15,7 @@ a = machine.succeed("git -C /tmp/work rev-parse HEAD~1").strip()
 b = machine.succeed("git -C /tmp/work rev-parse HEAD").strip()
 waiting = (
     "CI has not validated a version for this host yet; if this lasts, CI has not promoted it:"
-    " check that the bot App is set up (docs/ci.md) and that the host's checks pass"
+    " check that the bot App is set up (docs/how-to/ci.md) and that the host's checks pass"
 )
 
 

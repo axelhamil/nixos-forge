@@ -2,7 +2,7 @@
 
 Everything a user runs is an app: the desktop, the shell, a browser. Its program and its settings live in one folder, `modules/apps/<name>`, written in Nix, so a new machine comes up with your config and there is no dotfiles repository to clone.
 
-This page covers what an app is, the ones the starter ships, how to add yours and how to bend a starter default your way.
+This page covers what an app is, the ones upstream ships, how to add yours and how to bend a shipped default your way.
 
 ## What an app is
 
@@ -21,7 +21,7 @@ Wherever it is named, an app's NixOS part is on for the whole machine; only its 
 
 ```nix
 apps = [ "hyprland" "waybar" "fuzzel" "kitty" "mako" "lock" "firefox" ]; # in modules/hosts/<host>
-users.alice.apps = [ "zsh" "starship" "git" "neovim" "ripgrep" "stow" ]; # in modules/users/alice
+users.<you>.apps = [ "zsh" "starship" "git" "neovim" "ripgrep" "stow" ]; # in modules/users/<you>
 ```
 
 Three rules keep apps honest:
@@ -36,12 +36,12 @@ Three rules keep apps honest:
 |---|---|
 | `hyprland` | the Hyprland window manager with uwsm, its portal and a polkit agent ([desktop.md](desktop.md)) |
 | `waybar`, `fuzzel`, `kitty`, `mako`, `lock` | a bar, a launcher, a terminal, notifications, a lock screen ([desktop.md](desktop.md)) |
-| `upgrade-notify` | a desktop notification after each `auto-upgrade` ([updates.md](updates.md#know-what-it-did)) |
+| `upgrade-notify` | a desktop notification after each `auto-upgrade` ([updates.md](../explanation/updates.md#know-what-it-did)) |
 | `direnv` | per-project dev shells with nix-direnv ([dev.md](dev.md)) |
 | `firefox` | Firefox with telemetry off, its profile kept |
 | `zsh`, `starship`, `git`, `delta`, `neovim` | the shell, its prompt, git, its diff pager, the editor ([below](#the-shell)) |
 | `fzf`, `zoxide`, `eza`, `bat`, `btop` | command line tools with their config ([below](#the-shell)) |
-| `steam`, `gamemode`, `mangohud` | Steam with Proton-GE, Feral GameMode, and an FPS overlay that logs runs ([specialisations.md](specialisations.md#games)) |
+| `steam`, `gamemode`, `mangohud` | Steam with Proton-GE, Feral GameMode, and an FPS overlay that logs runs ([specialisations.md](../how-to/specialisations.md#games)) |
 | `nix-index` | `nix-locate` on a prebuilt database, and `, <command>` to run a command without installing it ([dev.md](dev.md#nix-index-opt-in-app)) |
 | `gh` | the GitHub CLI, its login kept with `wipe-home` |
 | `stow` | links your dotfiles repository, for those who keep one ([below](#keep-your-dotfiles-with-stow)) |
@@ -50,7 +50,7 @@ Tools with nothing to configure, such as `ripgrep`, `fd` or `jq`, are plain nixp
 
 ## Name any nixpkgs package
 
-A name with no folder in `modules/apps` installs the nixpkgs package of that name: `"vlc"`, `"obsidian"`, or an attribute path such as `"kdePackages.kate"`. Unfree packages named there are allowed. A name that is neither stops the build and lists the starter's apps.
+A name with no folder in `modules/apps` installs the nixpkgs package of that name: `"vlc"`, `"obsidian"`, or an attribute path such as `"kdePackages.kate"`. Unfree packages named there are allowed. A name that is neither stops the build and lists the configured apps.
 
 ## Add an app
 
@@ -64,7 +64,7 @@ Create `modules/apps/<name>/default.nix`, `git add` it, and name it in `apps`:
 }
 ```
 
-A `check.nix` with `config.helpers.appCheck "<name>" { testScripts = [ ./test.py ]; }` boots it in a VM test, `app-<name>`. [`modules/apps/firefox`](../modules/apps/firefox/default.nix) is the model.
+A `check.nix` with `config.helpers.appCheck "<name>" { testScripts = [ ./test.py ]; }` boots it in a VM test, `app-<name>`. [`modules/apps/firefox`](../../modules/apps/firefox/default.nix) is the model.
 
 ## Change a starter default
 
@@ -130,4 +130,4 @@ What to expect:
 - A file both in your dotfiles and written by an app stops the switch before anything changes, and names the option to turn off: `programs.git.enable = false` to keep your own git config, `programs.starship.enable = false` for `starship.toml`.
 - zsh reads `~/.config/zsh`, so a stowed `~/.zshrc` is ignored until `programs.zsh.enable = false`. zsh stays your login shell; call `compinit` in your own `.zshrc`, since the system one is off.
 
-To start `/home` empty at every boot and keep only declared paths, see [wipe-home.md](wipe-home.md).
+To start `/home` empty at every boot and keep only declared paths, see [wipe-home.md](../how-to/wipe-home.md).

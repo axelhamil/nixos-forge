@@ -563,6 +563,24 @@ if [[ $login != "$example_person" ]]; then
   git rm -r -q -- "modules/users/$example_person"
 fi
 
+if [[ -f README.md ]]; then
+  HOST=$host TARGET=$target PERSON=$person awk '
+    /^The commented \[`example`\]\(modules\/hosts\/example\/default\.nix\) host / {
+      print "Your [`" ENVIRON["HOST"] "`](" ENVIRON["TARGET"] ") host lists every profile, feature, hardware module and app upstream shipped when you ran `nix run .#init`, one line each, commented out when you did not pick it. Read it top to bottom and keep what you like."
+      next
+    }
+
+    /^   - writes `modules\/hosts\/<host>\/default\.nix` from the \[example host\]/ {
+      print "   - writes your host, [`" ENVIRON["TARGET"] "`](" ENVIRON["TARGET"] "), from the example host and your person, [`" ENVIRON["PERSON"] "`](" ENVIRON["PERSON"] "), from the example person;"
+      next
+    }
+
+    { print }
+  ' README.md >"$generated"
+  cat -- "$generated" >README.md
+  git add -- README.md
+fi
+
 cat <<EOF
 
 $target and $person are ready and staged; the example hosts you did not
@@ -574,13 +592,13 @@ Next steps:
   nix build .#nixosConfigurations.$host.config.system.build.vm && ./result/bin/run-$host-vm
                        boots $host in a VM: log in as $login with the password "test"
   nix build .#installer-$host
-                       the installer ISO, for a host with the disk feature (docs/install.md)
+                       the installer ISO, for a host with the disk feature (docs/tutorials/install.md)
 
 Deploy signing key: CI signs every deploy/<host> commit with it, and auto-upgrade
 applies only commits signed by its public key, written in the signers of your hosts.
 The private key is in $key_file, outside the repository and readable
 by you alone. In your fork, create the environment deploy limited to the main branch
-(Settings, Environments; docs/ci.md), then store the key there and delete the file:
+(Settings, Environments; docs/how-to/ci.md), then store the key there and delete the file:
 
 EOF
 

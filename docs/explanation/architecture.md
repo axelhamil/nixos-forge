@@ -1,0 +1,56 @@
+# Architecture
+
+How the flake is put together, and why a host is a short list of names.
+
+## The forge rule
+
+Upstream ships mechanisms, your fork chooses policy. A setting two forks could choose differently without either being wrong is policy: it lives in a named profile, feature, hardware module or app that a host lists, or at most behind a `mkDefault` you override without `mkForce`. What every fork needs the same way is a mechanism: the registry and its checks, impermanence, `doctor`, `update`. Only mechanisms go in `base`, which every host imports.
+
+Your fork is not bound by that rule: once `nix run .#init` made it yours, it sets whatever policy it wants.
+
+## Every file is a module
+
+`flake.nix` hands the whole `modules/` tree to [import-tree](https://github.com/vic/import-tree), with [flake-parts](https://flake.parts). Every `.nix` file under `modules/` is a flake-parts module, imported on its own: adding a file adds what it defines, deleting it removes it. A path segment starting with `_` is skipped.
+
+A file does not import NixOS config, it publishes it under a name, in the namespace of its folder:
+
+| Folder | Publishes |
+|---|---|
+| `modules/features/base/<tool>` | `base`, on every host |
+| `modules/features/profiles/<name>` | `profiles.<name>` |
+| `modules/features/<name>` | `features.<name>` |
+| `modules/features/hardware/<name>` | `hardware.<name>` |
+| `modules/apps/<name>` | `apps.<name>`, a NixOS part and a home-manager part |
+| `modules/users/<user>` | `users.<user>`, a person: name, email, keys, apps and home config |
+| `modules/hosts/<host>` | `configurations.nixos.<host>`, a registry entry |
+
+## A host entry becomes a system
+
+A host is a registry entry in plain values ([options.md](../reference/options.md)). Each list field is resolved in its own namespace only, and a name found nowhere stops the evaluation with the names that field accepts.
+
+```mermaid
+flowchart LR
+  host["configurations.nixos.host"] --> profile["profile"]
+  host --> features["features"]
+  host --> hardware["hardware"]
+  host --> apps["apps"]
+  host --> users["users"]
+  profile -->|"profiles.name"| system
+  features -->|"features.name"| system
+  hardware -->|"hardware.name, else a nixos-hardware profile"| system
+  apps -->|"apps.name, else pkgs.name"| system
+  apps -->|"home-manager part, for every user"| home
+  users -->|"a person of modules/users, with the person's apps and module"| home
+  home["home-manager of each user"] --> system
+  base["base"] --> system
+  system["NixOS system"] --> checks["generated checks: host-toplevel, host-boots, host-disk, ..."]
+```
+
+- `profile` resolves to `profiles.<name>`, `features` to `features.<name>`, `hardware` to `hardware.<name>` or a [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, `apps` to `apps.<name>` or the nixpkgs package of that name.
+- An app's NixOS part goes on the host, its home-manager part to every user when the host lists it, or to one user when that person or that host user lists it. No app imports another: they fit together by reading each other's options.
+- A person is defined once in `modules/users/<user>`; a host's `users.<user>` creates the account on that machine, with per-machine fields only.
+- A host's `specialisations` add `features`, `apps`, `hardware` and a `module` on top of the host, resolved the same way ([specialisations.md](../how-to/specialisations.md)).
+
+## Checks follow the registry
+
+Nobody lists checks: every host gets `<host>-toplevel` and a boot test, a host with `disk` an install test, and each module with a `check.nix` its own VM test. A new host or module reaches CI without touching a workflow ([ci.md](../how-to/ci.md#checks)).

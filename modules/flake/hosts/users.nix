@@ -10,21 +10,21 @@ let
         fullName = mkOption {
           type = types.str;
           default = "";
-          example = "Alice Example";
+          example = "Your Name";
           description = "Full name, shown by the greeter and used as git author name.";
         };
 
         email = mkOption {
           type = types.nullOr types.str;
           default = null;
-          example = "alice@example.org";
+          example = "you@example.org";
           description = "Email used as git author email.";
         };
 
         sshKeys = mkOption {
           type = types.listOf types.str;
           default = [ ];
-          example = [ "ssh-ed25519 AAAA... alice@laptop" ];
+          example = [ "ssh-ed25519 AAAA... <user>@laptop" ];
           description = "Public SSH keys allowed to log in as this person, on every host that gives them an account.";
         };
 

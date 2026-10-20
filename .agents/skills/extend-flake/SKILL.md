@@ -41,7 +41,7 @@ in
 - Two parts, each optional: `nixos` (a NixOS module, on the host) and `homeManager` (a home-manager module, for every user). A home-manager option in the `nixos` part throws.
 - Smallest real one: `modules/apps/btop/default.nix`. With persistence and a test: `modules/apps/firefox/`.
 - Test: `check.nix` with `{ config, ... }: { perSystem = config.helpers.appCheck "<name>" { testScripts = [ ./test.py ]; }; }`, giving `app-<name>`. The machine has user `tester`; `test.py` starts with `machine.wait_for_unit("home-manager-tester.service")`.
-- Docs: the table and text of `docs/apps.md`.
+- Docs: the table and text of `docs/reference/apps.md`.
 
 ## Feature: `modules/features/<name>/`
 
@@ -55,7 +55,7 @@ in
 
 - Real ones: `nix-ld` (smallest), `printing` (`doctor.ephemeralPaths`), `docker` (home state through `persistInEveryHome`, reached with an outer `{ config, ... }:` and an inner NixOS module).
 - Test: `config.helpers.featureCheck "<name>" { machine = { }; testScripts = [ ./test.py ]; }`, giving `feature-<name>`. Persistence in the test: `machine.environment.persistence."/persist".enable = true;`. An emulated device that needs another QEMU build: `qemu = pkgs: pkgs.qemu_test.override { canokeySupport = true; };`, as `fido2`.
-- Docs: the README feature table and the matching `docs/` page (`services.md`, `dev.md`...).
+- Docs: the README feature table and the matching `docs/` page (`reference/services.md`, `reference/dev.md`...).
 
 ## Hardware: `modules/features/hardware/<name>/`
 
@@ -90,10 +90,10 @@ in
 }
 ```
 
-- Every field with its type: `docs/options.md`. Name: 1 to 63 letters, digits, `-`, `_`.
+- Every field with its type: `docs/reference/options.md`. Name: 1 to 63 letters, digits, `-`, `_`.
 - Copy `modules/hosts/example` rather than writing from scratch; a fresh fork runs `nix run .#init` instead.
 - Optional: `installer.testedHosts = [ "<name>" ];` adds `<name>-installer`. Checks `<name>-toplevel`, `<name>-boots` and the disk ones are generated.
-- A variant: `specialisations.gaming = { features = [ ]; apps = [ "steam" "gamemode" "mangohud" ]; hardware = [ ]; module = { }; };` adds to the host's lists, by the same names; `update -s gaming` switches to it, `update -S` goes back ([docs/specialisations.md](../../../docs/specialisations.md)). A variant that changes the kernel or a kernel module package applies from the boot menu only.
+- A variant: `specialisations.gaming = { features = [ ]; apps = [ "steam" "gamemode" "mangohud" ]; hardware = [ ]; module = { }; };` adds to the host's lists, by the same names; `update -s gaming` switches to it, `update -S` goes back ([docs/how-to/specialisations.md](../../../docs/how-to/specialisations.md)). A variant that changes the kernel or a kernel module package applies from the boot menu only.
 
 ## Person: `modules/users/<name>/default.nix`
 
@@ -129,7 +129,7 @@ in
 ```
 
 - Run with `nix run .#<tool>`. Test: `check.nix` plus `<tool>-test.sh`, as `modules/flake/upstream/`.
-- A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people is static, written by the script itself. Document it in `docs/ci.md`.
+- A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people is static, written by the script itself. Document it in `docs/how-to/ci.md`.
 
 ## Flake input: `flake.nix`
 
@@ -139,6 +139,7 @@ in
 ## Finish
 
 1. Every new profile, feature, hardware module or app: one line in each of `modules/hosts/example`, `example-server` and `example-pi`, in its list, as `"<name>" # what the forker gets (docs/<page>.md)`, commented out (`# "<name>" # ...`) where it does not fit the role. A commented line changes nothing in the build. The `example-hosts` check names any missing line.
-2. `ROADMAP.md` when the change ships a lot, with its guardrail check.
-3. `nix fmt`, then `nix flake check --no-build`; build the new check: `nix build -L .#checks.x86_64-linux.<check>`.
-4. Show the staged diff and wait for the maintainer's go before committing.
+2. Every new page of `docs/` gets a line in `docs/README.md`, and every new app, feature, hardware module or profile a heading or first table cell naming it in backticks; `nix run .#check-docs` names what is missing. Fix a violation rather than adding it to `modules/flake/docs/pending.txt`, and delete the line of one you fixed.
+3. `ROADMAP.md` when the change ships a lot, with its guardrail check.
+4. `nix fmt`, then `nix flake check --no-build`; build the new check: `nix build -L .#checks.x86_64-linux.<check>`.
+5. Show the staged diff and wait for the maintainer's go before committing.

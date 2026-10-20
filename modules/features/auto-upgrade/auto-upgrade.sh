@@ -165,12 +165,12 @@ done
 
 if [[ -z $source && ${#refusals[@]} -gt 0 ]]; then
   printf -v reasons '%s; ' "${refusals[@]}"
-  finish refused "no source serves a $branch commit signed for this host by a key of update.signers, so this machine stays on its version (${reasons%; }): check the DEPLOY_SIGNING_KEY secret of the fork (docs/ci.md)"
+  finish refused "no source serves a $branch commit signed for this host by a key of update.signers, so this machine stays on its version (${reasons%; }): check the DEPLOY_SIGNING_KEY secret of the fork (docs/how-to/ci.md)"
   exit 0
 fi
 
 if [[ -z $source && $answered == true ]]; then
-  finish waiting "CI has not validated a version for this host yet; if this lasts, CI has not promoted it: check that the bot App is set up (docs/ci.md) and that the host's checks pass"
+  finish waiting "CI has not validated a version for this host yet; if this lasts, CI has not promoted it: check that the bot App is set up (docs/how-to/ci.md) and that the host's checks pass"
   exit 0
 fi
 

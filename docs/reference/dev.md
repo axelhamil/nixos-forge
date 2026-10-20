@@ -4,13 +4,13 @@ The Nix housekeeping every host gets for free, then the opt-in modules that turn
 
 ## Every host
 
-**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`: `nh clean all` runs weekly and keeps every generation younger than 14 days plus the last 5; set `programs.nh.clean.extraArgs` in your host to keep other ones. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. The host's `flake` field points it at your fork and gives the `update` command ([updates.md](updates.md)).
+**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`: `nh clean all` runs weekly and keeps every generation younger than 14 days plus the last 5; set `programs.nh.clean.extraArgs` in your host to keep other ones. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. The host's `flake` field points it at your fork and gives the `update` command ([updates.md](../explanation/updates.md)).
 
 Channels are off: `nixpkgs` in `nix shell nixpkgs#hello` and in `NIX_PATH` is the revision the system was built from. User profiles live in `~/.local/state/nix` (`use-xdg-base-directories`). Members of `wheel` are trusted users of the Nix daemon; a host adds users to `nix.settings.trusted-users`, or sets it with `lib.mkForce` to remove `wheel`.
 
 ## `nix-index` (opt-in app)
 
-**nix-index-database** ([nix-community/nix-index-database](https://github.com/nix-community/nix-index-database)) gives `nix-locate` a prebuilt database pinned in `flake.lock`. A missing command prints the packages that provide it, and `, <command>` runs it without installing. The starter ships the small database (executables only); for full file searches (`nix-locate lib/libssl.so`), set `programs.nix-index.package` to the input's `nix-index-with-db` in your host.
+**nix-index-database** ([nix-community/nix-index-database](https://github.com/nix-community/nix-index-database)) gives `nix-locate` a prebuilt database pinned in `flake.lock`. A missing command prints the packages that provide it, and `, <command>` runs it without installing. The `nix-index` app ships the small database (executables only); for full file searches (`nix-locate lib/libssl.so`), set `programs.nix-index.package` to the input's `nix-index-with-db` in your host.
 
 ## `docker` (opt-in)
 

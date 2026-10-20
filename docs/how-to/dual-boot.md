@@ -1,4 +1,4 @@
-# Dual boot with Windows
+# Dual boot with Windows (`dual-boot`)
 
 A host with `disk` that adds `dual-boot` to its features shows Windows in the systemd-boot menu: power on, pick NixOS or Windows, and both start with Secure Boot on. You never open the firmware menu.
 
@@ -19,7 +19,7 @@ The `feature-dual-boot` and `feature-dual-boot-same-disk` checks prove it under 
 
 ## Windows on its own disk
 
-Install NixOS on its disk as usual ([install.md](install.md)), Windows keeps its disk. With `secure-boot`, suspend BitLocker in Windows first (Control Panel, BitLocker, Suspend protection) and keep the recovery key at hand: resetting the firmware to setup mode and enrolling the new keys change what the TPM measures, and BitLocker would ask for its recovery key at the next start of Windows. At boot, the `dual-boot` service looks for another ESP holding `EFI/Microsoft/Boot/bootmgfw.efi`, mounts it read-only in a private directory, and copies that file onto the NixOS ESP when it is missing or differs, so a Windows update of its boot manager is followed. The copy only makes the menu entry appear: `BootNext` makes the firmware start the original on the Windows disk, and nothing is ever written to that disk. When no disk holds Windows any more, the service removes its copy. It only ever replaces or removes a file it copied itself, marked by `EFI/Microsoft/Boot/copied-by-nixos`: a boot manager Windows installed on the NixOS ESP (the same-disk case) is never touched, even with another Windows disk plugged in.
+Install NixOS on its disk as usual ([install.md](../tutorials/install.md)), Windows keeps its disk. With `secure-boot`, suspend BitLocker in Windows first (Control Panel, BitLocker, Suspend protection) and keep the recovery key at hand: resetting the firmware to setup mode and enrolling the new keys change what the TPM measures, and BitLocker would ask for its recovery key at the next start of Windows. At boot, the `dual-boot` service looks for another ESP holding `EFI/Microsoft/Boot/bootmgfw.efi`, mounts it read-only in a private directory, and copies that file onto the NixOS ESP when it is missing or differs, so a Windows update of its boot manager is followed. The copy only makes the menu entry appear: `BootNext` makes the firmware start the original on the Windows disk, and nothing is ever written to that disk. When no disk holds Windows any more, the service removes its copy. It only ever replaces or removes a file it copied itself, marked by `EFI/Microsoft/Boot/copied-by-nixos`: a boot manager Windows installed on the NixOS ESP (the same-disk case) is never touched, even with another Windows disk plugged in.
 
 ## Windows on the same disk
 
@@ -40,7 +40,7 @@ install-host --beside-windows
 
 - finds the single ESP of the disk and checks that Windows is installed on it;
 - checks the ESP free space, and stops with how to grow it when it is too small: it never truncates anything;
-- creates the NixOS partition (LUKS, then the usual btrfs subvolumes, [install.md](install.md)) in the largest free block, or reuses the one of a previous install;
+- creates the NixOS partition (LUKS, then the usual btrfs subvolumes, [install.md](../tutorials/install.md)) in the largest free block, or reuses the one of a previous install;
 - names the ESP `disk-main-ESP` in the partition table so the installed system mounts it on `/boot`, by its label like any host. That GPT name is the only change to a Windows partition entry; Windows does not read it;
 - formats and mounts only the NixOS partition, and mounts the ESP without formatting it.
 
@@ -50,7 +50,7 @@ The MSR, `C:` and the recovery partition are left byte for byte as they were, wh
 
 ## Secure Boot keys
 
-`secure-boot` enrolls its own keys alongside Microsoft's ([install.md](install.md#before-you-start-secure-boot-setup-mode)): Microsoft's keys stay, so the firmware keeps trusting Windows' boot manager and both systems start with Secure Boot on. Never enroll the starter's keys alone on a dual-boot machine: Windows would no longer start.
+`secure-boot` enrolls its own keys alongside Microsoft's ([install.md](../tutorials/install.md#before-you-start-secure-boot-setup-mode)): Microsoft's keys stay, so the firmware keeps trusting Windows' boot manager and both systems start with Secure Boot on. Never enroll its keys alone on a dual-boot machine: Windows would no longer start.
 
 ## Reading Windows from NixOS
 

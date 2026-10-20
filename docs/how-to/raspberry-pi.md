@@ -2,17 +2,17 @@
 
 A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modules, plus a board module and the `pi` profile. Board support comes from [nixos-raspberrypi](https://github.com/nvmd/nixos-raspberrypi) (vendor kernel, firmware, `config.txt`, bootloader). The host builds an SD card image.
 
-This page takes a Pi from the example host to a flashed card, then keeps it up to date without making it compile anything.
+This page takes a Pi from a host entry to a flashed card, then keeps it up to date without making it compile anything.
 
 ## Use it
 
-[`modules/hosts/example-pi/default.nix`](../modules/hosts/example-pi/default.nix) is the example: `system = "aarch64-linux"`, `profile = "pi"`, the hardware `raspberry-pi-5` (or `raspberry-pi-4`), the feature `ssh`, and a user. Rename the host and the user as for any host, and give your person an SSH key in `modules/users/<you>/default.nix`: a Pi starts headless, and SSH refuses passwords.
+A Pi host is a registry entry like any other, with `system = "aarch64-linux"`, `profile = "pi"`, the hardware `raspberry-pi-5` (or `raspberry-pi-4`), the feature `ssh`, and a user. Give your person an SSH key in `modules/users/<you>/default.nix`: a Pi starts headless, and SSH refuses passwords.
 
 ```nix
 users.<you>.sshKeys = [ "ssh-ed25519 AAAA... you@laptop" ];
 ```
 
-A fork without a Pi deletes `modules/hosts/example-pi` and the `nixos-raspberrypi` input, which otherwise fetches its own nixpkgs at every evaluation.
+A fork without a Pi can delete the `nixos-raspberrypi` input together with `modules/features/hardware/raspberry-pi`, its only reader: the input otherwise fetches its own nixpkgs at every evaluation.
 
 ## What is in it
 
@@ -32,7 +32,7 @@ boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 Then build it and write it to the card. Check the device with `lsblk` first: everything on it is lost.
 
 ```sh
-nix build .#nixosConfigurations.example-pi.config.system.build.sdImage
+nix build .#nixosConfigurations.<host>.config.system.build.sdImage
 zstdcat result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
@@ -42,14 +42,14 @@ To boot from NVMe on a Pi 5, write the same image to the drive and put NVMe firs
 
 ## Update it
 
-With the `auto-upgrade` feature, the Pi follows `deploy/<host>` on its own ([updates.md](updates.md#a-machine-upgrades-on-its-own)) without building anything: the `pi` profile turns local builds off, so it upgrades only to a version CI built and pushed to your binary cache (`<host>-toplevel`), and waits otherwise.
+With the `auto-upgrade` feature, the Pi follows `deploy/<host>` on its own ([updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own)) without building anything: the `pi` profile turns local builds off, so it upgrades only to a version CI built and pushed to your binary cache (`<host>-toplevel`), and waits otherwise.
 
 A Pi has no automatic rollback: its boot loader does not count boot tries, which takes the `disk` feature with systemd-boot, so a new version that does not start stays the default. When it still answers over SSH, `sudo nixos-rebuild switch --rollback` goes back to the previous generation; otherwise write the SD image of a commit that worked. Then push a fix, which CI validates before the Pi takes it.
 
 By hand, build on your machine and push the result, so the Pi never builds anything:
 
 ```sh
-nh os switch --hostname example-pi --target-host alice@example-pi --elevation-strategy passwordless .
+nh os switch --hostname <host> --target-host <you>@<host> --elevation-strategy passwordless .
 ```
 
 For `nh os switch` on the Pi itself, give it a builder. On the builder, `nix.sshServe` opens a Nix-only SSH endpoint (no shell) for the Pi's `root` key:
@@ -60,7 +60,7 @@ nix.sshServe = {
   write = true;
   trusted = true;
   protocol = "ssh-ng";
-  keys = [ "ssh-ed25519 AAAA... root@example-pi" ];
+  keys = [ "ssh-ed25519 AAAA... root@<host>" ];
 };
 ```
 

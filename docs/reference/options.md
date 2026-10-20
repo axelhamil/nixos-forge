@@ -1,6 +1,6 @@
 # Host options
 
-Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.nix`. Generated from [`modules/flake/hosts/options.nix`](../modules/flake/hosts/options.nix) by `nix run .#options-doc`: do not edit by hand.
+Fields of `configurations.nixos.<host>`, set in `modules/hosts/<host>/default.nix`. Generated from [`modules/flake/hosts/options.nix`](../../modules/flake/hosts/options.nix) by `nix run .#options-doc`: do not edit by hand.
 
 ## apps
 
@@ -99,7 +99,7 @@ list of string
 
 
 
-Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:alice/nixos `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\.
+Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:<owner>/<repo> `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\.
 
 
 
@@ -119,7 +119,7 @@ null
 *Example:*
 
 ```nix
-"/home/alice/nixos"
+"/home/<user>/nixos"
 ```
 
 
@@ -239,7 +239,7 @@ list of string
 
 ```nix
 [
-  "https://codeberg.org/alice/nixos.git"
+  "https://codeberg.org/<owner>/<repo>.git"
 ]
 ```
 
@@ -670,7 +670,7 @@ list of string
 
 # Person options
 
-Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the person a host gives an account with `users.<person>`. Generated from [`modules/flake/hosts/users.nix`](../modules/flake/hosts/users.nix).
+Fields of `users.<person>`, set in `modules/users/<person>/default.nix`: the person a host gives an account with `users.<person>`. Generated from [`modules/flake/hosts/users.nix`](../../modules/flake/hosts/users.nix).
 
 ## apps
 
@@ -728,7 +728,7 @@ null
 *Example:*
 
 ```nix
-"alice@example.org"
+"you@example.org"
 ```
 
 
@@ -757,7 +757,7 @@ string
 *Example:*
 
 ```nix
-"Alice Example"
+"Your Name"
 ```
 
 
@@ -821,7 +821,7 @@ list of string
 
 ```nix
 [
-  "ssh-ed25519 AAAA... alice@laptop"
+  "ssh-ed25519 AAAA... <user>@laptop"
 ]
 ```
 

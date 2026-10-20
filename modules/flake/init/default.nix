@@ -72,6 +72,7 @@ in
               name = "init-test";
               runtimeInputs = [
                 config.packages.init
+                config.packages.check-docs
                 pkgs.git
                 pkgs.gnugrep
                 pkgs.gnused

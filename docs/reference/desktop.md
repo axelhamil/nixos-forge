@@ -6,7 +6,7 @@ Each piece is its own module with its tool's own look, and you list every one yo
 
 ## Use it
 
-The example host turns it on with the `desktop` profile:
+A host turns it on with the `desktop` profile and these lists:
 
 ```nix
 profile = "desktop";
@@ -27,16 +27,22 @@ The `desktop` profile brings NetworkManager and the performance tuning only ([pe
 
 ## What is in it
 
-- **greetd** with [tuigreet](https://github.com/apognu/tuigreet): the last user and session remembered, every installed Wayland and X session listed. `greetd.command` is the session started when none was picked. Pick `Hyprland (uwsm-managed)`, not plain `Hyprland`, which starts without the session services.
-- **Plymouth** with the `bgrt` theme (the firmware logo), a quiet boot, and the LUKS passphrase asked on the splash.
 - **Hyprland** started by [UWSM](https://github.com/Vladimir-csp/uwsm), so user services (waybar, mako, hypridle, the polkit agent) start and stop with the session. The config is written in Hyprland's Lua format.
 - **waybar**, **fuzzel** (launcher), **kitty** (terminal), **mako** (notifications), **cliphist** (clipboard history).
-- **upgrade-notify**: once a session starts after `auto-upgrade` built a new version, mako shows `System updated` with the package diff summary, once per upgrade, and asks for a restart when it applies at next boot ([updates.md](updates.md#know-what-it-did)).
+- **upgrade-notify**: once a session starts after `auto-upgrade` built a new version, mako shows `System updated` with the package diff summary, once per upgrade, and asks for a restart when it applies at next boot ([updates.md](../explanation/updates.md#know-what-it-did)).
 - **hyprlock** and **hypridle**: locked after 5 minutes idle and before sleep, screen off after 10.
 - **Session environment**: `home.sessionVariables` reach Hyprland and every app through `~/.config/uwsm/env`. `NIXOS_OZONE_WL` runs Chromium and Electron apps on Wayland.
 - **Fonts**: NixOS's default set, and JetBrainsMono Nerd Font as monospace.
 
 No theme, keyring or wallpaper: each is the fork's choice (`gtk`, `qt`, `home.pointerCursor`, `services.hyprpaper` in home-manager, `services.gnome.gnome-keyring` in NixOS).
+
+### `greetd`
+
+The login screen: [tuigreet](https://github.com/apognu/tuigreet) on greetd, with the clock, the password masked, the last user and session remembered (kept in `/persist`), and every installed Wayland and X session listed. `greetd.command` is the session started when none was picked or remembered. Pick `Hyprland (uwsm-managed)`, not plain `Hyprland`, which starts without the session services.
+
+### `plymouth`
+
+The boot splash, with the `bgrt` theme (the firmware logo, a `mkDefault`), a quiet kernel and initrd, and the LUKS passphrase asked on the splash.
 
 ## Keybinds
 
@@ -93,12 +99,12 @@ wayland.windowManager.hyprland.settings = {
 };
 ```
 
-`bind` is a list: yours is added to the starter's. `monitor` is replaced as a whole: keep the catch-all entry (`output = ""`) for screens you did not list. Colors and fonts are each tool's own (`programs.waybar.style`, `programs.fuzzel.settings.colors`, `services.mako.settings`, `programs.hyprlock.settings`), or one theme for all of them with [Stylix](https://github.com/nix-community/stylix) in your fork. To drop a piece, turn it off (`programs.waybar.enable = false;`). Start apps from your own binds through `uwsm app --` so they get their own scope.
+`bind` is a list: yours is added to the app's. `monitor` is replaced as a whole: keep the catch-all entry (`output = ""`) for screens you did not list. Colors and fonts are each tool's own (`programs.waybar.style`, `programs.fuzzel.settings.colors`, `services.mako.settings`, `programs.hyprlock.settings`), or one theme for all of them with [Stylix](https://github.com/nix-community/stylix) in your fork. To drop a piece, turn it off (`programs.waybar.enable = false;`). Start apps from your own binds through `uwsm app --` so they get their own scope.
 
 ## Apps
 
-An app with its config lives in `modules/apps/<name>` and is named in a host's or user's `apps` (any other name resolves to a nixpkgs package). [`modules/apps/firefox`](../modules/apps/firefox/default.nix) is the example: telemetry, studies and sponsored content off, tracking protection on, every policy a default you override, and the profile persisted with `wipe-home`. Copy it for another browser or app.
+An app with its config lives in `modules/apps/<name>` and is named in a host's or user's `apps` (any other name resolves to a nixpkgs package). [`modules/apps/firefox`](../../modules/apps/firefox/default.nix) is the example: telemetry, studies and sponsored content off, tracking protection on, every policy a default you override, and the profile persisted with `wipe-home`. Copy it for another browser or app.
 
 ## VM
 
-`nix build .#nixosConfigurations.<host>.config.system.build.vm` uses a virtio GPU (`-vga none -device virtio-gpu-pci`), since Hyprland needs a DRM device. VM tests are listed in [ci.md](ci.md).
+`nix build .#nixosConfigurations.<host>.config.system.build.vm` uses a virtio GPU (`-vga none -device virtio-gpu-pci`), since Hyprland needs a DRM device. VM tests are listed in [ci.md](../how-to/ci.md).

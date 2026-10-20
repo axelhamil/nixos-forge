@@ -166,8 +166,24 @@ jq -n -r \
     def perfLabel:
       .name + (if .of == "min" then " (best)" elif .of == "median" then " (median)" else "" end);
 
-    def performance:
+    def perfUnmeasuredReason:
+      if . == "absent" then "not on the base revision, so nothing to compare it with"
+      elif . == "no-vm" then "it does not boot in a VM on the base revision"
+      else "not measured" end;
+
+    def perfUnmeasured:
       ($perf[0] | objects // {}) as $systems
+      | ($systems | keys | length > 1) as $severalSystems
+      | [ $systems | to_entries | sort_by(.key)[]
+          | .key as $system
+          | (.value | objects // {} | .skipped | objects // {}) | to_entries | sort_by(.key)[]
+          | "- \((if $severalSystems then "\(.key) (\($system))" else .key end) | code): \(.value | perfUnmeasuredReason)." ]
+      | if . == [] then []
+        else [ "\(length) \(plural(length; "machine is"; "machines are")) not measured:", "" ] + . + [ "" ] end;
+
+    def performance:
+      perfUnmeasured as $unmeasured
+      | ($perf[0] | objects // {}) as $systems
       | ($systems | keys | length > 1) as $severalSystems
       | [ $systems | to_entries | sort_by(.key)[]
           | .key as $system
@@ -178,7 +194,8 @@ jq -n -r \
               rounds: $rounds,
               base: (.value.base | objects // {}),
               current: (.value.current | objects // {}) } ]
-      | if . == [] then []
+      | if . == [] and $unmeasured == [] then []
+        elif . == [] then [ "### Performance against the base", "" ] + $unmeasured
         else
           ([ .[] as $machine | perfThresholds[] as $metric
              | ($machine.base | perfMeasure($metric)) as $base
@@ -204,6 +221,7 @@ jq -n -r \
                   | ($machine.current | perfMeasure($metric)) as $current
                   | "| \($metric | perfLabel) | \($base | perfValue($metric.key)) | \($current | perfValue($metric.key)) | \(perfChange($base; $current) | percent) |"))
               + [ "" ]) | add)
+          + $unmeasured
         end;
 
     def screenshots:

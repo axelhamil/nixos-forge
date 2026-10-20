@@ -32,7 +32,7 @@ Secure Boot through [lanzaboote](https://github.com/nix-community/lanzaboote), i
 Daily upgrades to the version CI validated for the host ([updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own)).
 
 - Every day from 04:00, randomized over 45 minutes, and caught up at the next start when the machine was off.
-- It fetches the `deploy/<host>` branch of the host's `flake`, then each of its `mirrors`; it refuses an `http://` or `git://` source and a flake reference with a query.
+- It fetches the `deploy/<host>` branch of the host's `flake`, then each of its `mirrors`; it refuses an `http://` or `git://` source and a flake reference with a query, and warns about a mirror over ssh, which needs a root SSH key and known host ([updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own)).
 - With `signers`, only a commit CI signed for the host is applied ([signed deploy commits](../explanation/updates.md#signed-deploy-commits)).
 - The new version applies at the next boot (`autoUpgrade.operation = "boot"`). A boot where a unit failed is not blessed, so on a host with `disk` a version that does not start is abandoned after 3 tries.
 - The last run and its history in `/var/lib/auto-upgrade`, kept in `/persist`, read by `doctor` and `upgrade-notify`.

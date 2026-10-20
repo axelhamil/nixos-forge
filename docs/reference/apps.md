@@ -50,7 +50,7 @@ Tools with nothing to configure, such as `ripgrep`, `fd` or `jq`, are plain nixp
 
 ## Name any nixpkgs package
 
-A name with no folder in `modules/apps` installs the nixpkgs package of that name: `"vlc"`, `"obsidian"`, or an attribute path such as `"kdePackages.kate"`. Unfree packages named there are allowed. A name that is neither stops the build and lists the configured apps.
+A name with no folder in `modules/apps` installs the nixpkgs package of that name: `"vlc"`, `"obsidian"`, or an attribute path such as `"kdePackages.kate"`. A package added by one of the host's `nixpkgs.overlays` works the same way. Unfree packages named there are allowed. A name that is neither stops the build and lists the configured apps.
 
 ## Add an app
 

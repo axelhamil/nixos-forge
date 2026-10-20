@@ -47,13 +47,13 @@ let
     reproducibility = "`nix run .#reproducibility` reports an identical rebuild, and a differing one with its diffoscope summary";
     ci-promote = "a machine's deploy branch moves only once every check of that machine passed, signed when CI holds the key, never on a tip the key did not sign";
     feature-auto-upgrade-signed = "a machine with signers applies only a deploy commit they signed for it, never an older one";
-    feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build";
+    feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build, and one over ssh warns that it needs a root key and known host";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";
     try-install = "`nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything";
     upstream = "`nix run .#upstream` lists the starter's breaking changes and merges its release into a branch whose pull request lists the upstream commits, or stops cleanly on a conflict";
     example-hosts = "every example host and the example person list every option the starter ships";
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
-    apps-once = "an app named by the host and the person is imported once";
+    apps-once = "an app named by the host and the person is imported once, and an unfree package of an overlay works as an app";
     hyprland-alone = "hyprland alone evaluates, warns that no terminal is registered, and binds no key to an app or to audio the host lacks";
     feature-dual-boot = "Windows on its own disk starts from the systemd-boot menu under Secure Boot, with or without BitLocker or its firmware entry, its disk unchanged and readable from NixOS read-only";
     feature-dual-boot-same-disk = "NixOS installs beside Windows on one disk over an old LUKS header, refuses an ESP too small, keeps the Windows boot manager when another Windows disk comes and goes, and starts Windows from its menu under Secure Boot with the Windows partitions unchanged";

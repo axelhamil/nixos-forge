@@ -32,16 +32,26 @@ let
 
   sources = removeAttrs (sourcesFrom lock.root self) [ lock.root ];
 
+  forkFlake = pkgs: ''
+    (import ${./_call-fork.nix} {
+      lockFile = fork + "/flake.lock";
+      sources = builtins.fromJSON (builtins.readFile ${pkgs.writeText "fork-sources.json" (builtins.toJSON sources)});
+      inherit fork;
+    })
+  '';
+
   forkToplevels =
     pkgs:
     pkgs.writeText "fork-toplevels.nix" ''
       fork:
-      builtins.mapAttrs (_: host: host.config.system.build.toplevel.drvPath)
-        (import ${./_call-fork.nix} {
-          lockFile = fork + "/flake.lock";
-          sources = builtins.fromJSON (builtins.readFile ${pkgs.writeText "fork-sources.json" (builtins.toJSON sources)});
-          inherit fork;
-        }).nixosConfigurations
+      builtins.mapAttrs (_: host: host.config.system.build.toplevel.drvPath) ${forkFlake pkgs}.nixosConfigurations
+    '';
+
+  forkPerfSystems =
+    pkgs:
+    pkgs.writeText "fork-perf-systems.nix" ''
+      fork:
+      map (job: job.system) ${forkFlake pkgs}.ci.perfMatrix
     '';
 in
 {
@@ -84,6 +94,7 @@ in
                 SOURCE = "${self}";
                 NIX_INSTANTIATE = lib.getExe' pkgs.nix "nix-instantiate";
                 FORK_TOPLEVELS = "${forkToplevels pkgs}";
+                FORK_PERF_SYSTEMS = "${forkPerfSystems pkgs}";
               };
               text = builtins.readFile ./init-test.sh;
             };

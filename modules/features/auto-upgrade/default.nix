@@ -15,15 +15,22 @@
       github = if flake == null then null else lib.match "github:([^/?]+)/([^/?]+).*" flake;
       gitHttps = if flake == null then null else lib.match "git\\+(https://[^?#]+).*" flake;
 
-      encrypted =
-        url:
-        lib.any (pattern: lib.match pattern url != null) [
-          "(https|ssh|file)://.+"
-          "[^@/:]+@[^/:]+:.+"
-          "/.+"
-        ];
+      matches = patterns: url: lib.any (pattern: lib.match pattern url != null) patterns;
 
-      cleartextMirrors = lib.filter (url: !encrypted url) mirrors;
+      fetchable = matches [
+        "(https|file)://.+"
+        "/.+"
+      ];
+
+      overSsh =
+        url:
+        lib.hasPrefix "ssh://" url || !(lib.hasInfix "://" url) && matches [ "([^@/:]+@)?[^/:]+:.+" ] url;
+
+      sshMirrors = lib.filter overSsh mirrors;
+
+      cleartextMirrors = lib.filter (url: !fetchable url && !overSsh url) mirrors;
+
+      quoted = lib.concatMapStringsSep ", " (url: "\"${url}\"");
 
       primary =
         if github != null then
@@ -62,12 +69,14 @@
       };
     in
     {
+      warnings =
+        lib.optional (sshMirrors != [ ])
+          "update.mirrors: auto-upgrade runs as root with HOME=/root, so the mirrors ${quoted sshMirrors} answer only with a root SSH key that survives a reboot (a persisted /root/.ssh or a sops-nix key) and their host in programs.ssh.knownHosts; without them, use their https:// URL. See docs/explanation/updates.md, A machine upgrades on its own.";
+
       assertions = [
         {
           assertion = cleartextMirrors == [ ];
-          message = "update.mirrors: auto-upgrade fetches only over https://, ssh://, an scp-like user@host:path, file:// or an absolute path, so that no one on the network path can choose what this machine builds; got ${
-            lib.concatMapStringsSep ", " (url: "\"${url}\"") cleartextMirrors
-          }. http:// and git:// are not encrypted.";
+          message = "update.mirrors: auto-upgrade fetches only over https://, ssh://, an scp-like user@host:path, file:// or an absolute path, so that no one on the network path can choose what this machine builds; got ${quoted cleartextMirrors}. http:// and git:// are not encrypted.";
         }
         {
           assertion = !query;

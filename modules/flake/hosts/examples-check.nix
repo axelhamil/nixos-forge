@@ -38,6 +38,27 @@ let
 
   hasField = lines: name: hasLine lines " *(# )?${name}(\\.[^ ]+)? = .*";
 
+  accountBlock =
+    lines:
+    let
+      start = lib.lists.findFirstIndex (
+        line: builtins.match " *users\\.[^ ]+ = \\{" line != null
+      ) null lines;
+      indent = lib.head (builtins.match "( *).*" (lib.elemAt lines start));
+      rest = lib.drop (start + 1) lines;
+      length = lib.lists.findFirstIndex (line: line == "${indent}};") (lib.length rest) rest;
+    in
+    if start == null then
+      {
+        account = [ ];
+        host = lines;
+      }
+    else
+      {
+        account = lib.take length rest;
+        host = lib.take (start + 1) lines ++ lib.drop (length + 1) rest;
+      };
+
   missingInPerson =
     person:
     let
@@ -49,13 +70,15 @@ let
     host:
     let
       lines = linesOf (hostsDir + "/${host}/default.nix");
+      blocks = accountBlock lines;
       lacks = regex: !hasLine lines regex;
-      field = hasField lines;
     in
     map (name: "the name \"${name}\"") (lib.filter (name: lacks " *(# +)?\"${name}\" #.*") listedNames)
     ++ map (name: "the profile \"${name}\"") (lib.filter (name: lacks ".*\"${name}\".*") profiles)
-    ++ map (name: "the field `${name}`") (lib.filter (name: !field name) hostFields)
-    ++ map (name: "the user field `${name}`") (lib.filter (name: !field name) userFields);
+    ++ map (name: "the field `${name}`") (lib.filter (name: !hasField blocks.host name) hostFields)
+    ++ map (name: "the user field `${name}` in `users.<name>`") (
+      lib.filter (name: !hasField blocks.account name) userFields
+    );
 
   report =
     lib.concatMap (

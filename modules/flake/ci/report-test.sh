@@ -71,6 +71,7 @@ result=evidence/x86_64-linux-app-hyprland.json
 jq -e '.bootTime == { total: 7.04, userspace: 3.0 }' "$result" >/dev/null || fail "evidence: the boot time of the check output is not kept: $(cat "$result")"
 jq -e '.screenshots == ["desktop.png"]' "$result" >/dev/null || fail "evidence: the screenshot is not listed: $(cat "$result")"
 [ "$(cat evidence/screenshots/x86_64-linux-app-hyprland-desktop.png)" = png ] || fail "evidence: the screenshot is not copied for the artifact"
+jq -e '.rounds == 3' evidence/perf/x86_64-linux.json >/dev/null || fail "evidence: the measures of the check output are not kept for the artifact"
 
 NIX_CALLS=$PWD/unreadable-calls
 "$UNREADABLE_EVIDENCE_CI_BUILD" x86_64-linux example-boots unreadable --retry >unreadable.out 2>unreadable.err || fail "unreadable: evidence that cannot be read turns a passing check red"
@@ -302,6 +303,72 @@ echo 'not json' >no-base/base/boot-time.json
 report no-base
 expect_line no-base "| example | 7.0 s | n/a | 3.0 s | n/a |"
 expect_line no-base "| example-server | n/a | n/a | n/a | n/a |"
+
+perf_side() {
+  jq -n -c --argjson total "$1" --argjson userspace "$2" --argjson memory "$3" --argjson closure "$4" --argjson services "$5" \
+    '{ total: $total, userspace: $userspace, memory: $memory, services: $services } as $boot
+    | { min: $boot, median: $boot, closure: $closure, samples: [] }'
+}
+
+perf_pair() {
+  jq -n -c --argjson base "$(perf_side "${@:1:5}")" --argjson current "$(perf_side "${@:6:5}")" '{ base: $base, current: $current }'
+}
+
+perf_run() {
+  local dir=$1
+  pass_all "$dir"
+  mkdir -p "$dir/perf"
+  jq -n --argjson example "$2" --argjson server "$3" \
+    '{ rounds: 5, hosts: { example: $example, "example-server": $server } }' >"$dir/perf/x86_64-linux.json"
+}
+
+steady=$(perf_pair 7.0 3.0 400 2147483648 20 7.0 3.0 400 2147483648 20)
+noisy_median=$(jq -c '.current.median.total = 9.9' <<<"$steady")
+
+perf_run perf-steady "$steady" "$noisy_median"
+report perf-steady
+expect_first_line perf-steady "**Everything works: every machine builds, boots and passed its tests.**"
+expect_line perf-steady "### Performance against the base"
+expect_line perf-steady "No metric crossed its threshold."
+expect_line perf-steady "#### example-server"
+expect_line perf-steady "| Boot, total (best) | 7.0 s | 7.0 s | 0.0 % |"
+expect_line perf-steady "| Idle RAM (best) | 400.0 MiB | 400.0 MiB | 0.0 % |"
+expect_line perf-steady "| Closure | 2048.0 MiB | 2048.0 MiB | 0.0 % |"
+expect_line perf-steady "| Running services (median) | 20 | 20 | 0.0 % |"
+
+perf_run perf-regressed "$(perf_pair 7.0 3.0 400 2147483648 20 7.8 3.2 448 2147483648 21)" \
+  "$(perf_pair 7.0 3.0 400 2147483648 20 6.0 3.0 400 2361393152 19)"
+report perf-regressed
+expect_first_line perf-regressed "**Everything works: every machine builds, boots and passed its tests.**"
+expect_line perf-regressed "4 metrics crossed their threshold:"
+expect_line perf-regressed '- `example`: Boot, total +11.4 %, +0.8 s (threshold: +10 % and +0.5 s).'
+expect_line perf-regressed '- `example`: Idle RAM +12.0 %, +48.0 MiB (threshold: +10 % and +32.0 MiB).'
+expect_line perf-regressed '- `example`: Running services +5.0 %, +1 (threshold: any increase).'
+expect_line perf-regressed '- `example-server`: Closure +10.0 %, +204.0 MiB (threshold: +5 % and +50.0 MiB).'
+if grep -q "Boot, userspace +" perf-regressed.md; then fail "perf-regressed: a change under its threshold is flagged"; fi
+expect_line perf-regressed "| Boot, total (best) | 7.0 s | 6.0 s | -14.3 % |"
+if grep -q "Fix what is listed below" perf-regressed.md; then fail "perf-regressed: a regression turns the report red"; fi
+
+perf_run perf-small "$(perf_pair 2.0 1.0 200 209715200 20 2.3 1.0 225 241172480 20)" "$(perf_pair 7.0 3.0 400 3155385672 20 7.0 3.0 400 3154346392 20)"
+report perf-small
+expect_line perf-small "No metric crossed its threshold."
+expect_line perf-small "| Boot, total (best) | 2.0 s | 2.3 s | +15.0 % |"
+expect_line perf-small "| Idle RAM (best) | 200.0 MiB | 225.0 MiB | +12.5 % |"
+expect_line perf-small "| Closure | 200.0 MiB | 230.0 MiB | +15.0 % |"
+expect_line perf-small "| Closure | 3009.2 MiB | 3008.2 MiB | 0.0 % |"
+
+perf_run perf-partial "$(jq -n -c --argjson side "$(perf_side 7.0 3.0 400 2147483648 20)" '{ current: $side }')" '"not an object"'
+report perf-partial
+expect_line perf-partial "No metric crossed its threshold."
+expect_line perf-partial "| Boot, total (best) | n/a | 7.0 s | n/a |"
+if grep -q "^#### example-server" perf-partial.md; then fail "perf-partial: a machine without measures gets a table"; fi
+
+pass_all perf-unreadable
+mkdir -p perf-unreadable/perf
+echo 'not json' >perf-unreadable/perf/x86_64-linux.json
+report perf-unreadable
+if grep -q "### Performance" perf-unreadable.md all-green.md; then fail "a run without readable measures shows the performance section"; fi
+expect_first_line perf-unreadable "**Everything works: every machine builds, boots and passed its tests.**"
 
 pass_all long
 {

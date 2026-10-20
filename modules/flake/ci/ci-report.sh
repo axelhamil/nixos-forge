@@ -37,6 +37,10 @@ for closure in "$results"/closure-*.md; do
   echo
 done >"$work/closures.md"
 
+for perf in "$results"/perf/*.json; do
+  jq -c --arg system "$(basename "$perf" .json)" 'objects | { ($system): . }' "$perf" 2>/dev/null || true
+done | jq -s 'add // {}' >"$work/perf.json"
+
 jq -n -r \
   --argjson planned "$(as_json "${PLANNED:-}" null array)" \
   --argjson skipped "$(as_json "${SKIPPED:-}" '[]' array)" \
@@ -44,6 +48,7 @@ jq -n -r \
   --argjson descriptions "$(as_json "${DESCRIPTIONS:-}" '{}' object)" \
   --argjson baseBoot "$(as_json "$(cat "$results/base/boot-time.json" 2>/dev/null || true)" '{}' object)" \
   --slurpfile results "$work/results.json" \
+  --slurpfile perf "$work/perf.json" \
   --rawfile causes "$CAUSES" \
   --arg cache "${CACHE_OUTCOME:-}" \
   --arg lint "${LINT_RESULT:-}" \
@@ -107,7 +112,9 @@ jq -n -r \
         + (if $run != "" then ["", "[Open the full log](\($run))"] else [] end)
         + [""];
 
-    def seconds: if type == "number" then "\((. * 10 | round) / 10 | tostring | if test("[.]") then . else . + ".0" end) s" else "n/a" end;
+    def oneDecimal: (. * 10 | round) / 10 | tostring | if test("[.]") then . else . + ".0" end;
+
+    def seconds: if type == "number" then "\(oneDecimal) s" else "n/a" end;
 
     def bootTimes:
       [ $hosts | to_entries | sort_by(.key)[]
@@ -126,6 +133,78 @@ jq -n -r \
           + map("| \(.host | escapeCell) | \(.current.total | seconds) | \(.base.total | seconds) | \(.current.userspace | seconds) | \(.base.userspace | seconds) |")
           + [ "" ]
         else [] end;
+
+    def perfThresholds:
+      [ { key: "total", name: "Boot, total", of: "min", relative: 10, absolute: 0.5 },
+        { key: "userspace", name: "Boot, userspace", of: "min", relative: 10, absolute: 0.5 },
+        { key: "memory", name: "Idle RAM", of: "min", relative: 10, absolute: 32 },
+        { key: "closure", name: "Closure", of: null, relative: 5, absolute: (50 * 1048576) },
+        { key: "services", name: "Running services", of: "median", relative: 0, absolute: 1 } ];
+
+    def perfValue($key):
+      if type != "number" then "n/a"
+      elif $key == "total" or $key == "userspace" then seconds
+      elif $key == "memory" then "\(oneDecimal) MiB"
+      elif $key == "closure" then "\(. / 1048576 | oneDecimal) MiB"
+      else tostring end;
+
+    def perfMeasure($metric):
+      if $metric.of == null then .[$metric.key] else (.[$metric.of] | objects // {})[$metric.key] end
+      | numbers // null;
+
+    def perfChange($base; $current):
+      if $base == null or $current == null then null
+      elif $base == 0 then (if $current == 0 then 0 else null end)
+      else ($current - $base) / $base * 100 end;
+
+    def percent: if . == null then "n/a" else oneDecimal | if . == "-0.0" then "0.0" elif startswith("-") or . == "0.0" then . else "+" + . end | . + " %" end;
+
+    def perfLimit:
+      if .relative == 0 then "any increase"
+      else . as $metric | "+\(.relative) % and +\($metric.absolute | perfValue($metric.key))" end;
+
+    def perfLabel:
+      .name + (if .of == "min" then " (best)" elif .of == "median" then " (median)" else "" end);
+
+    def performance:
+      ($perf[0] | objects // {}) as $systems
+      | ($systems | keys | length > 1) as $severalSystems
+      | [ $systems | to_entries | sort_by(.key)[]
+          | .key as $system
+          | (.value.rounds | numbers // null) as $rounds
+          | (.value.hosts | objects // {}) | to_entries | sort_by(.key)[]
+          | select(.value | objects)
+          | { name: (if $severalSystems then "\(.key) (\($system))" else .key end),
+              rounds: $rounds,
+              base: (.value.base | objects // {}),
+              current: (.value.current | objects // {}) } ]
+      | if . == [] then []
+        else
+          ([ .[] as $machine | perfThresholds[] as $metric
+             | ($machine.base | perfMeasure($metric)) as $base
+             | ($machine.current | perfMeasure($metric)) as $current
+             | perfChange($base; $current) as $change
+             | select($change != null and $change > $metric.relative and $current - $base >= $metric.absolute)
+             | "- \($machine.name | code): \($metric.name) \($change | percent), \($current - $base | perfValue($metric.key) | if startswith("-") then . else "+" + . end) (threshold: \($metric | perfLimit))." ]) as $flags
+          | (first(.[].rounds | numbers) // null) as $rounds
+          | (if $rounds == null then "several" else $rounds end) as $boots
+          | [ "### Performance against the base",
+              "",
+              "The base revision and this change, each booted \($boots) times in turn in one VM job. Boot times and idle RAM compare the best of the \($boots) boots of each side, running services their median, the closure that of the real system. A metric is flagged only past both its relative and its absolute threshold. Informational: it never blocks the merge.",
+              "" ]
+          + (if $flags == [] then [ "No metric crossed its threshold.", "" ]
+             else [ "\($flags | length) \(plural($flags | length; "metric crossed its threshold"; "metrics crossed their threshold")):", "" ] + $flags + [ "" ] end)
+          + (map(. as $machine
+              | [ "#### \($machine.name)",
+                  "",
+                  "| Metric | Base | This change | Change |",
+                  "|---|---|---|---|" ]
+              + (perfThresholds | map(. as $metric
+                  | ($machine.base | perfMeasure($metric)) as $base
+                  | ($machine.current | perfMeasure($metric)) as $current
+                  | "| \($metric | perfLabel) | \($base | perfValue($metric.key)) | \($current | perfValue($metric.key)) | \(perfChange($base; $current) | percent) |"))
+              + [ "" ]) | add)
+        end;
 
     def screenshots:
       [ $results[0][] | select((.screenshots // []) != []) ] | sort_by(.check, .system)
@@ -212,7 +291,7 @@ jq -n -r \
             + [ "", "</details>", "" ]
         end
       )
-    | . + bootTimes + screenshots
+    | . + bootTimes + performance + screenshots
     | . + (if $nbad > 0 then [ "### What went wrong", "" ] + ($bad | map(failure) | add) else [] end)
   end
   | .[]

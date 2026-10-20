@@ -83,6 +83,11 @@ keep_evidence() {
     mv "$work/boot-time.new" "$work/boot-time" || return 1
   fi
 
+  if [ -f "$path/perf.json" ]; then
+    mkdir -p "$out/perf" || return 1
+    install -m 644 "$path/perf.json" "$out/perf/$system.json" || return 1
+  fi
+
   local screenshots=()
   for screenshot in "$path"/*.png; do
     [ -f "$screenshot" ] && screenshots+=("$screenshot")
@@ -106,7 +111,7 @@ while [ "$attempts" -lt "$allowed" ]; do
     outcome=passed
     [ "$attempts" -eq 1 ] || outcome=unstable
     if ! keep_evidence; then
-      echo "ci-build: the boot time or screenshots of $check could not be kept, the check still passed" >&2
+      echo "ci-build: the boot time, measures or screenshots of $check could not be kept, the check still passed" >&2
       echo null >"$work/boot-time"
       echo '[]' >"$work/screenshots"
     fi

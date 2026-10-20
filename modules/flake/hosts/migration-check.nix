@@ -6,11 +6,9 @@
 }:
 
 let
-  inherit (config.helpers) testRevision;
+  inherit (config.helpers) testRevision baseFlake;
 
   host = "example";
-  source = inputs.migration-base;
-  baseFlake = builtins.getFlake "path:${builtins.unsafeDiscardStringContext source.outPath}?narHash=${source.narHash}";
 
   installedAsInTheTest =
     next:

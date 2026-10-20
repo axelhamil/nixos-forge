@@ -44,6 +44,7 @@
         mkdir -p "$PWD/check-output"
         echo '{ "total": 7.04, "userspace": 3.0, "kernel": 0.4 }' > "$PWD/check-output/boot-time.json"
         echo "png" > "$PWD/check-output/desktop.png"
+        echo '{ "rounds": 3, "hosts": {} }' > "$PWD/check-output/perf.json"
         mkdir -p "$PWD/log-output"
         echo '{ "total": 99, "userspace": 99 }' > "$PWD/log-output/boot-time.json"
         echo "$PWD/check-output"

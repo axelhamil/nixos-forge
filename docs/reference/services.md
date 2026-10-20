@@ -40,34 +40,9 @@ Root cannot log in, so deploy as yourself: `nixos-rebuild switch --flake .#<host
 
 ## Secrets: `secrets` (opt-in)
 
-Add `secrets` to the features of a host to decrypt [sops](https://github.com/getsops/sops) files at boot with [sops-nix](https://github.com/Mic92/sops-nix). Each machine has its own age key in `/persist/var/lib/sops-nix/key.txt` (`/var/lib/sops-nix/key.txt` without `disk`), independent of SSH, so secrets work on hosts without `ssh`. `nix develop` provides `sops` and `age`.
+Add `secrets` to the features of a host to decrypt [sops](https://github.com/getsops/sops) files at boot with [sops-nix](https://github.com/Mic92/sops-nix). Each machine has its own age key in `/persist/var/lib/sops-nix/key.txt` (`/var/lib/sops-nix/key.txt` without `disk`), independent of SSH, so secrets work on hosts without `ssh`. Declared secrets land in `/run/secrets/<name>`, root only by default. `nix develop` provides `sops` and `age`.
 
-Use post-quantum age keys (`age-keygen -pq`, age 1.3 and later) for every recipient: a file is only as strong as its weakest recipient.
-
-1. Create your own key on your workstation, once: `mkdir -p ~/.config/sops/age && age-keygen -pq -o ~/.config/sops/age/keys.txt`.
-2. Create the machine key during the install, as in [install-without-iso.md](../how-to/install-without-iso.md#by-hand-with-disko-install). Its public key is about 2,000 characters: set a password for the installer's user with `passwd`, then fetch it from your workstation with `scp nixos@<installer-ip>:age.pub .`.
-3. On your workstation, add both public keys to `.sops.yaml`:
-
-   ```yaml
-   keys:
-     - &me age1pq1...
-     - &laptop age1pq1...
-   creation_rules:
-     - path_regex: ^modules/hosts/laptop/secrets\.yaml$
-       key_groups:
-         - age: [*me, *laptop]
-   ```
-
-4. Write the secrets with `sops modules/hosts/laptop/secrets.yaml` (or run `sops updatekeys` on an existing file after adding the machine), then declare them in the host's `module`:
-
-   ```nix
-   sops.defaultSopsFile = ./secrets.yaml;
-   sops.secrets.wifi-password = { };
-   ```
-
-5. Commit, pull in the installer's `~/nixos`, then finish the [disko-install](../how-to/install-without-iso.md#by-hand-with-disko-install) with the key's `--extra-files`. A machine whose key is missing from a file boots without that file's secrets.
-
-The value is at `/run/secrets/wifi-password` (root only by default; `owner`, `mode` and `restartUnits` per secret). User passwords can move there too, instead of `/persist/passwords`: `sops.secrets.<you>-password.neededForUsers = true;` and `users.users.<you>.hashedPasswordFile = config.sops.secrets.<you>-password.path;`.
+[Secrets](../how-to/secrets.md) goes through the keys, `.sops.yaml`, encrypting a file, using a secret from a module and adding a machine.
 
 ## Printing: `printing` (opt-in)
 

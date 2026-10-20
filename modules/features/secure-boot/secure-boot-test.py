@@ -41,6 +41,7 @@ def check_tpm2_enrolled():
     header = luks_header()
     tokens = [t for t in header["tokens"].values() if t["type"] == "systemd-tpm2"]
     assert len(tokens) == 1, f"expected one systemd-tpm2 token, got {header['tokens']}"
+    assert tokens[0]["tpm2-pcrs"] == [7, 15], f"the TPM2 token is bound to PCRs {tokens[0]['tpm2-pcrs']}, not 7 and 15"
     assert len(header["keyslots"]) == 2, f"expected the passphrase and the TPM2 keyslots, got {sorted(header['keyslots'])}"
     assert "31" not in header["keyslots"], "the temporary keyslot 31 is still there"
 

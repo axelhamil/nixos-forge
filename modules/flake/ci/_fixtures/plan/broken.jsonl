@@ -1,0 +1,2 @@
+{"attr":"x86_64-linux.example-toplevel","isCached":false,"neededBuilds":[]}
+{"attr":"x86_64-linux.example-boots","error":"error: undefined variable 'foo'"}

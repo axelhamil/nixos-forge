@@ -1,0 +1,6 @@
+{"attr":"x86_64-linux.example-toplevel","isCached":false,"neededBuilds":["/nix/store/x-linux-6.12.drv","/nix/store/x-toplevel.drv"]}
+{"attr":"x86_64-linux.example-boots","isCached":false,"neededBuilds":["/nix/store/x-boots.drv"]}
+{"attr":"x86_64-linux.docs","isCached":true,"neededBuilds":[]}
+{"attr":"x86_64-linux.feature-migration","isCached":true,"neededBuilds":[]}
+{"attr":"x86_64-linux.treefmt","isCached":false,"neededBuilds":["/nix/store/x-treefmt.drv"]}
+{"attr":"aarch64-linux.example-pi-sd-image","isCached":false,"neededBuilds":["/nix/store/x-linux-6.12.drv","/nix/store/a-sd-image.drv"]}

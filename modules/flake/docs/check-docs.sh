@@ -20,12 +20,14 @@ if ((status != 0 && status != 2)); then
   exit 1
 fi
 
-while IFS=$'\t' read -r file target line text; do
-  record "link $file $target" "$file:$line: broken link to $target ($text)"
-done < <(jq -r --arg prefix "file://$root/" '
+jq -r --arg prefix "file://$root/" '
   .error_map | to_entries[] | .key as $file | .value[]
   | [$file, (.url | ltrimstr($prefix)), (.span.line // 0 | tostring), .status.text] | @tsv
-' "$work/links.json")
+' "$work/links.json" >"$work/broken-links.tsv"
+
+while IFS=$'\t' read -r file target line text; do
+  record "link $file $target" "$file:$line: broken link to $target ($text)"
+done <"$work/broken-links.tsv"
 
 if [[ -f docs/README.md ]]; then
   { rg -o --no-filename -r '$1' '\]\(([^)#[:space:]]+)' docs/README.md || true; } |

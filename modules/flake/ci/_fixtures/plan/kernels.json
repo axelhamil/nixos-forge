@@ -1,0 +1,4 @@
+{
+  "x86_64-linux": ["/nix/store/x-linux-6.12.drv"],
+  "aarch64-linux": ["/nix/store/a-linux-rpi.drv"]
+}

@@ -121,7 +121,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      id-token: write
     env:
       RESULTS_DIR: results
       PLANNED: ${{ needs.plan.outputs.checks }}
@@ -156,13 +155,7 @@ jobs:
           merge-multiple: true
       - continue-on-error: true
         run: nix run .#ci-boot-time -- github:${{ github.repository }}/${{ github.event.pull_request.base.sha || github.event.before }} results/base
-      - env:
-          ANTHROPIC_FEDERATION_RULE_ID: ${{ github.event_name == 'pull_request' && vars.ANTHROPIC_PR_FEDERATION_RULE_ID || github.event_name != 'pull_request' && vars.ANTHROPIC_FEDERATION_RULE_ID || '' }}
-          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
-          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: nix run .#ci-report > report.md
+      - run: nix run .#ci-report > report.md
       - run: cat report.md >> "$GITHUB_STEP_SUMMARY"
       - id: bot
         if: github.event.pull_request.head.repo.full_name == github.repository && vars.BOT_CLIENT_ID != ''
@@ -175,11 +168,6 @@ jobs:
       - if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token || github.token }}
-          ANTHROPIC_FEDERATION_RULE_ID: ${{ github.event_name == 'pull_request' && vars.ANTHROPIC_PR_FEDERATION_RULE_ID || github.event_name != 'pull_request' && vars.ANTHROPIC_FEDERATION_RULE_ID || '' }}
-          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
-          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: nix run .#ci-report -- --comment | gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file - --edit-last --create-if-none
 
   promote:

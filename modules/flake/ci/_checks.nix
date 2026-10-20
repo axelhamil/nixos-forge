@@ -42,7 +42,6 @@ let
     options-doc = "docs/options.md matches the host options";
     init = "`nix run .#init` writes a first host and person whose system evaluates";
     ci-report = "the CI report reads every result correctly";
-    narvi = "Narvi picks the same line for the same run, stays silent on an empty list, gets its summary through the OIDC exchange or the API key, and falls back to its line alone on an error or a timeout";
     ci-badges = "the live badges count the checks, VM tests, hosts, boot time and reproducibility of a run, and a publish keeps the badges it does not write";
     reproducibility = "`nix run .#reproducibility` reports an identical rebuild, and a differing one with its diffoscope summary";
     ci-promote = "a machine's deploy branch moves only once every check of that machine passed, signed when CI holds the key, never on a tip the key did not sign";
@@ -50,7 +49,7 @@ let
     feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";
     try-install = "`nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything";
-    upstream = "`nix run .#upstream` lists the starter's breaking changes and merges its release into a branch, or stops cleanly on a conflict";
+    upstream = "`nix run .#upstream` lists the starter's breaking changes and merges its release into a branch whose pull request lists the upstream commits, or stops cleanly on a conflict";
     example-hosts = "every example host and the example person list every option the starter ships";
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
     apps-once = "an app named by the host and the person is imported once";

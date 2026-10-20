@@ -129,7 +129,7 @@ in
 ```
 
 - Run with `nix run .#<tool>`. Test: `check.nix` plus `<tool>-test.sh`, as `modules/flake/upstream/`.
-- A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people goes through `nix run .#narvi`. Document it in `docs/ci.md`.
+- A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people is static, written by the script itself. Document it in `docs/ci.md`.
 
 ## Flake input: `flake.nix`
 

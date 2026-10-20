@@ -1,6 +1,6 @@
 {
   perSystem =
-    { pkgs, self', ... }:
+    { pkgs, ... }:
     {
       packages.upstream = pkgs.writeShellApplication {
         name = "upstream";
@@ -9,7 +9,6 @@
           pkgs.gnugrep
           pkgs.gnused
           pkgs.coreutils
-          self'.packages.narvi
         ];
         text = builtins.readFile ./upstream.sh;
       };

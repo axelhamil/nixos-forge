@@ -106,7 +106,7 @@ The commented [`example`](modules/hosts/example/default.nix) host lists every pr
 
 ## What CI proves
 
-Checks are generated from the registry: a machine you add is tested without touching a workflow. Each run ends in one report per machine, in the run summary and as a single PR comment, signed by [Narvi](docs/ci.md#narvi), the dwarf who made the Doors of Durin.
+Checks are generated from the registry: a machine you add is tested without touching a workflow. Each run ends in one report per machine, in the run summary and as a single PR comment, that opens with a verdict and what to do next ([docs/ci.md](docs/ci.md#the-ci-report)).
 
 | Check | What it proves |
 |---|---|
@@ -135,7 +135,6 @@ Fork it, run `nix run .#init`, [turn CI on](docs/ci.md#turn-ci-on-in-your-fork),
 - **Your own live badges**, published by your CI once it runs on `main` ([docs/ci.md](docs/ci.md#live-badges)).
 - **A lock PR every Monday** with fresh inputs in `flake.lock`, merged on its own once CI is green.
 - **A package diff** on every pull request.
-- **Narvi**, the voice of your CI: a line of dwarven lore on each report, PR and release, and with Claude Haiku a few plain sentences on what a package diff, a lock update or a release changes ([docs/ci.md](docs/ci.md#narvi)).
 - **Signed deploy branches**: CI signs them with a key `init` generates, and your machines accept nothing else ([docs/ci.md](docs/ci.md#sign-the-deploy-branches)).
 - **`auto-upgrade`**, which takes only the version CI validated for that machine and, on a host with `disk`, goes back to the previous generation when the new one does not boot ([docs/updates.md](docs/updates.md)).
 - **`nix run .#upstream`**, which shows what the starter changed and prepares the merge of its release when you choose ([docs/updates.md](docs/updates.md#your-fork-follows-the-starter)).
@@ -259,7 +258,7 @@ modules/
 |---|---|
 | [install](docs/install.md) | put a host on real hardware: ISO, nixos-anywhere, disko-install, Secure Boot, TPM2, rollback |
 | [updates](docs/updates.md) | follow the starter, edit and switch, let machines upgrade on their own, sign deploys |
-| [ci](docs/ci.md) | turn CI on in your fork, read the report, meet Narvi, mirror to a second forge |
+| [ci](docs/ci.md) | turn CI on in your fork, read the report, rename the bot, mirror to a second forge |
 | [apps](docs/apps.md) | add an app, change a default, set up the shell, bring your dotfiles |
 | [desktop](docs/desktop.md) | Hyprland and its neighbours, keybinds, monitors, themes |
 | [specialisations](docs/specialisations.md) | switch one machine between variants, such as work and games, Steam included |

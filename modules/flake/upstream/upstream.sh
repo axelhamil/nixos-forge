@@ -154,11 +154,14 @@ if [[ -n $releases ]]; then
   origin_of="[$tag]($releases/$tag)"
 fi
 body_file=$(git rev-parse --absolute-git-dir)/upstream-$tag.md
-notes_file=$(git rev-parse --absolute-git-dir)/upstream-$tag-notes.txt
-printf '%s\n' "$notes" >"$notes_file"
 {
-  narvi preface upstream-pr upstream "$notes_file" "$tag"
   echo "Merges $origin_of into this fork. Review the diff before merging it with a merge commit, never a squash."
+  echo
+  echo "Upstream commits merged:"
+  echo
+  echo '```'
+  git log --oneline --no-decorate "$base..$tag"
+  echo '```'
   echo
   echo '```'
   echo "$notes"

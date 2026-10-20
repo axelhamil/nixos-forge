@@ -27,7 +27,7 @@ What it does, step by step:
 2. Prints what changed since your last merge: the breaking changes first (a `!` commit or a `BREAKING CHANGE` footer), then the new lines of the starter's `CHANGELOG.md`.
 3. Asks `Prepare branch chore/sync-upstream-<tag>? [y/N]` (`--yes` skips the question).
 4. On yes, creates that branch from `origin/main`, never from the branch you are on, so unreleased work on `develop` stays out of it, and merges the tag with a merge commit.
-5. Pushes it to `origin` and opens a PR against `main` with `gh` when it is logged in, or prints the `gh pr create --repo <owner>/<repo>` command to run. The PR body opens with a line of [Narvi](ci.md#narvi) and, when Narvi can call Claude Haiku, a short summary of the release, above the breaking changes and the changelog, kept as they are.
+5. Pushes it to `origin` and opens a PR against `main` with `gh` when it is logged in, or prints the `gh pr create --repo <owner>/<repo>` command to run. The PR body lists the upstream commits it merges (`git log --oneline` from `origin/main` to the tag), then the breaking changes and the changelog.
 
 The starter is the argument (a git URL or a GitHub `owner/repo`), else your `upstream` remote, else `https://github.com/axelhamil/nixos-forge.git`.
 

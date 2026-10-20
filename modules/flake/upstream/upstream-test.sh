@@ -69,8 +69,12 @@ on_origin synced || fail "$branch not pushed to origin"
 ! git merge-base --is-ancestor "$unreleased" "$branch" || fail "$branch carries a commit of develop"
 grep -qF "gh pr create --repo $(basename "$root")/synced-origin --base main" <<<"$out" || fail "gh pr create command without the origin repo: $out"
 body=$(git rev-parse --absolute-git-dir)/upstream-v0.2.0.md
-[[ $(head -n 1 "$body") =~ ^\*[^*]+\*$ ]] || fail "the PR body does not open with a line of Narvi: $(cat "$body")"
-grep -qxF '<!-- narvi -->' "$body" || fail "the PR body has no Narvi marker: $(cat "$body")"
+grep -qx "Merges .* into this fork\. .*" <(head -n 1 "$body") || fail "the PR body does not open with what it merges: $(cat "$body")"
+for commit in $(git rev-list "main..v0.2.0"); do
+  grep -qxF "$(git log -1 --oneline --no-decorate "$commit")" "$body" || fail "the PR body does not list the upstream commit $commit: $(cat "$body")"
+done
+[[ $(git rev-list --count "main..v0.2.0") -eq 2 ]] || fail "the test expects 2 upstream commits"
+! grep -qF "not released yet" "$body" || fail "the PR body lists a commit of the fork: $(cat "$body")"
 grep -qxF 'feat!: rename x' "$body" || fail "the PR body lost the breaking change: $(cat "$body")"
 
 git switch -q main

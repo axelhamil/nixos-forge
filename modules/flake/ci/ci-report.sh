@@ -54,6 +54,10 @@ jq -n -r \
 
   | def bad: .status == "failed" or .status == "did not finish";
 
+    def ready: "Nothing to fix: this commit is ready for the machines.";
+
+    def toFix: "Fix what is listed below and push again: CI runs on every push.";
+
     def plural($n; $one; $many): if $n == 1 then $one else $many end;
 
     def names: if length < 2 then join("") else (.[:-1] | join(", ")) + " and " + .[-1] end;
@@ -140,15 +144,17 @@ jq -n -r \
 
   if $planned == null and $plan == "failure" then
     [
-      "report-red",
       "**The flake did not evaluate, so nothing was built or tested.**",
+      "",
+      toFix,
       "",
       (if $run != "" then "The `plan` job log names the file and line: [open the run](\($run)), then the `plan` job." else "The `plan` job log names the file and line." end)
     ]
   elif $planned == null then
     [
-      "report-red",
       "**CI could not plan this run, so nothing was built.**",
+      "",
+      toFix,
       "",
       (if $run != "" then "[Open the full log](\($run)) to see why." else "Open the full log to see why." end)
     ]
@@ -181,7 +187,7 @@ jq -n -r \
             + "**"
         end
       ) as $verdict
-    | [ (if $nbad == 0 then "report-green" else "report-red" end), $verdict, "" ]
+    | [ $verdict, "", (if $nbad == 0 then ready else toFix end), "" ]
       + (if $unstable > 0 then [ "\($unstable) \(plural($unstable; "test passed only on its second try and is"; "tests passed only on their second try and are")) marked unstable.", "" ] else [] end)
       + (if $cache == "failure" then [ "The binary cache was unreachable: everything was built from scratch.", "" ] else [] end)
       + (if any($skipped[]; .reason == "compiles a kernel") then [ "Checks that compile a kernel run after the merge.", "" ] else [] end)
@@ -210,30 +216,10 @@ jq -n -r \
     | . + (if $nbad > 0 then [ "### What went wrong", "" ] + ($bad | map(failure) | add) else [] end)
   end
   | .[]
-' >"$work/facts.md"
-
-moment=$(head -n 1 "$work/facts.md")
-line=$(narvi say "$moment")
-
-{
-  if [ -n "$line" ]; then
-    printf '*%s*\n\n' "$line"
-  fi
-  tail -n +2 "$work/facts.md"
-} >"$work/report.md"
+' >"$work/report.md"
 
 if [ -s "$work/closures.md" ]; then
-  summary=""
-  if grep -qvE '^(#|```|<<< |>>> |No version or selection state changes\.|Closure size: |$)' "$work/closures.md"; then
-    summary=$(narvi summarize packages "$work/closures.md")
-  fi
   {
-    if [ -n "$summary" ]; then
-      echo "**What changes on the machines**, summarized by Claude Haiku from the package diff below:"
-      echo
-      echo "$summary"
-      echo
-    fi
     echo "<details>"
     echo "<summary>Package changes per machine</summary>"
     echo

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.3](https://github.com/axelhamil/nixos-forge/compare/v0.2.2...v0.2.3) (2026-10-21)
+
+
+### Features
+
+* **ci:** make every check pass or fail for a reason ([#84](https://github.com/axelhamil/nixos-forge/issues/84)) ([52d1df2](https://github.com/axelhamil/nixos-forge/commit/52d1df2f6a4364f60b03708a879dac704492b057))
+
+
+### Bug fixes
+
+* **ci:** let the release job take the app's installed permissions ([#86](https://github.com/axelhamil/nixos-forge/issues/86)) ([72c6b79](https://github.com/axelhamil/nixos-forge/commit/72c6b792b08863dbe4dc083a4c123e90d1a208a4))
+* **ci:** unblock the release job and the migration test ([#85](https://github.com/axelhamil/nixos-forge/issues/85)) ([4289789](https://github.com/axelhamil/nixos-forge/commit/42897893cf56a8ade41e8051335325500b5c4a3b))
+
 ## [0.2.2](https://github.com/axelhamil/nixos-forge/compare/v0.2.1...v0.2.2) (2026-10-21)
 
 

@@ -83,13 +83,19 @@
       { key: "userspace", name: "Boot, userspace", of: "min", relative: 10, absolute: 0.5 },
       { key: "memory", name: "Idle RAM", of: "min", relative: 10, absolute: 32 },
       { key: "closure", name: "Closure", of: null, relative: 5, absolute: (50 * 1048576) },
-      { key: "services", name: "Running services", of: "median", relative: 0, absolute: 1 } ];
+      { key: "services", name: "Running services", of: "median", relative: 0, absolute: 1 },
+      { key: "cpu", name: "CPU, sysbench", of: "median", better: "higher", relative: 5, absolute: 100 },
+      { key: "memoryBandwidth", name: "Memory bandwidth, sysbench", of: "median", better: "higher", relative: 5, absolute: 1000 },
+      { key: "randomRead", name: "Disk, 4k random read", of: "median", better: "higher", relative: 10, absolute: 2000 } ];
 
   def perfValue($key):
     if type != "number" then "n/a"
     elif $key == "total" or $key == "userspace" then seconds
     elif $key == "memory" then "\(oneDecimal) MiB"
     elif $key == "closure" then "\(. / 1048576 | oneDecimal) MiB"
+    elif $key == "cpu" then "\(oneDecimal) events/s"
+    elif $key == "memoryBandwidth" then "\(oneDecimal) MiB/s"
+    elif $key == "randomRead" then "\(round) IOPS"
     else tostring end;
 
   def perfMeasure($metric):
@@ -103,9 +109,16 @@
 
   def percent: if . == null then "n/a" else oneDecimal | if . == "-0.0" then "0.0" elif startswith("-") or . == "0.0" then . else "+" + . end | . + " %" end;
 
+  def perfHigherIsBetter: .better == "higher";
+
   def perfLimit:
-    if .relative == 0 then "any increase"
-    else . as $metric | "+\(.relative) % and +\($metric.absolute | perfValue($metric.key))" end;
+    (if perfHigherIsBetter then "-" else "+" end) as $sign
+    | if .relative == 0 then (if perfHigherIsBetter then "any decrease" else "any increase" end)
+      else . as $metric | "\($sign)\(.relative) % and \($sign)\($metric.absolute | perfValue($metric.key))" end;
+
+  def perfCrossed($base; $current; $change):
+    if perfHigherIsBetter then $change < -.relative and $base - $current >= .absolute
+    else $change > .relative and $current - $base >= .absolute end;
 
   def perfLabel:
     .name + (if .of == "min" then " (best)" elif .of == "median" then " (median)" else "" end);
@@ -145,13 +158,13 @@
            | ($machine.base | perfMeasure($metric)) as $base
            | ($machine.current | perfMeasure($metric)) as $current
            | perfChange($base; $current) as $change
-           | select($change != null and $change > $metric.relative and $current - $base >= $metric.absolute)
+           | select($change != null and ($metric | perfCrossed($base; $current; $change)))
            | "- \($machine.name | code): \($metric.name) \($change | percent), \($current - $base | perfValue($metric.key) | if startswith("-") then . else "+" + . end) (threshold: \($metric | perfLimit))." ]) as $flags
         | (first(.[].rounds | numbers) // null) as $rounds
         | (if $rounds == null then "several" else $rounds end) as $boots
         | [ "### Performance against the base",
             "",
-            "The base revision and this change, each booted \($boots) times in turn in one VM job. Boot times and idle RAM compare the best of the \($boots) boots of each side, running services their median, the closure that of the real system. A metric is flagged only past both its relative and its absolute threshold. Informational: it never blocks the merge.",
+            "The base revision and this change, each booted \($boots) times in turn in one VM job. Boot times and idle RAM compare the best of the \($boots) boots of each side; running services and the benchmarks run after each boot (CPU, memory bandwidth, disk) their median; the closure that of the real system. A metric is flagged only past both its relative and its absolute threshold, a benchmark when it drops. The benchmark thresholds come from the noise of local runs and a shared CI runner is noisier: read their trend over several runs, not one value. Informational: it never blocks the merge.",
             "" ]
         + (if $flags == [] then [ "No metric crossed its threshold.", "" ]
            else [ "\($flags | length) \(plural($flags | length; "metric crossed its threshold"; "metrics crossed their threshold")):", "" ] + $flags + [ "" ] end)

@@ -38,8 +38,7 @@ unlocks_with_tpm = machine.execute(f"{cryptsetup} luksDump --dump-json-metadata 
 machine.shutdown()
 installer = copy_store_to_disk()
 
-machine = create_machine(start_command=" ".join(upgraded_machine_command(installer)), name="upgraded_machine")
-driver.machines_qemu.append(machine)
+machine = create_upgraded_machine(installer)
 
 with subtest("the generation that started is blessed"):
     boot()

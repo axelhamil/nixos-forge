@@ -50,6 +50,8 @@ let
 
   hosts = removeAttrs candidates (lib.attrNames skipped);
 
+  globalTimeout = 2000 * lib.length (lib.attrNames hosts);
+
   sideOf =
     pkgs: nixos:
     let
@@ -86,7 +88,8 @@ in
             pkgs.testers.runNixOSTest {
               name = "perf-regression";
               nodes = { };
-              meta.timeout = lib.max 3600 (1200 * lib.length (lib.attrNames hosts));
+              inherit globalTimeout;
+              meta.timeout = globalTimeout + 600;
               testScript = ''
                 hosts = ${builtins.toJSON (machinesOf pkgs)}
                 skipped = ${builtins.toJSON skipped}
@@ -104,6 +107,7 @@ in
         )
         // {
           baseInput = "migration-base";
+          timeout = 60 + (globalTimeout + 59) / 60;
         };
     };
 }

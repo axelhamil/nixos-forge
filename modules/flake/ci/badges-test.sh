@@ -118,4 +118,18 @@ grep -q "did not change" unchanged.out || fail "publish: an unchanged publish is
 [ "$(git -C origin.git rev-list --count badges)" -eq 2 ] || fail "publish: an unchanged publish adds a commit"
 [ -z "$(git -C repo worktree list | sed 1d)" ] || fail "publish: a worktree is left behind: $(git -C repo worktree list)"
 
+[ "$(cd repo && "$CI_BADGES" read checks.json)" = "$(cat green/badges/checks.json)" ] || fail "read: the published checks.json is not read back"
+status=0
+(cd repo && "$CI_BADGES" read missing.json) >/dev/null 2>&1 || status=$?
+[ "$status" -eq 3 ] || fail "read: a file missing from the badges branch exits $status instead of 3"
+
+git -C repo remote set-url origin "$PWD/unreachable.git"
+status=0
+(cd repo && "$CI_BADGES" read checks.json) >/dev/null 2>unreachable.err || status=$?
+[ "$status" -eq 1 ] || fail "read: a failed fetch exits $status instead of 1"
+grep -q 'could not be fetched' unreachable.err || fail "read: a failed fetch does not say so: $(cat unreachable.err)"
+status=0
+(cd repo && "$CI_BADGES" publish ../green/badges) >/dev/null 2>&1 || status=$?
+[ "$status" -eq 1 ] || fail "publish: a failed fetch exits $status instead of starting an orphan badges branch"
+
 echo "ci-badges: all assertions passed"

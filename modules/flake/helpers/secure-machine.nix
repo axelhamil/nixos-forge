@@ -1,13 +1,9 @@
+{ lib, config, ... }:
+
 {
   helpers.secureMachineScript =
     pkgs:
     let
-      inherit (pkgs) lib;
-
-      qemu = import "${pkgs.path}/nixos/lib/qemu-common.nix" {
-        inherit lib;
-        inherit (pkgs) stdenv;
-      };
       firmware = pkgs.OVMFFull;
 
       prepareSecureMachine = pkgs.writeShellApplication {
@@ -18,17 +14,19 @@
       };
 
       secureMachine = lib.concatStringsSep " " [
-        (qemu.qemuBinary pkgs.qemu_test)
+        (config.helpers.qemuBinary pkgs)
         "-m 1024"
         "-machine q35,smm=on"
         "-global driver=cfi.pflash01,property=secure,value=on"
         "-drive if=pflash,format=raw,unit=0,readonly=on,file=${firmware.firmware}"
         "-tpmdev emulator,id=tpm0,chardev=chrtpm"
         "-device tpm-tis,tpmdev=tpm0"
+        "-netdev user,id=tpm-wakeup"
       ];
     in
     ''
       secure_machine = "${secureMachine}"
       prepare_secure_machine = "${lib.getExe prepareSecureMachine}"
+      ${builtins.readFile ./secure-machine.py}
     '';
 }

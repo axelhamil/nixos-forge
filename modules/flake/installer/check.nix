@@ -6,6 +6,7 @@ let
     installerHostsOn
     hasDisk
     testRevision
+    testMachineScript
     ;
   inherit (config.installer) testedHosts;
 
@@ -27,11 +28,6 @@ in
   perSystem =
     { pkgs, system, ... }:
     let
-      qemu = import "${pkgs.path}/nixos/lib/qemu-common.nix" {
-        inherit lib;
-        inherit (pkgs) stdenv;
-      };
-
       installerCheck =
         name:
         let
@@ -47,12 +43,11 @@ in
         in
         pkgs.testers.runNixOSTest {
           name = "${name}-installer";
+          globalTimeout = 1400;
           nodes = { };
           testScript = ''
-            qemu = "${qemu.qemuBinary pkgs.qemu_test}"
+            ${testMachineScript pkgs}
             qemu_img = "${pkgs.qemu_test}/bin/qemu-img"
-            firmware = "${pkgs.OVMF.firmware}"
-            firmware_vars = "${pkgs.OVMF.variables}"
             iso = "${iso.config.system.build.isoImage}/iso/${iso.config.image.fileName}"
             host_name = ${builtins.toJSON name}
             users = ${builtins.toJSON (lib.attrNames config.configurations.nixos.${name}.users)}

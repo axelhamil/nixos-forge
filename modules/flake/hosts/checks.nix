@@ -1,7 +1,12 @@
 { lib, config, ... }:
 
 let
-  inherit (config.helpers) hostsOn hasDisk testRevision;
+  inherit (config.helpers)
+    hostsOn
+    hasDisk
+    testRevision
+    diskTest
+    ;
 in
 {
   perSystem =
@@ -46,6 +51,7 @@ in
             {
               "${name}-boots" = pkgs.testers.runNixOSTest {
                 name = "${name}-boots";
+                globalTimeout = 800;
                 node.pkgsReadOnly = false;
                 nodes.machine = withoutDisko;
                 testScript = lib.concatLines (
@@ -61,7 +67,7 @@ in
             }
         )
         // lib.optionalAttrs (hasDisk name) {
-          "${name}-disk" = tested.system.build.installTest;
+          "${name}-disk" = diskTest 1500 tested.system.build.installTest;
         }
       ) (hostsOn system);
     };

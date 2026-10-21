@@ -9,6 +9,11 @@ swtpm socket \
   --tpm2 \
   --daemon
 
-until [ -S "$state_dir/swtpm/socket.ctrl" ]; do
+for _ in {1..100}; do
+  [[ ! -S $state_dir/swtpm/socket.ctrl ]] || break
   sleep 0.1
 done
+if [[ ! -S $state_dir/swtpm/socket.ctrl ]]; then
+  echo "prepare-secure-machine: swtpm did not open its socket within 10 seconds" >&2
+  exit 1
+fi

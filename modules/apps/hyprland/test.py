@@ -1,3 +1,4 @@
+from datetime import timedelta
 import json
 import shlex
 
@@ -18,16 +19,16 @@ def hyprctl(arguments):
     return machine.succeed(hyprctl_command(arguments))
 
 
-machine.wait_for_unit("greetd.service")
-machine.wait_until_tty_matches("1", "Username")
+machine.wait_for_unit("greetd.service", timeout=timedelta(minutes=5))
+machine.wait_until_tty_matches("1", "Username", timeout=timedelta(minutes=2))
 machine.send_chars("tester\n")
-machine.wait_until_tty_matches("1", "Password")
+machine.wait_until_tty_matches("1", "Password", timeout=timedelta(minutes=1))
 machine.send_chars("test\n")
 
-machine.wait_until_succeeds("ls /run/user/$(id -u tester)/hypr/*/.socket.sock", timeout=120)
-machine.wait_for_unit("graphical-session.target", "tester")
+machine.wait_until_succeeds("ls /run/user/$(id -u tester)/hypr/*/.socket.sock", timeout=timedelta(minutes=2))
+machine.wait_for_unit("graphical-session.target", "tester", timeout=timedelta(minutes=2))
 for unit in ["waybar.service", "hypridle.service", "hyprpolkitagent.service", "cliphist.service"]:
-    machine.wait_for_unit(unit, "tester")
+    machine.wait_for_unit(unit, "tester", timeout=timedelta(minutes=2))
 
 session_environment = machine.succeed("systemctl --user -M tester@ show-environment").splitlines()
 for variable in ["__HM_SESS_VARS_SOURCED=1", "XCURSOR_THEME=Adwaita"]:
@@ -43,17 +44,12 @@ assert not json.loads(hyprctl("-j monitors"))[0]["dpmsStatus"], "screen still on
 hyprctl("dispatch 'hl.dsp.dpms({ action = \"on\" })'")
 
 machine.send_key("meta_l-l")
-machine.wait_until_succeeds("pgrep -u tester -x hyprlock", timeout=30)
-
-for _ in range(20):
-    machine.send_chars("test\n")
-    if machine.execute("timeout 3 sh -c 'while pgrep -u tester -x hyprlock; do sleep 0.5; done'")[0] == 0:
-        break
-else:
-    raise AssertionError("hyprlock did not unlock with the password")
+machine.wait_until_succeeds("journalctl -b -t hypridle -o cat | grep -qF 'Wayland session got locked'", timeout=timedelta(seconds=30))
+machine.send_chars("test\n")
+machine.wait_until_fails("pgrep -u tester -x hyprlock", timeout=timedelta(seconds=30))
 
 machine.send_key("meta_l-ret")
-machine.wait_until_succeeds(f"{hyprctl_command('-j clients')} | grep -q '\"class\": \"kitty\"'", timeout=60)
+machine.wait_until_succeeds(f"{hyprctl_command('-j clients')} | grep -q '\"class\": \"kitty\"'", timeout=timedelta(minutes=1))
 
 as_tester("busctl --user status org.freedesktop.portal.Desktop >/dev/null")
 machine.screenshot("desktop")

@@ -1,6 +1,9 @@
 usage="usage: ci-badges checks <out-dir>
        ci-badges reproducibility <summary.md> <out-dir>
-       ci-badges publish <dir>"
+       ci-badges publish <dir>
+       ci-badges read <file>"
+
+branch=badges
 
 die() {
   echo "$usage" >&2
@@ -100,6 +103,37 @@ reproducibility() {
   cat "$out/reproducibility.json"
 }
 
+fetch_branch() {
+  local status=0
+  git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1 || status=$?
+  case "$status" in
+  0) git fetch -q --depth 1 origin "$branch" 2>/dev/null || return 1 ;;
+  2) return 2 ;;
+  *) return 1 ;;
+  esac
+}
+
+read_file() {
+  local file=$1 status=0
+  fetch_branch || status=$?
+  case "$status" in
+  0)
+    git show "FETCH_HEAD:$file" 2>/dev/null || {
+      echo "ci-badges: the $branch branch has no $file" >&2
+      exit 3
+    }
+    ;;
+  2)
+    echo "ci-badges: origin has no $branch branch yet" >&2
+    exit 3
+    ;;
+  *)
+    echo "ci-badges: the $branch branch of origin could not be fetched; a private repository needs a checkout that keeps its credentials" >&2
+    exit 1
+    ;;
+  esac
+}
+
 publish() {
   local dir=$1 attempt
   [ -d "$dir" ] || {
@@ -112,13 +146,20 @@ publish() {
 
   for attempt in 1 2 3; do
     git worktree remove --force "$work/badges" 2>/dev/null || true
-    if git fetch -q --depth 1 origin badges 2>/dev/null; then
-      git worktree add -q --detach "$work/badges" FETCH_HEAD
-    else
+    local status=0
+    fetch_branch || status=$?
+    case "$status" in
+    0) git worktree add -q --detach "$work/badges" FETCH_HEAD ;;
+    2)
       git worktree add -q --detach "$work/badges" HEAD
-      git -C "$work/badges" checkout -q --orphan badges
+      git -C "$work/badges" checkout -q --orphan "$branch"
       git -C "$work/badges" rm -q -r -f .
-    fi
+      ;;
+    *)
+      echo "ci-badges: the $branch branch of origin could not be fetched" >&2
+      exit 1
+      ;;
+    esac
 
     cp "$dir"/*.json "$work/badges/"
     git -C "$work/badges" add -A
@@ -131,7 +172,7 @@ publish() {
       -c user.name="github-actions[bot]" \
       -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
       commit -q -m "chore: update the badges"
-    if git -C "$work/badges" push -q origin HEAD:refs/heads/badges; then
+    if git -C "$work/badges" push -q origin "HEAD:refs/heads/$branch"; then
       echo "ci-badges: published $(cd "$dir" && echo *.json)"
       return 0
     fi
@@ -154,6 +195,10 @@ reproducibility)
 publish)
   [ $# -eq 2 ] || die
   publish "$2"
+  ;;
+read)
+  [ $# -eq 2 ] || die
+  read_file "$2"
   ;;
 -h | --help)
   echo "$usage"

@@ -1,8 +1,8 @@
+from datetime import timedelta
 import json
 import re
 import statistics
 
-settle_seconds = 10
 bench_seconds = 8
 bench_threads = 2
 bench_directory = "/perf-bench"
@@ -52,7 +52,7 @@ def measure(host, side, round_number):
     if boot_time is None:
         raise RuntimeError(f"{host} ({side}, round {round_number}) could not be measured: {problem}")
 
-    vm.succeed(f"sleep {settle_seconds}")
+    vm.wait_until_succeeds("test -z \"$(systemctl list-jobs --no-legend)\"", timeout=timedelta(minutes=2))
     memory = {
         key: int(value.split()[0])
         for key, value in (line.split(":", 1) for line in vm.succeed("cat /proc/meminfo").splitlines())

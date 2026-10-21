@@ -1,0 +1,5 @@
+rules:
+  github-app:
+    ignore:
+      - sync-develop.yml
+      - sync-upstream.yml

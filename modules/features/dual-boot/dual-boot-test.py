@@ -36,12 +36,12 @@ def console_since(since):
 
 def back_in_nixos(before):
     wait_for_nixos()
-    machine.wait_for_unit("dual-boot.service")
+    machine.wait_for_unit("dual-boot.service", timeout=timedelta(minutes=5))
     assert windows_digest() == before, "starting Windows from the menu changed the Windows partitions"
 
 
 def windows_started(since, entry):
-    machine.wait_for_console_text("fake-windows-done")
+    machine.wait_for_console_text("fake-windows-done", timeout=timedelta(minutes=10))
     console = console_since(since)
     secure_boot = re.search(r"SecureBoot' DataSize = 0x01.*?00000000: ([0-9A-F]{2})", console, re.S)
     assert secure_boot and secure_boot[1] == expected_secure_boot, f"Windows did not start with SecureBoot {expected_secure_boot}: {console[-600:]!r}"
@@ -65,7 +65,7 @@ def detour_before_windows():
 
 
 with subtest("Windows is in the boot menu, after NixOS in the firmware boot order"):
-    machine.wait_for_unit("dual-boot.service")
+    machine.wait_for_unit("dual-boot.service", timeout=timedelta(minutes=5))
     machine.succeed("test -s /boot/EFI/Microsoft/Boot/bootmgfw.efi")
     machine.succeed("grep -Eqx 'reboot-for-bitlocker (true|yes)' /boot/loader/loader.conf")
     entries = machine.succeed("bootctl list --json=short --no-pager")

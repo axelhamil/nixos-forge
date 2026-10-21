@@ -54,7 +54,7 @@ in
 ```
 
 - Real ones: `nix-ld` (smallest), `printing` (`doctor.ephemeralPaths`), `docker` (home state through `persistInEveryHome`, reached with an outer `{ config, ... }:` and an inner NixOS module).
-- Test: `config.helpers.featureCheck "<name>" { machine = { }; testScripts = [ ./test.py ]; }`, giving `feature-<name>`. Persistence in the test: `machine.environment.persistence."/persist".enable = true;`. An emulated device that needs another QEMU build: `qemu = pkgs: pkgs.qemu_test.override { canokeySupport = true; };`, as `fido2`.
+- Test: `config.helpers.featureCheck "<name>" { machine = { }; testScripts = [ ./test.py ]; }`, giving `feature-<name>`. Persistence in the test: `machine.environment.persistence."/persist".enable = true;`. An emulated device that needs another QEMU build: `qemu = pkgs: pkgs.qemu_test.override { canokeySupport = true; };`, as `fido2`. A test longer than 2 minutes in CI sets `globalTimeout` (seconds, 400 by default) to about 3 times its duration, as `plymouth`.
 - Docs: a section in the matching `docs/` page (`reference/services.md`, `reference/dev.md`...), whose heading names the feature in backticks (the `docs` check fails otherwise), and its name in the `features` row of the README's "Make it yours" table.
 
 ## Hardware: `modules/features/hardware/<name>/`

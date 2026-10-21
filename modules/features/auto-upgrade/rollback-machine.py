@@ -1,8 +1,2 @@
-def upgraded_machine_command(installer):
-    return [
-        qemu,
-        "-m 1024",
-        f"-drive if=pflash,format=raw,unit=0,readonly=on,file={firmware}",
-        f"-drive if=pflash,format=raw,unit=1,readonly=on,file={firmware_vars}",
-        *disks(installer, 1),
-    ]
+def create_upgraded_machine(installer):
+    return create_uefi_machine("upgraded_machine", machine.state_dir, "-m 1024", *disks(installer, 1))

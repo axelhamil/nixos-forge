@@ -68,6 +68,7 @@ in
           "steam does not load ntsync, so /dev/ntsync is missing for Proton";
         pkgs.testers.runNixOSTest {
           name = "specialisations";
+          globalTimeout = 400;
           node.pkgsReadOnly = false;
           nodes.machine = {
             imports = [

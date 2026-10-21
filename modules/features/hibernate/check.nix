@@ -11,6 +11,7 @@ let
     hasDisk
     testRevision
     storeOnDiskTest
+    diskTest
     ;
   inherit (config) base features;
 
@@ -21,13 +22,7 @@ let
   hibernatesOnDisk = name: hasDisk name && (hostConfig name).options ? hibernate;
 
   resumeTest =
-    { lib, pkgs, ... }:
-    let
-      qemu = import "${pkgs.path}/nixos/lib/qemu-common.nix" {
-        inherit lib;
-        inherit (pkgs) stdenv;
-      };
-    in
+    { lib, ... }:
     {
       imports = [ storeOnDiskTest ];
 
@@ -36,12 +31,7 @@ let
         powerManagement.resumeCommands = "systemctl --no-block restart backdoor.service";
       };
 
-      disko.tests.extraChecks = lib.mkAfter ''
-        qemu = "${qemu.qemuBinary pkgs.qemu_test}"
-        firmware = "${pkgs.OVMF.firmware}"
-        firmware_vars = "${pkgs.OVMF.variables}"
-        ${builtins.readFile ./resume-test.py}
-      '';
+      disko.tests.extraChecks = lib.mkAfter (builtins.readFile ./resume-test.py);
     };
 
   hibernatingMachine =
@@ -69,17 +59,18 @@ in
     {
       checks =
         lib.concatMapAttrs (name: _: {
-          "${name}-disk" =
-            lib.mkForce
+          "${name}-disk" = lib.mkForce (
+            diskTest 1500
               ((hostConfig name).extendModules {
                 modules = [
                   testSwap
                   testRevision
                 ];
-              }).config.system.build.installTest;
+              }).config.system.build.installTest
+          );
         }) (lib.filterAttrs (name: _: hibernatesOnDisk name) (hostsOn system))
         // lib.optionalAttrs (system == "x86_64-linux") {
-          feature-hibernate = (hibernatingMachine system).config.system.build.installTest;
+          feature-hibernate = diskTest 1300 (hibernatingMachine system).config.system.build.installTest;
         };
     };
 }

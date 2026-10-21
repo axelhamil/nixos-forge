@@ -49,7 +49,7 @@ TIME                       OUTCOME      FROM          TO            SOURCE
 
 With `disk`, `/` is restored from an empty snapshot at every boot. This is impermanence: only `/nix`, `/home`, `/persist`, `/boot` and the paths you persist survive. This section is the home page for its rules.
 
-Whatever NixOS creates during the boot (`/etc`, users, tmpfiles) comes back on its own. So `doctor` lists only files created or changed on `/` after `sysinit.target`, outside any mount. It leaves out:
+Whatever NixOS creates during the boot (`/etc`, users, tmpfiles) comes back on its own. So `doctor` lists only files created or changed on `/` after `sysinit.target`, outside any mount. The kernel may step the clock back when it reads the hardware clock during the boot; `doctor` then dates `sysinit.target` on the clock tmpfiles wrote with, so what tmpfiles created stays out, and it allows such a step 2 seconds at most, so nothing written later hides behind it. It leaves out:
 
 - persisted paths, which are bind mounts from `/persist`;
 - `/nix`, `/home`, `/persist` and `/boot`, which are their own subvolumes;

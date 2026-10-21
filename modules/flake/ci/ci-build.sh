@@ -1,4 +1,5 @@
-usage="usage: ci-build <system> <check> <out-dir> [--retry] [--base-input <input> --base <flake-ref>]"
+usage="usage: ci-build <system> <check> <out-dir> [--retry] [--base-input <input> --base <flake-ref>]
+  RETRY=true stands for --retry; BASE_INPUT with BASE_SHA for --base-input \$BASE_INPUT --base github:\$GITHUB_REPOSITORY/\$BASE_SHA"
 
 if [ $# -lt 3 ]; then
   echo "$usage" >&2
@@ -35,6 +36,15 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+if [ "${RETRY:-}" = true ]; then
+  allowed=2
+fi
+
+if [ -z "$base_input" ] && [ -n "${BASE_INPUT:-}" ]; then
+  base_input=$BASE_INPUT
+  base="github:${GITHUB_REPOSITORY:-}/${BASE_SHA:-}"
+fi
 
 if [ "${base:+set}" != "${base_input:+set}" ]; then
   echo "$usage" >&2

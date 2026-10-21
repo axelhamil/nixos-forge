@@ -23,6 +23,7 @@ echo "AssertionError: late failure" >>noisy.log
 expect_excerpt noisy.log "^AssertionError: late failure$"
 expect_excerpt compile-error.log "^main.c:3:1: error: expected ';' before '}' token$"
 expect_excerpt compile-error.log "^error: Cannot build "
+expect_excerpt substitute.log "^error: some substitutes for the outputs of derivation .* failed (usually happens due to networking issues)"
 
 seq -f "machine # line %g of a healthy boot" 5000 >quiet.log
 [ "$(awk -f "$EXCERPT" quiet.log | wc -l)" -eq 0 ] || fail "a log without failure yields an excerpt"
@@ -50,6 +51,14 @@ jq -e '.outcome == "failed" and .attempts == 1' "$result" >/dev/null || fail "br
 jq -e '.bootTime == null and .screenshots == []' "$result" >/dev/null || fail "broken: a failed build has evidence: $(cat "$result")"
 jq -e '.excerpt == ["error: undefined variable '"'"'foo'"'"'"]' "$result" >/dev/null || fail "broken: wrong excerpt: $(cat "$result")"
 [ "$(wc -l <"$NIX_CALLS")" -eq 1 ] || fail "broken: a check without --retry was built $(wc -l <"$NIX_CALLS") times"
+
+NIX_CALLS=$PWD/env-retry-calls
+RETRY=true "$BROKEN_CI_BUILD" x86_64-linux example-disk env-retry >/dev/null || true
+[ "$(wc -l <"$NIX_CALLS")" -eq 2 ] || fail "RETRY=true built a failing check $(wc -l <"$NIX_CALLS") times instead of 2"
+
+NIX_CALLS=$PWD/env-no-retry-calls
+RETRY=false "$BROKEN_CI_BUILD" x86_64-linux example-disk env-no-retry >/dev/null || true
+[ "$(wc -l <"$NIX_CALLS")" -eq 1 ] || fail "RETRY=false built a failing check $(wc -l <"$NIX_CALLS") times instead of 1"
 
 NIX_CALLS=$PWD/broken-vm-calls
 status=0
@@ -86,6 +95,14 @@ grep -qx "build --no-link --print-build-logs --print-out-paths --override-input 
 NIX_CALLS=$PWD/no-base-calls
 "$BASE_CI_BUILD" x86_64-linux feature-migration results --base-input migration-base --base github:owner/repo/0000000000000000000000000000000000000000 >base.out || fail "base: a check whose push has no previous commit exits non-zero"
 grep -qx "build --no-link --print-build-logs --print-out-paths .#checks.x86_64-linux.feature-migration" "$NIX_CALLS" || fail "base: an all-zero base revision is not left to the locked input: $(cat "$NIX_CALLS")"
+
+NIX_CALLS=$PWD/env-base-calls
+BASE_INPUT=migration-base BASE_SHA=0123abc GITHUB_REPOSITORY=owner/repo "$BASE_CI_BUILD" x86_64-linux feature-migration results >base.out || fail "base: a check with BASE_INPUT exits non-zero"
+grep -qx "build --no-link --print-build-logs --print-out-paths --override-input migration-base github:owner/repo/0123abc .#checks.x86_64-linux.feature-migration" "$NIX_CALLS" || fail "base: BASE_INPUT and BASE_SHA do not run the check against the base: $(cat "$NIX_CALLS")"
+
+NIX_CALLS=$PWD/env-empty-base-calls
+BASE_INPUT='' BASE_SHA=0123abc GITHUB_REPOSITORY=owner/repo "$BASE_CI_BUILD" x86_64-linux feature-migration results >base.out || fail "base: a check with an empty BASE_INPUT exits non-zero"
+grep -qx "build --no-link --print-build-logs --print-out-paths .#checks.x86_64-linux.feature-migration" "$NIX_CALLS" || fail "base: an empty BASE_INPUT overrides an input: $(cat "$NIX_CALLS")"
 
 if "$BASE_CI_BUILD" x86_64-linux feature-migration results --base github:owner/repo/0123abc >base.out 2>&1; then
   fail "base: a base without the input it overrides is accepted"
@@ -212,6 +229,7 @@ pass_all timeout
 set_outcome timeout example-boots failed 2 "$LOGS/timeout.log"
 report timeout
 expect_line timeout "- Cause: a VM test hit its time limit."
+expect_line timeout '- What to do: read the wait the log names before the timeout: the unit, file or text it waited for never came; reproduce with `nix build -L .#checks.x86_64-linux.example-boots`.'
 
 printf 'machine # [   12.0] systemd[1]: Started backup.service.\nRequestedAssertionFailed: command `test -e /persist/state` failed (exit code 1)\n' >assertion-only.log
 pass_all assertion-only
@@ -262,6 +280,31 @@ pass_all hash
 set_outcome hash example-toplevel failed 1 "$LOGS/hash-mismatch.log"
 report hash
 expect_line hash "- Cause: a download changed upstream."
+
+pass_all substitute
+set_outcome substitute example-toplevel failed 1 "$LOGS/substitute.log"
+report substitute
+expect_line substitute "- Cause: the binary cache could not be reached."
+expect_line substitute "- What to do: rerun the job; nothing in the change is at fault."
+
+grep -h "^warning:" "$LOGS/substitute.log" >download-warnings.log
+echo "AssertionError: the greeter never showed" >>download-warnings.log
+pass_all download-warnings
+set_outcome download-warnings example-boots failed 2 "$PWD/download-warnings.log"
+report download-warnings
+expect_line download-warnings "- Cause: the system started but a test found it behaving wrong."
+
+cat "$LOGS/substitute.log" "$LOGS/assertion.log" >substitute-and-assertion.log
+pass_all substitute-and-assertion
+set_outcome substitute-and-assertion example-boots failed 2 "$PWD/substitute-and-assertion.log"
+report substitute-and-assertion
+expect_line substitute-and-assertion "- Cause: the system started but a test found it behaving wrong."
+
+cat "$LOGS/substitute.log" "$LOGS/compile-error.log" >substitute-and-compile.log
+pass_all substitute-and-compile
+set_outcome substitute-and-compile example-toplevel failed 1 "$PWD/substitute-and-compile.log"
+report substitute-and-compile
+expect_line substitute-and-compile "- Cause: a package or test failed to build."
 
 printf 'error: writing to file: No space left on device\nerror: Cannot build '"'"'/nix/store/x-example.drv'"'"'.\n' >no-space.log
 pass_all no-space

@@ -25,8 +25,6 @@
 
       systemd.services.btrbk-snapshots.unitConfig.RequiresMountsFor = "/.snapshots";
 
-      doctor.ephemeralPaths = [ "/var/lib/btrbk/.ssh" ];
-
       disko.tests.extraChecks = lib.mkOrder 1200 ''
         home_snapshotted = ${if homeSnapshotted then "True" else "False"}
         ${builtins.readFile ./snapshot-test.py}

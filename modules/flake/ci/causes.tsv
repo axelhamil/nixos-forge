@@ -1,6 +1,8 @@
 hash mismatch	a download changed upstream	run `nix flake update`
 No space left	the CI runner ran out of disk	rerun the job
-action timed out after|timeout reached; test terminating|TimeoutError|building of .* timed out after	a VM test hit its time limit	rerun the job; if it fails again, a service hangs at boot
+action timed out after|timeout reached; test terminating|TimeoutError|building of .* timed out after	a VM test hit its time limit	read the wait the log names before the timeout: the unit, file or text it waited for never came; reproduce with `nix build -L .#checks.<system>.<check>`
 AssertionError|RequestedAssertionFailed	the system started but a test found it behaving wrong	read the failing line, then reproduce with `nix build -L .#checks.<system>.<check>`
 ^error: (undefined variable|attribute .* missing|syntax error|The option|infinite recursion|assertion .* failed|cannot coerce)	the configuration does not evaluate	fix the Nix file and line named in the message
-Cannot build|builder for .* failed	a package or test failed to build	read the lines above `Cannot build` in the full log
+builder for .* failed	a package or test failed to build	read the lines above `Cannot build` in the full log
+some substitutes for the outputs of derivation .* failed	the binary cache could not be reached	rerun the job; nothing in the change is at fault
+Cannot build	a package or test failed to build	read the lines above `Cannot build` in the full log

@@ -60,7 +60,7 @@ in
 ## Hardware: `modules/features/hardware/<name>/`
 
 - `{ hardware.<name> = { ... }; }`. One file may publish several names (`raspberry-pi`).
-- A name in `hardware = [ ]` resolves to the starter's `hardware.<name>`, else to `inputs.nixos-hardware.nixosModules.<name>`: add a module only for what nixos-hardware lacks.
+- A name in `hardware = [ ]` resolves to the `hardware.<name>` namespace, else to `inputs.nixos-hardware.nixosModules.<name>`: add a module only for what nixos-hardware lacks.
 - No module check: the hosts' `<host>-toplevel` covers it.
 
 ## Profile: `modules/features/profiles/<name>/`

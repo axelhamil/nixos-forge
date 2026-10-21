@@ -2,7 +2,9 @@
 
 Every page of `docs/`, linked from here; the `docs` check fails on a page this index does not link.
 
-New here? Read [the README](../README.md) first, then [Install on a machine](tutorials/install.md). Come back to the how-to guides when you want one thing, and to the reference when you look something up.
+Not a distro: the forge where you build your own NixOS distro. Fork it, customize everything, and CI tests every machine before it reaches you: build, VM boot, install on a blank disk.
+
+New here? Read [the README](../README.md) first, then [Install on a machine](tutorials/install.md). Words such as registry, generation, closure and impermanence are defined in [Architecture](explanation/architecture.md#words-used-here). Come back to the how-to guides when you want one thing, and to the reference when you look something up.
 
 ## Tutorials
 
@@ -38,9 +40,9 @@ New here? Read [the README](../README.md) first, then [Install on a machine](tut
 - [Architecture](explanation/architecture.md): the forge rule and how a host entry becomes a system.
 - [Updates](explanation/updates.md): how a change reaches your machines without skipping CI.
 
-## Maintaining the starter <!-- docs-check: allow the starter -->
+## Maintaining upstream
 
-Pages for the maintainer of the upstream repository; a fork needs none of them.
+Pages for the maintainer of the upstream repository. A fork needs none of them.
 
 - [Releases](maintenance/releases.md): branches, release-please and where forks find upstream.
 - [CI of the examples](maintenance/ci.md): the checks of the examples and of the upgrade path.

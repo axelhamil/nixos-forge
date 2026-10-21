@@ -1,6 +1,6 @@
 # Raspberry Pi
 
-A Raspberry Pi 4 or 5 runs the same starter: same `base`, users and opt-in modules, plus a board module and the `pi` profile. Board support comes from [nixos-raspberrypi](https://github.com/nvmd/nixos-raspberrypi) (vendor kernel, firmware, `config.txt`, bootloader). The host builds an SD card image.
+A Raspberry Pi 4 or 5 runs the same modules as any other host: same `base`, users and opt-in modules, plus a board module and the `pi` profile. Board support comes from [nixos-raspberrypi](https://github.com/nvmd/nixos-raspberrypi) (vendor kernel, firmware, `config.txt`, bootloader). The host builds an SD card image.
 
 This page takes a Pi from a host entry to a flashed card, then keeps it up to date without making it compile anything.
 
@@ -40,7 +40,7 @@ The first build compiles the vendor kernel, which is slow under emulation: a nat
 
 ## Check it worked
 
-Put the card in the Pi, plug in Ethernet and power, and give it a minute: the first boot grows the root file system to the card. Find its address in your router's DHCP leases, since nothing answers for its hostname on the LAN by default (no Avahi, and `resolved` has LLMNR off), then:
+Put the card in the Pi, plug in Ethernet and power, and give it a minute: the first boot grows the root file system to the card. Find its address in your router's DHCP leases. Nothing answers for its hostname on the LAN by default (no Avahi, and `resolved` has LLMNR off). Then:
 
 ```sh
 ssh <you>@<address>
@@ -57,7 +57,12 @@ To boot from NVMe on a Pi 5, write the same image to the drive and put NVMe firs
 
 With the `auto-upgrade` feature, the Pi follows `deploy/<host>` on its own ([updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own)) without building anything: the `pi` profile turns local builds off, so it upgrades only to a version CI built and pushed to your binary cache (`<host>-toplevel`), and waits otherwise.
 
-A Pi has no automatic rollback: its boot loader does not count boot tries, which takes the `disk` feature with systemd-boot, so a new version that does not start stays the default. When it still answers over SSH, `sudo nixos-rebuild switch --rollback` goes back to the previous generation; otherwise write the SD image of a commit that worked. Then push a fix, which CI validates before the Pi takes it.
+A Pi has no automatic rollback. Counting boot tries takes the `disk` feature with systemd-boot, which a Pi lacks, so a new version that does not start stays the default. To go back:
+
+- when it still answers over SSH, `sudo nixos-rebuild switch --rollback` returns to the previous generation;
+- otherwise, write the SD image of a commit that worked.
+
+Then push a fix, which CI validates before the Pi takes it.
 
 By hand, build on your machine and push the result, so the Pi never builds anything:
 
@@ -95,4 +100,4 @@ nix.buildMachines = [
 ];
 ```
 
-CI builds the image on an arm runner ([ci.md](ci.md)).
+CI builds the image on an arm runner ([ci.md](../reference/ci.md)).

@@ -30,7 +30,7 @@ Three rules keep apps honest:
 - **Neighbours are read, never imported.** An app adapts to another by reading its home-manager option (`config.programs.fuzzel.enable`): Hyprland binds `Super + D` only when `fuzzel` is listed.
 - **Named twice, imported once.** An app listed by both the host and the person is imported a single time.
 
-## Starter apps
+## Shipped apps
 
 | App | What it brings |
 |---|---|
@@ -66,9 +66,9 @@ Create `modules/apps/<name>/default.nix`, `git add` it, and name it in `apps`:
 
 A `check.nix` with `config.helpers.appCheck "<name>" { testScripts = [ ./test.py ]; }` boots it in a VM test, `app-<name>`. [`modules/apps/firefox`](../../modules/apps/firefox/default.nix) is the model.
 
-## Change a starter default
+## Change a default
 
-Every setting an app writes goes through `helpers.mkDefaults`: set the same option yourself and yours wins, with no `mkForce`. Its `enable` flags do not: to drop an app, remove it from `apps`. Your own settings go in your person's `module`, the home-manager config that follows you on every machine that gives you an account:
+Every setting an app writes goes through `helpers.mkDefaults`. Set the same option yourself and yours wins, with no `mkForce`. Its `enable` flags are not defaults: to drop an app, remove it from `apps`. Your own settings go in your person's `module`, the home-manager config that follows you on every machine that gives you an account:
 
 ```nix
 {
@@ -84,9 +84,14 @@ It grows with you: any other file of `modules/users/<you>`, such as `git.nix` or
 
 ## The shell
 
-- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. The registry makes it the login shell of a user whose apps (or the host's) name `zsh`. Its NixOS part completes system commands and skips the global `compinit`, so completion is initialised once, by home-manager. That switch is system-wide: another zsh user of the host needs home-manager's zsh too, or gets no completion.
+- **zsh** with autosuggestions, syntax highlighting and a shared, deduplicated history of 100,000 lines. The registry makes it the login shell of a user whose apps (or the host's) name `zsh`. Its NixOS part completes system commands and skips the global `compinit`, so home-manager initialises completion once. That switch is system-wide: another zsh user of the host needs home-manager's zsh too, or gets no completion.
 - **starship** prompt with plain text symbols, readable on a console without a Nerd Font. Once you have one: `programs.starship.presets = [ ];`.
-- **git** with the settings git's own developers use: `main` as first branch, recent branches first, `push.autoSetupRemote`, pruned fetches, histogram diffs with moved lines highlighted, the diff shown while writing a commit, `zdiff3` conflicts, `rerere`, rebases that autostash and update stacked branches, autocorrect on prompt. With `delta`, diffs and blame page through [delta](https://github.com/dandavison/delta). Your person's `fullName` and `email` are the author. To sign with your SSH key:
+- **git** with the settings git's own developers use:
+  - `main` as first branch, recent branches first, `push.autoSetupRemote`, pruned fetches;
+  - histogram diffs with moved lines highlighted, the diff shown while writing a commit;
+  - `zdiff3` conflicts, `rerere`, rebases that autostash and update stacked branches, autocorrect on prompt.
+
+  With `delta`, diffs and blame page through [delta](https://github.com/dandavison/delta). Your person's `fullName` and `email` are the author. To sign with your SSH key:
 
   ```nix
   programs.git.signing = {
@@ -108,7 +113,7 @@ Files follow the XDG layout: zsh in `~/.config/zsh`, its history in `~/.local/st
 
 ## Keep your dotfiles with stow
 
-`stow` is optional, for a dotfiles repository you keep. Add it to your person's apps, clone the repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live; a new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
+`stow` is optional, for a dotfiles repository you keep. Add it to your person's apps, clone the repository to `~/dotfiles`, and every switch links it into your home with [GNU stow](https://www.gnu.org/software/stow/). Edits in the repository are live. A new file is linked at the next switch, or right away with `systemctl restart home-manager-$USER`.
 
 ```nix
 users.<you>.apps = [ "zsh" "git" "neovim" "stow" ];
@@ -126,7 +131,7 @@ What to expect:
 - Directories stay real, only files are linked (`--no-folding`), so home-manager and stow share `~/.config`.
 - Without the repository nothing happens: a fresh install boots, then you clone and restart the unit.
 - A file of your home that stow does not own is never replaced: that package is skipped with a message.
-- A package dropped from `stow.packages` is unlinked first, so a starter app can take its files back. Delete a package directory only after `stow -D <package>`.
+- A package dropped from `stow.packages` is unlinked first, so a shipped app can take its files back. Delete a package directory only after `stow -D <package>`.
 - A file both in your dotfiles and written by an app stops the switch before anything changes, and names the option to turn off: `programs.git.enable = false` to keep your own git config, `programs.starship.enable = false` for `starship.toml`.
 - zsh reads `~/.config/zsh`, so a stowed `~/.zshrc` is ignored until `programs.zsh.enable = false`. zsh stays your login shell; call `compinit` in your own `.zshrc`, since the system one is off.
 

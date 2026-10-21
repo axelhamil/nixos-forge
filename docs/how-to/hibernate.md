@@ -1,6 +1,6 @@
 # Hibernate (`hibernate`)
 
-Close the lid, walk away, come back to the same session days later. A host with `disk` that adds `hibernate` to its features can hibernate, and closing the lid suspends, then hibernates after a while. This page covers what it sets up, how to add it to a machine already installed, and how it lives with Secure Boot.
+Close the lid, walk away, come back to the same session days later. A host with `disk` that adds `hibernate` to its features can hibernate. Closing the lid suspends, then hibernates after a while. This page covers what it sets up, how to add it to a machine already installed, and how it lives with Secure Boot.
 
 ```nix
 features = [ "disk" "hibernate" ];
@@ -16,7 +16,13 @@ module.hibernate.swapSize = "32G";
 | Resume | the systemd initrd resumes from the `HibernateLocation` EFI variable that systemd writes at hibernation: no `resume=` nor `resume_offset` on the kernel command line, so nothing to compute after the install. |
 | Lid | `HandleLidSwitch = "suspend-then-hibernate"` (a default you can override), hibernating after `hibernate.delay` (`2h`) asleep. |
 
-At resume the initrd unlocks the disk first (passphrase, or the TPM2 when enrolled), then systemd-hibernate-resume restores the image. The rollback of `/` (and of `/home` with `wipe-home`) runs after it, so it never touches a hibernated system: a resume keeps `/` as it was, and only a normal boot wipes it. The module asserts this ordering, and the `feature-hibernate` check installs a machine, hibernates it, resumes it with `/` and its processes intact, then boots it normally and finds `/` wiped.
+At resume, in order:
+
+1. The initrd unlocks the disk (passphrase, or the TPM2 when enrolled).
+2. systemd-hibernate-resume restores the image.
+3. The rollback of `/` (and of `/home` with `wipe-home`) runs after that step, so it never touches a hibernated system.
+
+A resume keeps `/` as it was; only a normal boot wipes it. The module asserts this ordering. The `feature-hibernate` check installs a machine, hibernates it and resumes it with `/` and its processes intact. Then it boots it normally and finds `/` wiped.
 
 ## Add it to an installed machine
 

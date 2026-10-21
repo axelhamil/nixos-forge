@@ -1,6 +1,8 @@
 # Desktop
 
-Two features and a handful of apps turn a host into a graphical machine: a text login screen, a boot splash, and Hyprland with a bar, a launcher, a terminal, notifications and a lock screen. This page shows how to list them, what each one brings, the keybinds and how to make it look like yours.
+Two features and a handful of apps turn a host into a graphical machine: a text login screen, a boot splash, and Hyprland with a bar, a launcher, a terminal, notifications and a lock screen.
+
+This page shows how to list them, what each one brings, the keybinds and how to make it look like yours.
 
 Each piece is its own module with its tool's own look, and you list every one you want: Hyprland without kitty is `kitty` left out of the list. Another desktop plugs in as a sibling of `hyprland`.
 
@@ -66,7 +68,7 @@ The keyboard layout comes from the host's `keyboard` field (`services.xserver.xk
 
 ## Make it yours
 
-Every value is a default: set the same option in your person's `module` to change it ([apps.md](apps.md#change-a-starter-default)).
+Every value is a default: set the same option in your person's `module` to change it ([apps.md](apps.md#change-a-default)).
 
 ```nix
 programs.kitty.settings.font_size = 12;
@@ -99,11 +101,15 @@ wayland.windowManager.hyprland.settings = {
 };
 ```
 
-`bind` is a list: yours is added to the app's. `monitor` is replaced as a whole: keep the catch-all entry (`output = ""`) for screens you did not list. Colors and fonts are each tool's own (`programs.waybar.style`, `programs.fuzzel.settings.colors`, `services.mako.settings`, `programs.hyprlock.settings`), or one theme for all of them with [Stylix](https://github.com/nix-community/stylix) in your fork. To drop a piece, turn it off (`programs.waybar.enable = false;`). Start apps from your own binds through `uwsm app --` so they get their own scope.
+- `bind` is a list: yours is added to the app's.
+- `monitor` is replaced as a whole: keep the catch-all entry (`output = ""`) for screens you did not list.
+- Colors and fonts are each tool's own (`programs.waybar.style`, `programs.fuzzel.settings.colors`, `services.mako.settings`, `programs.hyprlock.settings`). For one theme across all of them, add [Stylix](https://github.com/nix-community/stylix) in your fork.
+- To drop a piece, turn it off (`programs.waybar.enable = false;`).
+- Start apps from your own binds through `uwsm app --`, so they get their own scope.
 
 ## Apps
 
-An app with its config lives in `modules/apps/<name>` and is named in a host's or user's `apps` (any other name resolves to a nixpkgs package). [`modules/apps/firefox`](../../modules/apps/firefox/default.nix) is the example: telemetry, studies and sponsored content off, tracking protection on, every policy a default you override, and the profile persisted with `wipe-home`. Copy it for another browser or app.
+An app with its config lives in `modules/apps/<name>` and is named in a host's or user's `apps` (any other name resolves to a nixpkgs package). [`modules/apps/firefox`](../../modules/apps/firefox/default.nix) is the example. Telemetry, studies and sponsored content are off and tracking protection is on. Every policy is a default you override, and the profile is persisted with `wipe-home`. Copy it for another browser or app.
 
 ## VM
 

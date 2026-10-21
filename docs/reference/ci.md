@@ -83,7 +83,9 @@ VM tests run on `x86_64-linux` only: they need KVM, and GitHub's arm64 Linux run
 
 ## Reproducibility
 
-`nix build --rebuild` builds the system derivation of a machine once more and compares the result with the first build, byte for byte. It rebuilds the last derivation only, the one that assembles the system, not every package under it. So it catches what that step adds (timestamps, ordering), not the reproducibility of nixpkgs. A difference now and then is expected: the job stays green, and its summary shows diffoscope's first 200 lines for each machine that differs. It fails only when a system does not build.
+`nix build --rebuild` builds the system derivation of a machine once more and compares the result with the first build, byte for byte. It rebuilds the last derivation only, the one that assembles the system, not every package under it. So it catches what that step adds (timestamps, ordering), not the reproducibility of nixpkgs.
+
+A difference now and then is expected. The job stays green, and its summary shows diffoscope's first 200 lines for each machine that differs. It fails only when a system does not build.
 
 ## Running the CI scripts locally
 

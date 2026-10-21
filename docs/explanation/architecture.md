@@ -1,18 +1,33 @@
 # Architecture
 
-How the flake is put together, and why a host is a short list of names.
+Not a distro: the forge where you build your own NixOS distro. Fork it, customize everything, and CI tests every machine before it reaches you: build, VM boot, install on a blank disk. This page explains how the flake is put together, and why a host is a short list of names.
 
 ## The forge rule
 
-Upstream ships mechanisms, your fork chooses policy. A setting two forks could choose differently without either being wrong is policy: it lives in a named profile, feature, hardware module or app that a host lists, or at most behind a `mkDefault` you override without `mkForce`. What every fork needs the same way is a mechanism: the registry and its checks, impermanence, `doctor`, `update`. Only mechanisms go in `base`, which every host imports.
+Upstream ships mechanisms, your fork chooses policy. Ask one question of any setting: could two forks choose it differently without either being wrong?
 
-Your fork is not bound by that rule: once `nix run .#init` made it yours, it sets whatever policy it wants.
+- **Yes: it is policy.** It lives in a named profile, feature, hardware module or app that a host lists. At most, it sits behind a `mkDefault` you override without `mkForce`.
+- **No: it is a mechanism.** Every fork needs it the same way: the registry and its checks, impermanence, `doctor`, `update`. Only mechanisms go in `base`, which every host imports.
+
+Your fork is not bound by that rule. Once `nix run .#init` made it yours, it sets whatever policy it wants.
+
+## Words used here
+
+| Word | Meaning |
+|---|---|
+| module | a Nix file that adds settings; NixOS merges all modules into one system |
+| dendritic | the layout where every file under `modules/` is a module loaded on its own, with no import list |
+| registry | every host entry of the fork, `configurations.nixos.<name>` |
+| namespace | a named group a module publishes into: `features`, `apps`, `hardware`, `profiles` |
+| generation | one built version of a system; the boot menu lists the recent ones |
+| closure | a system and everything it needs from the Nix store |
+| impermanence | `/` wiped at every boot, with the state you declare kept in `/persist` ([doctor](../how-to/doctor.md#what-the-next-boot-erases)) |
 
 ## Every file is a module
 
-`flake.nix` hands the whole `modules/` tree to [import-tree](https://github.com/vic/import-tree), with [flake-parts](https://flake.parts). Every `.nix` file under `modules/` is a flake-parts module, imported on its own: adding a file adds what it defines, deleting it removes it. A path segment starting with `_` is skipped.
+`flake.nix` hands the whole `modules/` tree to [import-tree](https://github.com/vic/import-tree), with [flake-parts](https://flake.parts). Every `.nix` file under `modules/` is a flake-parts module, imported on its own. Adding a file adds what it defines, deleting it removes it. A path segment starting with `_` is skipped.
 
-A file does not import NixOS config, it publishes it under a name, in the namespace of its folder:
+A file does not import NixOS config. It publishes it under a name, in the namespace of its folder:
 
 | Folder | Publishes |
 |---|---|
@@ -26,7 +41,7 @@ A file does not import NixOS config, it publishes it under a name, in the namesp
 
 ## A host entry becomes a system
 
-A host is a registry entry in plain values ([options.md](../reference/options.md)). Each list field is resolved in its own namespace only, and a name found nowhere stops the evaluation with the names that field accepts.
+A host is a registry entry in plain values ([options.md](../reference/options.md)). Each list field is resolved in its own namespace only. A name found nowhere stops the evaluation with the names that field accepts.
 
 ```mermaid
 flowchart LR
@@ -63,4 +78,4 @@ The file `modules/hosts/my-laptop/default.nix` sets `configurations.nixos.my-lap
 
 ## Checks follow the registry
 
-Nobody lists checks: every host gets `<host>-toplevel` and a boot test, a host with `disk` an install test, and each module with a `check.nix` its own VM test. A new host or module reaches CI without touching a workflow ([reference/ci.md](../reference/ci.md#checks)).
+Nobody lists checks. Every host gets `<host>-toplevel` and a boot test, a host with `disk` an install test, and each module with a `check.nix` its own VM test. A new host or module reaches CI without touching a workflow ([reference/ci.md](../reference/ci.md#checks)).

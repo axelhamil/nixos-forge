@@ -41,7 +41,7 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 | `upgrade-notify` | `~/.local/state/upgrade-notify` |
 | `wipe-home` | `~/.local/share/systemd/timers` (missed user timers still catch up) |
 
-Declare yours in your person's `module` ([apps.md](../reference/apps.md#change-a-starter-default)), relative to your home:
+Declare yours in your person's `module` ([apps.md](../reference/apps.md#change-a-default)), relative to your home:
 
 ```nix
 users.<you>.module = {

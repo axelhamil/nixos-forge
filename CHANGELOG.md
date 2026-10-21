@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.2.2](https://github.com/axelhamil/nixos-forge/compare/v0.2.1...v0.2.2) (2026-10-21)
+
+
+### Features
+
+* **ci:** benchmark cpu, memory and disk in the perf job ([#82](https://github.com/axelhamil/nixos-forge/issues/82)) ([1580798](https://github.com/axelhamil/nixos-forge/commit/1580798a229d9f4d339476391551be0bc2623a48))
+* **ci:** flag performance regressions against the base on every pr ([#73](https://github.com/axelhamil/nixos-forge/issues/73)) ([77c734f](https://github.com/axelhamil/nixos-forge/commit/77c734f3a5797aa90ca4d0f369e84338cebc0ffa))
+* **fido2:** unlock login, sudo and the disk with a security key ([#72](https://github.com/axelhamil/nixos-forge/issues/72)) ([d3d7a94](https://github.com/axelhamil/nixos-forge/commit/d3d7a948cc3d733a5d73f880c609f72739a39afe))
+
+
+### Bug fixes
+
+* **ci:** fetch the full history before the release moves main ([#67](https://github.com/axelhamil/nixos-forge/issues/67)) ([c19fa91](https://github.com/axelhamil/nixos-forge/commit/c19fa9150da0d44ef0ecf00f44cda770f987b40b))
+* **ci:** plan perf in forks and accept overlay packages in apps ([#76](https://github.com/axelhamil/nixos-forge/issues/76)) ([d3ef06a](https://github.com/axelhamil/nixos-forge/commit/d3ef06a40d736c8ead632ca2d0180f8e5da6e47e))
+* **init:** catch a deploy key leaked into an untracked fork file ([#75](https://github.com/axelhamil/nixos-forge/issues/75)) ([173e9c6](https://github.com/axelhamil/nixos-forge/commit/173e9c6f00c92a4b11a06bd9ec0f54636e2270d8))
+* let forks override policy values without mkForce ([#77](https://github.com/axelhamil/nixos-forge/issues/77)) ([42c2319](https://github.com/axelhamil/nixos-forge/commit/42c2319b4111e99e3060afae07a54c085b353ba1))
+
+
+### Documentation
+
+* add a how-to for keeping secrets in a fork ([#81](https://github.com/axelhamil/nixos-forge/issues/81)) ([88aaa62](https://github.com/axelhamil/nixos-forge/commit/88aaa62834784dabc72b34e524e62486fa283e1a))
+* correct stale claims and make the docs readable for newcomers ([#78](https://github.com/axelhamil/nixos-forge/issues/78)) ([bc54d70](https://github.com/axelhamil/nixos-forge/commit/bc54d7038c1c2d63f844f5d473c10cb70c595ebd))
+* give forks docs that stay true after init ([#74](https://github.com/axelhamil/nixos-forge/issues/74)) ([a23ceb9](https://github.com/axelhamil/nixos-forge/commit/a23ceb9a23574a393d548004175dbf0cd7a08633))
+* one pitch, newcomer prose and an accurate roadmap ([#83](https://github.com/axelhamil/nixos-forge/issues/83)) ([b241f82](https://github.com/axelhamil/nixos-forge/commit/b241f8212279c5ca8e8ba694bc5b8d57373357ac))
+* **roadmap:** plan measured performance and docs, park mode switching ([#70](https://github.com/axelhamil/nixos-forge/issues/70)) ([bf83ab3](https://github.com/axelhamil/nixos-forge/commit/bf83ab3561983e26af104dc29603b516bb55ee96))
+
 ## [0.2.1](https://github.com/axelhamil/nixos-forge/compare/v0.2.0...v0.2.1) (2026-10-19)
 
 

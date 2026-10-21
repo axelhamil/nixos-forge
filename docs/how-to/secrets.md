@@ -13,9 +13,9 @@ This page creates the keys, writes `.sops.yaml`, encrypts a file, uses a secret 
 Every file is encrypted for a list of age public keys, its recipients, and each holder of a matching private key can decrypt it. You need two kinds:
 
 - **Yours**, on your workstation, to write and edit the files. sops reads it from `~/.config/sops/age/keys.txt`.
-- **One per machine**, read by sops-nix at boot from `/persist/var/lib/sops-nix/key.txt` (`/var/lib/sops-nix/key.txt` on a host without `disk`, such as a Pi, where nothing is wiped). The feature sets this path from `impermanence.persistPrefix`, because the secrets are decrypted during activation, before the bind mounts of `/persist` exist, and the key survives the wipe of `/`.
+- **One per machine**, read by sops-nix at boot from `/persist/var/lib/sops-nix/key.txt` (`/var/lib/sops-nix/key.txt` on a host without `disk`, such as a Pi, where nothing is wiped). The feature sets this path from `impermanence.persistPrefix`: the secrets are decrypted during activation, before the bind mounts of `/persist` exist. The key survives the wipe of `/`.
 
-The machine key is a plain age key, independent of SSH: the feature turns off sops-nix's SSH host key fallback (`sops.age.sshKeyPaths = [ ]`), so a host without `ssh` decrypts its secrets too, and an SSH host key is never converted into an age key. Nothing in the flake generates the machine key for you; you create it with `age-keygen` as below.
+The machine key is a plain age key, independent of SSH. The feature turns off sops-nix's SSH host key fallback (`sops.age.sshKeyPaths = [ ]`). So a host without `ssh` decrypts its secrets too, and an SSH host key is never converted into an age key. Nothing in the flake generates the machine key for you: you create it with `age-keygen` as below.
 
 Use post-quantum keys (`age-keygen -pq`, age 1.3 and later) for every recipient: a file is only as strong as its weakest recipient. A post-quantum public key is about 2,000 characters long.
 
@@ -88,7 +88,15 @@ module = {
 };
 ```
 
-At activation, sops-nix decrypts each declared secret to `/run/secrets/<name>`, owned by root with mode `0400`; the encrypted file is copied to the Nix store, the decrypted value never is. Point a service at that path, or at `config.sops.secrets.wifi-password.path`. Per secret, `owner`, `group` and `mode` give it to a service's user, `restartUnits` restarts units when the value changes, and `sopsFile` reads it from another file than `defaultSopsFile`; every option is in the [sops-nix README](https://github.com/Mic92/sops-nix#readme).
+At activation, sops-nix decrypts each declared secret to `/run/secrets/<name>`, owned by root with mode `0400`. The encrypted file is copied to the Nix store; the decrypted value never is. Point a service at that path, or at `config.sops.secrets.wifi-password.path`.
+
+Per secret:
+
+- `owner`, `group` and `mode` give it to a service's user;
+- `restartUnits` restarts units when the value changes;
+- `sopsFile` reads it from another file than `defaultSopsFile`.
+
+Every option is in the [sops-nix README](https://github.com/Mic92/sops-nix#readme).
 
 A user's password can move there too, instead of `/persist/passwords/<you>`. Put the hash from `mkpasswd -m yescrypt` in the file as `<you>-password`, then:
 
@@ -105,7 +113,7 @@ To give a new machine a file it should read, add its public key to the anchors a
 sops updatekeys modules/hosts/laptop/secrets.yaml
 ```
 
-It shows the recipients it adds or removes and asks before writing. Removing a key from the rule and running it again stops future versions of the file from opening with that key. A key that leaked could still open the old versions in the git history, so also change the secrets themselves, and run `sops rotate -i <file>` to change the file's data key. Snapshots of `/persist` keep the old machine key and passwords for up to 4 weeks ([services.md](../reference/services.md#snapshots-btrbk)).
+It shows the recipients it adds or removes and asks before writing. Removing a key from the rule and running it again stops future versions of the file from opening with that key. A key that leaked could still open the old versions in the git history. So also change the secrets themselves, and run `sops rotate -i <file>` to change the file's data key. Snapshots of `/persist` keep the old machine key and passwords for up to 4 weeks ([services.md](../reference/services.md#snapshots-btrbk)).
 
 Commit, push, and let the machine take the new version (`update`, `auto-upgrade` or `nixos-rebuild switch`): the secrets are decrypted again at each activation. A machine whose key is missing from a file boots without that file's secrets.
 
@@ -119,4 +127,6 @@ sudo cat /run/secrets/wifi-password
 sudo test -s /persist/var/lib/sops-nix/key.txt && echo key present
 ```
 
-A secret missing from `/run/secrets` means the machine key is not among the file's recipients, or the file was not committed: the output of `nixos-rebuild switch` shows the error sops-nix met during activation. The `feature-secrets` check proves the chain in a VM: it installs a key under `/persist`, decrypts a test file at boot, and checks the secret's content and its `400` root mode ([reference/ci.md](../reference/ci.md#checks-of-the-modules)).
+A secret missing from `/run/secrets` means the machine key is not among the file's recipients, or the file was not committed. The output of `nixos-rebuild switch` shows the error sops-nix met during activation.
+
+The `feature-secrets` check proves the chain in a VM. It installs a key under `/persist`, decrypts a test file at boot, and checks the secret's content and its `400` root mode ([reference/ci.md](../reference/ci.md#checks-of-the-modules)).

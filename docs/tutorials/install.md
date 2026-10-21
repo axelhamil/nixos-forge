@@ -1,6 +1,6 @@
 # Install on a machine
 
-From a host file to a real machine that boots, unlocks itself with the TPM2 and rolls back a bad upgrade on its own. Upstream is developed and tested in VMs; this page is the path for your fork when you install it on real hardware.
+From a host file to a real machine that boots, unlocks itself with the TPM2 and rolls back a bad upgrade on its own. Upstream is developed and tested in VMs. This page is the path for your fork when you install it on real hardware.
 
 > [!WARNING]
 > A host that lists `disk` in `features` gets the encrypted layout below, and **the install erases the whole disk it is given**. Read every step before running one.
@@ -11,7 +11,7 @@ You need:
 - a USB stick, which writing the ISO erases;
 - a machine that boots in UEFI mode.
 
-The registry never names the disk: you pick it during the install. `disk.device` defaults to `/dev/null/no-disk-chosen`, a path that can never exist, so a command run without a device fails instead of erasing a disk. The installed system mounts its partitions by label (`/dev/disk/by-partlabel/disk-main-ESP`, `disk-main-luks`), so the same build fits any disk.
+The registry (your host entries) never names the disk: you pick it during the install. `disk.device` defaults to `/dev/null/no-disk-chosen`, a path that can never exist. So a command run without a device fails instead of erasing a disk. The installed system mounts its partitions by label (`/dev/disk/by-partlabel/disk-main-ESP`, `disk-main-luks`), so the same build fits any disk.
 
 This tutorial uses the installer ISO. To install over SSH with nixos-anywhere, or by hand with disko-install, see [Install without the ISO](../how-to/install-without-iso.md).
 
@@ -23,7 +23,13 @@ Before you touch real hardware, run the whole installer of your host in a local 
 nix run .#try-install -- <host>
 ```
 
-It builds the installer ISO of the host and boots it in a machine that looks like a new one: UEFI firmware with Secure Boot in setup mode ([OVMF](https://github.com/tianocore/tianocore.github.io/wiki/OVMF), as in the `<host>-disk` checks), a software TPM2 ([swtpm](https://github.com/stefanberger/swtpm)) and a blank disk image. Answer the assistant as you will on the real machine ([step 4](#step-4-run-the-installer)): pick the only disk, type the passphrase and the passwords.
+It builds the installer ISO of the host and boots it in a machine that looks like a new one:
+
+- UEFI firmware with Secure Boot in setup mode ([OVMF](https://github.com/tianocore/tianocore.github.io/wiki/OVMF), as in the `<host>-disk` checks);
+- a software TPM2 ([swtpm](https://github.com/stefanberger/swtpm));
+- a blank disk image.
+
+Answer the assistant as you will on the real machine ([step 4](#step-4-run-the-installer)): pick the only disk, type the passphrase and the passwords.
 
 **It worked when** the installed system boots and asks for the passphrase, and, on a host with `secure-boot`, the second boot after that opens the disk without it.
 
@@ -68,7 +74,7 @@ lsblk /dev/<usb stick>
 
 Boot the stick in UEFI mode. An assistant starts on the first console:
 
-1. It lists the disks with their size and model, leaving out the stick it runs from, and asks which one to erase. It refuses when another disk already carries this layout's partition labels, since the install could format that one instead: unplug it or erase its partitions first.
+1. It lists the disks with their size and model, leaving out the stick it runs from, and asks which one to erase. It refuses when another disk already carries this layout's partition labels, since the install could format that one instead. Unplug it or erase its partitions first.
 2. It asks for the disk passphrase twice, then the password of each user of the host twice (hashed with yescrypt into `/persist/passwords/<user>`).
 3. It shows the host, the disk with its model and the users, and asks you to type the disk's name to confirm. Nothing is erased before that.
 4. It partitions with the host's disko layout, installs the prebuilt system, saves a hardware report in `/persist/facter.json` and offers to reboot.
@@ -85,7 +91,12 @@ install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file 
 
 `--yes` skips the confirmation, fails before erasing anything when a disk, passphrase or password is missing or empty, and reboots at the end unless `--no-reboot` is set. Without `--yes`, a value left out is asked for.
 
-The prebuilt system boots on common hardware: SATA, NVMe and USB disks are in the default initrd. A machine that needs more, such as an unusual disk controller, needs the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`) and a new ISO. A host that imports `secrets` needs its age key before the first boot: install it [with disko-install](../how-to/install-without-iso.md#by-hand-with-disko-install), or create the key on the installed machine and rebuild ([services.md](../reference/services.md#secrets-secrets-opt-in)).
+The prebuilt system boots on common hardware: SATA, NVMe and USB disks are in the default initrd. A machine that needs more, such as an unusual disk controller, needs two things:
+
+- the matching kernel modules in its host `module` (`boot.initrd.availableKernelModules`);
+- a new ISO.
+
+A host that imports `secrets` needs its age key before the first boot. Install it [with disko-install](../how-to/install-without-iso.md#by-hand-with-disko-install), or create the key on the installed machine and rebuild ([services.md](../reference/services.md#secrets-secrets-opt-in)).
 
 ## Step 5: check Secure Boot
 
@@ -98,7 +109,7 @@ sudo sbctl verify
 
 **It worked when** `bootctl` prints `Secure Boot: enabled (user)`: the firmware only runs what your keys signed. `sbctl verify` lists kernels under `/EFI/nixos/` as unsigned. That is expected: the signed lanzaboote stub checks them by hash.
 
-On that first boot, `systemd-bless-boot.service` fails with `Can't find boot counter source file`, since lanzaboote has just signed the boot files again under a new name, and `doctor` lists it among the failed units until the next reboot. It is harmless: the next boot blesses the fresh `+3` entry.
+On that first boot, `systemd-bless-boot.service` fails with `Can't find boot counter source file`: lanzaboote has just signed the boot files again under a new name. `doctor` lists it among the failed units until the next reboot. It is harmless, and the next boot blesses the fresh `+3` entry.
 
 If the machine later refuses to boot with a Secure Boot violation (a firmware update restored the factory keys), reset the firmware to setup mode: systemd-boot enrolls the keys from `/boot/loader/keys/auto` again.
 
@@ -113,7 +124,7 @@ sudo systemd-cryptenroll /dev/disk/by-partlabel/disk-main-luks
 
 **It worked when** the journal says `Enrolled a TPM2 token`, the list shows a `password` slot and a `tpm2` slot, and the next boot asks for no passphrase.
 
-The service does nothing when the disk already has a TPM2 token, when the machine has no TPM2, or while Secure Boot is not enforced. The token is sealed to PCR 7 (the Secure Boot state) and to PCR 15 at zero, so another boot chain, a live USB included, does not get the key.
+The service does nothing when the disk already has a TPM2 token, when the machine has no TPM2, or while Secure Boot is not enforced. The token is sealed to PCR 7 (the Secure Boot state) and to PCR 15 at zero. A PCR is a TPM register that records what booted, so another boot chain, a live USB included, does not get the key.
 
 After changing Secure Boot keys or firmware settings, PCR 7 changes and the passphrase is asked at boot. Wipe the stale token, and the service enrolls again at the next boot:
 
@@ -182,4 +193,10 @@ With `auto-upgrade`, `boot-complete.target` also requires `systemd-boot-check-no
 bootctl list
 ```
 
-An entry whose file name ends in `+<left>` or `+<left>-<done>` is still being tried, `+0-<done>` is bad and skipped, and one with no `+` is good. A bad generation stays in the menu: pick it by hand to look at its journal (`journalctl -b -1`), then fix the cause and let the next upgrade replace it. The `feature-rollback` checks prove this path on every change ([reference/ci.md](../reference/ci.md#checks-of-the-modules)).
+An entry's file name tells its state:
+
+- `+<left>` or `+<left>-<done>`: still being tried;
+- `+0-<done>`: bad, and skipped;
+- no `+`: good.
+
+A bad generation stays in the menu: pick it by hand to look at its journal (`journalctl -b -1`), then fix the cause and let the next upgrade replace it. The `feature-rollback` checks prove this path on every change ([reference/ci.md](../reference/ci.md#checks-of-the-modules)).

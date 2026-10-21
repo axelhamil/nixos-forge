@@ -1,6 +1,6 @@
-# Releases of the starter
+# Releases of nixos-forge
 
-How the starter itself (`axelhamil/nixos-forge`) publishes a release. A fork runs none of this: its `release` workflow is skipped, and it takes releases with `nix run .#upstream` ([updates.md](../explanation/updates.md#your-fork-follows-upstream)).
+How upstream (`axelhamil/nixos-forge`) publishes a release. A fork runs none of this: its `release` workflow is skipped, and it takes releases with `nix run .#upstream` ([updates.md](../explanation/updates.md#your-fork-follows-upstream)).
 
 ## Branches
 
@@ -18,12 +18,22 @@ The `release` workflow runs on every push to `develop`, only when `github.reposi
 
 Never set a version, edit `.release-please-manifest.json`, `version.txt` or `CHANGELOG.md`, or create a tag by hand. The project stays in `0.x`, every release marked as a pre-release, until the maintainer decides on `1.0.0`.
 
+## What each commit releases
+
+| Commit | While in `0.x` |
+|---|---|
+| breaking (`!` or a `BREAKING CHANGE:` footer, which must say how to migrate) | bumps the minor |
+| `feat`, `fix` | bump the patch |
+| `chore`, `ci`, `docs`, `refactor` | no release of their own |
+
+Release notes open with the breaking changes, then features, fixes, performance, documentation and reverts. `chore`, `ci`, `refactor` and `test` stay out of them (`release-please-config.json`).
+
 The release PR footer (`release-please-config.json`) points forks at `nix run .#upstream`.
 
-## Repository settings of the starter
+## Repository settings
 
 On top of what a fork sets ([ci.md](../how-to/ci.md#turn-ci-on-in-your-fork)), the ruleset on `main` lists the bot App in its bypass list, so `release` can move `main` to a release.
 
-## Where forks find the starter
+## Where forks find upstream
 
-`nix run .#upstream` falls back to `https://github.com/axelhamil/nixos-forge.git` when it gets no argument and the fork has no `upstream` remote, and the `sync-upstream` workflow to `axelhamil/nixos-forge` when the variable `UPSTREAM` is not set. `sync-upstream` never runs in the starter itself.
+`nix run .#upstream` falls back to `https://github.com/axelhamil/nixos-forge.git` when it gets no argument and the fork has no `upstream` remote, and the `sync-upstream` workflow to `axelhamil/nixos-forge` when the variable `UPSTREAM` is not set. `sync-upstream` never runs upstream itself.

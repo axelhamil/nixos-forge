@@ -7,7 +7,10 @@
 
 <h3 align="center">Not a distro. The forge where you make your own.</h3>
 
-<p align="center">nixos-forge is a NixOS configuration for your own machines that you fork and edit: CI builds, boots and installs each machine in a VM before it reaches the real one.</p>
+<p align="center">Build your own NixOS distro. Fork it, customize everything, and CI tests every machine before it reaches you: build, VM boot, install on a blank disk.</p>
+
+> [!WARNING]
+> **Work in progress.** nixos-forge is in `0.x`. Every release is a pre-release, and options, names and commands may still change. Read the [CHANGELOG](CHANGELOG.md) before you merge upstream into your fork.
 
 <div align="center">
 
@@ -54,16 +57,25 @@
 
 </div>
 
-**nixos-forge** is a NixOS flake you fork and make your own, in the spirit of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim): a readable starting point, not a framework. You describe your machines, CI proves them, and they pull what CI proved.
+**nixos-forge** is [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) for a whole NixOS distro. You fork it, describe your machines, CI proves them, and they pull only what CI proved.
 
 Why it is different:
 
-- **Every machine is proven before it reaches you.** Each host in your fork is built and booted in a VM by CI, and a host with `disk` is installed on a blank encrypted disk, rebooted and checked. No YAML to touch when you add one.
+- **CI proves every machine before it reaches you.** CI builds each host of your fork and boots it in a VM. A host with `disk` is also installed on a blank encrypted disk, rebooted and checked. You add a host, CI tests it: no YAML to write.
 - **One file per machine, and everything is in it.** Profile, features, hardware, apps and accounts are plain lists of names. No import list, no `enable = true` scattered around.
-- **Dendritic layout.** Every `.nix` file under `modules/` is a module loaded on its own. Adding a file adds the feature, deleting it removes it.
+- **One file, one module.** Every `.nix` file under `modules/` is loaded on its own (the "dendritic" pattern). Adding a file adds the feature, deleting it removes it.
 
 > [!TIP]
 > Fork it, then run `nix run .#init`. It asks a few questions, writes your first host and your person, and removes the examples you do not keep. Then [boot it in a VM](#quick-start).
+
+## Philosophy
+
+- **Proven before trusted.** CI builds every machine of your fork and boots it in a VM before any of them applies a change. A machine with `disk` is also installed on a blank encrypted disk, and goes back to the previous generation (system version) when a new one fails to boot.
+- **nixos-forge ships mechanisms, your fork chooses policy.** The forge gives you the registry of hosts, its checks, impermanence (a `/` wiped at every boot), `doctor` and `update`. Your desktop, terminal, editor or kernel is a name you list, never imposed. [More on this rule](docs/explanation/architecture.md#the-forge-rule).
+- **Your fork is sovereign.** After `nix run .#init` it is your distro. You take upstream's releases when you choose, with `nix run .#upstream`. Nothing reaches your machines without passing your own CI.
+- **Read it top to bottom.** Plain lists of names, one file per machine, one folder per tool. A mistyped name stops the build and lists the known ones.
+- **Nothing brings anything else.** An app keeps only what it cannot work without. Your terminal, launcher, bar or lock screen is always a name you listed.
+- **Secure by default, never locked in.** Encrypted disk, key-only SSH and signed deploys. Secure Boot and TPM2 when you list them, with a passphrase always kept as a fallback.
 
 ## A machine is one file
 
@@ -106,9 +118,9 @@ The words this README uses:
 }
 ```
 
-That is the whole host. It gets a `nixosConfigurations` entry, a build check, a VM boot test and, with `disk`, an installer ISO (`nix build .#installer-my-laptop`). The disk it erases is picked at install, never written in the host. Every field is in [docs/reference/options.md](docs/reference/options.md), and `module` takes any other NixOS setting.
+That is the whole host. It gets a `nixosConfigurations` entry, a build check and a VM boot test. With `disk`, it also gets an installer ISO (`nix build .#installer-my-laptop`). The disk it erases is picked at install, never written in the host. Every field is in [docs/reference/options.md](docs/reference/options.md), and `module` takes any other NixOS setting.
 
-The commented [`example`](modules/hosts/example/default.nix) host lists every profile, feature, hardware module and app the starter ships, one line each to uncomment. `example-server` shows a headless machine with `wipe-home`, `example-pi` a Raspberry Pi. Read them top to bottom and keep what you like.
+The commented [`example`](modules/hosts/example/default.nix) host lists every profile, feature, hardware module and app nixos-forge ships, one line each to uncomment. `example-server` shows a headless machine with `wipe-home`, `example-pi` a Raspberry Pi. Read them top to bottom and keep what you like.
 
 ## Quick start
 
@@ -152,7 +164,7 @@ You need Nix with flakes, and an x86_64 Linux machine with KVM to run the tests 
 
 ## What CI proves
 
-Checks are generated from the registry: a machine you add is tested without touching a workflow. Each run ends in one report per machine, in the run summary and as a single PR comment, that opens with a verdict and what to do next ([docs/how-to/ci.md](docs/how-to/ci.md#the-ci-report)).
+CI is the heart of the forge. Checks are generated from the registry, so a machine you add is tested without touching a workflow. Each run ends in one report per machine, in the run summary and as one PR comment. It opens with a verdict and what to do next ([docs/how-to/ci.md](docs/how-to/ci.md#the-ci-report)).
 
 | Check | What it proves |
 |---|---|
@@ -165,7 +177,7 @@ Checks are generated from the registry: a machine you add is tested without touc
 | `ci-promote`, `feature-auto-upgrade-signed` | `deploy/<host>` moves only once every check of that host passed, signed by CI, and a machine applies only a commit signed for it, never an older one replayed. |
 | `app-*`, `feature-*`, `profile-*`, `base-*` | Each module with a `check.nix` boots in its own VM test, from the Hyprland session to hibernate and resume, and dual boot with Windows. |
 
-Every PR also gets the package diff of each system ([nvd](https://git.sr.ht/~khumba/nvd)), its boot time beside the base's, and a performance comparison that flags regressions without blocking the merge. A nightly workflow rebuilds every system and checks it is reproducible. Every check, with when it runs, is in [docs/reference/ci.md](docs/reference/ci.md#checks).
+Every PR also gets the package diff of each system ([nvd](https://git.sr.ht/~khumba/nvd)) and its boot time beside the base's. A performance comparison flags regressions without blocking the merge. A nightly workflow rebuilds every system and checks it is reproducible. Every check, with when it runs, is in [docs/reference/ci.md](docs/reference/ci.md#checks).
 
 ## What your fork gets on day one
 
@@ -177,7 +189,7 @@ Fork it, run `nix run .#init`, [turn CI on](docs/how-to/ci.md#turn-ci-on-in-your
 - **A package diff** on every pull request.
 - **Signed deploy branches**: CI signs them with a key `init` generates, and your machines accept nothing else ([docs/how-to/ci.md](docs/how-to/ci.md#sign-the-deploy-branches)).
 - **`auto-upgrade`**, which takes only the version CI validated for that machine and, on a host with `disk`, goes back to the previous generation when the new one does not boot ([docs/explanation/updates.md](docs/explanation/updates.md)).
-- **`nix run .#upstream`**, which shows what the starter changed and prepares the merge of its release when you choose ([docs/explanation/updates.md](docs/explanation/updates.md#your-fork-follows-upstream)).
+- **`nix run .#upstream`**, which shows what upstream changed and prepares the merge of its release when you choose ([docs/explanation/updates.md](docs/explanation/updates.md#your-fork-follows-upstream)).
 
 ## What you get
 
@@ -193,7 +205,7 @@ Fork it, run `nix run .#init`, [turn CI on](docs/how-to/ci.md#turn-ci-on-in-your
 | **Performance** | `desktop`, `laptop`, `server` and `pi` profiles (kernel, sched-ext, power, zram, oomd), each bringing only what its role needs. [performance](docs/reference/performance.md) |
 | **Hardware** | firmware with CPU microcode, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/how-to/raspberry-pi.md) |
 | **Services and dev** | systemd-resolved, key-only SSH, driverless printing, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/reference/services.md), [dev](docs/reference/dev.md) |
-| **Updates** | a weekly lock PR, the starter's releases merged when you choose, `update` on a desktop, `auto-upgrade` daily on its own with only what CI validated for that machine (and, with `signers`, signed for it), and a desktop notification of what changed. [updates](docs/explanation/updates.md) |
+| **Updates** | a weekly lock PR, upstream's releases merged when you choose, `update` on a desktop, `auto-upgrade` daily on its own with only what CI validated for that machine (and, with `signers`, signed for it), and a desktop notification of what changed. [updates](docs/explanation/updates.md) |
 | **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, the last auto-upgrade, signed deploys and rollbacks, and lists what the next boot erases from `/`. [doctor](docs/how-to/doctor.md) |
 | **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, only what the cache lacks is built ([above](#what-ci-proves)). [ci](docs/how-to/ci.md) |
 
@@ -204,7 +216,7 @@ Fork it, run `nix run .#init`, [turn CI on](docs/how-to/ci.md#turn-ci-on-in-your
 | `profile` | the role: `desktop`, `laptop`, `server` or `pi` |
 | `features` | NixOS modules by name: `disk` (the encrypted layout, on the disk picked at install), `secure-boot`, `fido2`, `wipe-home`, `hibernate`, `dual-boot`, `greetd`, `plymouth`, `printing`, `ssh`, `secrets`, `docker`, `libvirt`, `nix-ld`, `auto-upgrade`, yours |
 | `apps` | an app of `modules/apps/<name>` with its config (`hyprland`, `direnv`, `firefox`, `stow`, ...), else any nixpkgs package (`kdePackages.kate` works, unfree allowed) |
-| `hardware` | a starter module (`firmware`, `audio`, `bluetooth`, `nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
+| `hardware` | a shipped module (`firmware`, `audio`, `bluetooth`, `nvidia`, `amd-gpu`, `raspberry-pi-5`, ...) or a nixos-hardware profile |
 | `users.<name>` | an account for the person of `modules/users/<name>`: `admin`, `groups` and `apps` on this machine, added to the person's |
 | `facter` | the hardware report the installer saves in `/persist/facter.json`, copied next to the host file: `./facter.json` |
 | `flake` | where the machine updates from: your checkout or `github:<you>/<fork>` |
@@ -217,7 +229,7 @@ A person (`modules/users/<name>`, every field in [docs/reference/options.md](doc
 
 **Add a feature.** Publish `features.<name>` from a file under `modules/features/<name>` and name it in `features`. Another desktop, Plasma or GNOME, plugs in as an app, a sibling of `hyprland`.
 
-**Add an app with its config** ([docs/reference/apps.md](docs/reference/apps.md)). Create `modules/apps/<name>/default.nix` and name it in `apps`. An app brings no other app: it reads their home-manager options to fit with them when they are listed. A `check.nix` with `helpers.appCheck` gives it a VM test, `app-<name>`. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the model: swap it for the browser you like the same way.
+**Add an app with its config** ([docs/reference/apps.md](docs/reference/apps.md)). Create `modules/apps/<name>/default.nix` and name it in `apps`. An app brings no other app; it reads their home-manager options to fit with them when they are listed. A `check.nix` with `helpers.appCheck` gives it a VM test, `app-<name>`. [`modules/apps/firefox`](modules/apps/firefox/default.nix) is the model to copy.
 
 ```nix
 {
@@ -227,7 +239,7 @@ A person (`modules/users/<name>`, every field in [docs/reference/options.md](doc
 }
 ```
 
-**Add your home config.** `users.<you>.module` in `modules/users/<you>` is home-manager config that follows you on every machine ([docs/reference/apps.md](docs/reference/apps.md#change-a-starter-default)). Every setting a starter app writes, its `enable` flags aside, is a default you override there without `mkForce`.
+**Add your home config.** `users.<you>.module` in `modules/users/<you>` is home-manager config that follows you on every machine ([docs/reference/apps.md](docs/reference/apps.md#change-a-default)). Every setting a shipped app writes, its `enable` flags aside, is a default you override there without `mkForce`.
 
 **Change your system.** Edit the checkout, try it with `nh os test`, switch with `nh os switch`, then commit and push so your other machines follow ([docs/explanation/updates.md](docs/explanation/updates.md#the-edit-loop)).
 
@@ -259,7 +271,7 @@ modules/
 |---|---|
 | [install](docs/tutorials/install.md) | put a host on real hardware, step by step: VM rehearsal, ISO, Secure Boot, TPM2, rollback |
 | [install without the ISO](docs/how-to/install-without-iso.md) | install over SSH with nixos-anywhere, or by hand with disko-install |
-| [updates](docs/explanation/updates.md) | follow the starter, edit and switch, let machines upgrade on their own, sign deploys |
+| [updates](docs/explanation/updates.md) | follow upstream, edit and switch, let machines upgrade on their own, sign deploys |
 | [ci](docs/how-to/ci.md) | turn CI on in your fork, read the report, rename the bot, mirror to a second forge |
 | [ci reference](docs/reference/ci.md) | every workflow and check, and the CI scripts you can run locally |
 | [apps](docs/reference/apps.md) | add an app, change a default, set up the shell, bring your dotfiles |
@@ -278,7 +290,7 @@ modules/
 
 ## Releases
 
-Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). The starter is in alpha: it stays in `0.x`, every release is a pre-release, and your fork takes each one when you run `nix run .#upstream` ([docs/explanation/updates.md](docs/explanation/updates.md#your-fork-follows-upstream)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
+Versions come from Conventional Commits through [release-please](https://github.com/googleapis/release-please). nixos-forge is in alpha. It stays in `0.x`, every release is a pre-release, and your fork takes each one when you run `nix run .#upstream` ([docs/explanation/updates.md](docs/explanation/updates.md#your-fork-follows-upstream)). Shipped lots and their CI guardrails are in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

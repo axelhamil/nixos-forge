@@ -1,10 +1,14 @@
 # Contributing
 
-Thanks for helping improve the starter. Architecture, conventions and pitfalls are in [AGENTS.md](AGENTS.md); read it before a non-trivial change. Step-by-step recipes to add an app, feature, hardware module, profile, host or input are in the [`extend-flake` skill](.agents/skills/extend-flake/SKILL.md). To try the starter first, follow the [README](README.md).
+Thanks for helping improve nixos-forge, the forge where you build your own NixOS distro.
+
+- Architecture, conventions and pitfalls are in [AGENTS.md](AGENTS.md); read it before a non-trivial change.
+- Step-by-step recipes to add an app, feature, hardware module, profile, host or input are in the [`extend-flake` skill](.agents/skills/extend-flake/SKILL.md).
+- To try nixos-forge first, follow the [README](README.md).
 
 ## Setup
 
-Fork the repository on GitHub, clone your fork and run `nix develop` once: it installs a pre-push hook (treefmt, `nix flake check --no-build`, actionlint) that runs in seconds. You need Nix with flakes, and KVM to run the boot tests.
+Fork the repository on GitHub, clone your fork and run `nix develop` once. It installs a pre-push hook (treefmt, `nix flake check --no-build`, actionlint) that runs in seconds. You need Nix with flakes, and KVM to run the boot tests.
 
 ## Before a PR
 
@@ -18,13 +22,13 @@ Fork the repository on GitHub, clone your fork and run `nix develop` once: it in
 
 New files must be `git add`ed before any `nix` command, or the flake does not see them.
 
-A new or renamed profile, feature, hardware module, app or registry field needs a line, enabled or commented out, in each of the three example hosts under `modules/hosts/` (a new person field: in `modules/users/alice`). The `example-hosts` check fails on a missing line and names it.
+A new or renamed profile, feature, hardware module, app or registry field needs a line, enabled or commented out, in each of the three example hosts under `modules/hosts/`. A new person field needs one in `modules/users/alice`. The `example-hosts` check fails on a missing line and names it.
 
 `modules/flake/docs/pending.txt` lists known docs violations waiting for a fix. It may only shrink: fix a violation rather than adding it, and delete the line of one you fixed.
 
 ## Commit messages
 
-[Conventional Commits](https://www.conventionalcommits.org/) drive releases through release-please. While in `0.x`, a breaking change (`!` or a `BREAKING CHANGE:` footer, which must say how to migrate) bumps the minor, `feat` and `fix` bump the patch, and `chore`, `ci`, `docs` and `refactor` do not release. Release notes open with the breaking changes, then features, fixes, performance, documentation and reverts; `chore`, `ci`, `refactor` and `test` stay out of them. Never set a version, edit `CHANGELOG.md` or create a tag by hand.
+Use [Conventional Commits](https://www.conventionalcommits.org/): they drive releases through release-please. A breaking change (`!` or a `BREAKING CHANGE:` footer) must say how to migrate. Never set a version, edit `CHANGELOG.md` or create a tag by hand. What each type releases is in [docs/maintenance/releases.md](docs/maintenance/releases.md#what-each-commit-releases).
 
 ```text
 feat: add a server profile

@@ -23,7 +23,7 @@ Plan about 15 minutes. Steps 1 and 2 are enough for CI to build and test every p
    - tick **Restrict creations**, **Restrict updates**, **Restrict deletions** and **Block force pushes**.
 
    Without the App on the bypass list, `promote` prints `refused` with GitHub's reason.
-8. **Environment `deploy`, with the signing key (recommended)**. In Settings, Environments, New environment: name it `deploy`, and under Deployment branches and tags choose Selected branches and add `main`. Add the environment secret `DEPLOY_SIGNING_KEY` with the private key file `nix run .#init` names, then `shred -u` that file ([why](#sign-the-deploy-branches)). Only the `promote` job runs in that environment, so no other job, and no branch but `main`, can read the key.
+8. **Environment `deploy`, with the signing key (recommended)**. In Settings, Environments, New environment, name it `deploy`. Under Deployment branches and tags, choose Selected branches and add `main`. Add the environment secret `DEPLOY_SIGNING_KEY` with the private key file `nix run .#init` names, then `shred -u` that file ([why](#sign-the-deploy-branches)). Only the `promote` job runs in that environment, so no other job and no branch but `main` can read the key.
 9. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token.
    - Every job pulls from it with the token, so a private cache works too. Pushes and PRs from a branch of this repository write what they built, except sources and images (SD card, ISO, disk, VM), so the push after a merge rebuilds nothing.
    - A PR from another fork and an upstream sync PR (`chore/sync-upstream-*`) read the cache but never get the token, so code nobody here wrote cannot poison it before review.
@@ -47,7 +47,7 @@ The comment is posted by the bot App, so it shows under the App's name ([rename 
 - A PR open when the App was set up keeps its old `github-actions` comment as it was, and the App posts a new one below, which every later run rewrites. Delete the old one by hand if it gets in the way.
 - A run that falls back to `github-actions` updates that identity's comment instead, and the next run with the App updates the App's again.
 
-The job runs `ci-report` from the base branch of the PR (the pushed commit on a push), never from the PR itself. It reads the machines and the check descriptions from the outputs of the `plan` job. A PR whose flake does not evaluate still gets its report: `The flake did not evaluate, so nothing was built or tested.`, with a pointer to the `plan` job log that names the file and line.
+The job runs `ci-report` from the base branch of the PR (the pushed commit on a push), never from the PR itself. It reads the machines and the check descriptions from the outputs of the `plan` job. A PR whose flake does not evaluate still gets its report. It says `The flake did not evaluate, so nothing was built or tested.` and points to the `plan` job log, which names the file and line.
 
 Because the report comes from the base branch, a new section of the report appears from the first PR opened after the change that adds it is merged.
 
@@ -61,12 +61,20 @@ A comment over 64 KiB is cut and points to the run summary, which holds up to 1 
 - `The binary cache was unreachable: everything was built from scratch.`: Cachix did not answer, so the run was slower than usual.
 - `Checks that compile a kernel run after the merge.`: a PR never compiles a kernel; the push to `develop` after the merge builds those checks.
 - `N checks were skipped: they already passed with the same code.`: their result is already in the binary cache.
-- **One table per machine**, with each check, what it proves and its result: `passed`, `failed`, `unstable`, `did not finish` (the job was cancelled or hit its time limit before its first attempt ended), or `skipped` with the reason. A retry cut by the time limit keeps the `failed` result and the excerpt of the first attempt. A check that runs on two systems gets one row per system.
+- **One table per machine**, with each check, what it proves and its result:
+  - `passed`, `failed` or `unstable`;
+  - `did not finish`: the job was cancelled or hit its time limit before its first attempt ended;
+  - `skipped`, with the reason.
+
+  A retry cut by the time limit keeps the `failed` result and the excerpt of the first attempt. A check that runs on two systems gets one row per system.
 - **Module checks**, folded, with the same columns; the block opens by itself when one of them failed.
-- **Boot time**: for each machine with a `<host>-boots` check, the `systemd-analyze` total and userspace time, beside the same values on the base revision (the PR's base, or the previous commit on a push). `ci-boot-time` reads the base's values from the binary cache. A value is `n/a` when the check was skipped as already passed, when the base's test is not in the cache, or when the boot did not finish within 120 s. There is no threshold: a shared CI VM is noisy, so read the trend over several runs.
+- **Boot time**: for each machine with a `<host>-boots` check, the `systemd-analyze` total and userspace time, beside the same values on the base revision (the PR's base, or the previous commit on a push). `ci-boot-time` reads the base's values from the binary cache. A value is `n/a` when the check was skipped as already passed, the base's test is not in the cache, or the boot did not finish within 120 s. There is no threshold: a shared CI VM is noisy, so read the trend over several runs.
 - **Performance against the base**, on a PR ([below](#performance-against-the-base)).
 - **Screenshots**: every check whose VM test took a screenshot (`machine.screenshot`) lists its images and the artifact that holds them, `screenshot-<system>-<check>`, kept 7 days. They are evidence to look at, never compared.
-- **What went wrong**: for each failed check, the likely cause and what to do, read from `modules/flake/ci/causes.tsv` (the first row whose pattern matches a line of the excerpt wins), the excerpt of the log (the last 20 distinct lines that name an error, each with the two lines before it), and a link to the full log.
+- **What went wrong**, for each failed check:
+  - the likely cause and what to do, read from `modules/flake/ci/causes.tsv` (the first row whose pattern matches a line of the excerpt wins);
+  - the excerpt of the log: the last 20 distinct lines that name an error, each with the two lines before it;
+  - a link to the full log.
 - **Package changes per machine**, folded, on a PR: the nvd diff of each host against the base branch.
 
 ### Performance against the base
@@ -156,16 +164,19 @@ How the key is kept:
 
 ## Mirror to a second forge
 
-The `mirror` workflow copies `main` and the `deploy/*` branches to another forge (Codeberg, a Forgejo, Gitea or GitLab instance, or another GitHub repository), which machines list in their `mirrors` ([updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own)). It runs on every push to `main` and to `deploy/*`. The `promote` job pushes `deploy/*` with the App token, and pushes made with an App token trigger workflows, unlike those made with `GITHUB_TOKEN`, so each promotion reaches the mirror. Runs queue one after the other, and each one pushes the branches as they are when it starts.
+The `mirror` workflow copies `main` and the `deploy/*` branches to another forge (Codeberg, a Forgejo, Gitea or GitLab instance, or another GitHub repository), which machines list in their `mirrors` ([updates.md](../explanation/updates.md#sources)). It runs on every push to `main` and to `deploy/*`. The `promote` job pushes `deploy/*` with the App token. Unlike pushes made with `GITHUB_TOKEN`, those trigger workflows, so each promotion reaches the mirror. Runs queue one after the other, and each one pushes the branches as they are when it starts.
 
-The mirror holds the fork's commits, not its inputs. While GitHub is down, a `deploy/<host>` whose `flake.lock` is the one the machine already runs builds from the mirror. One whose `flake.lock` changed, as after every weekly lock update, needs its new `github:` inputs, which neither the mirror nor the binary cache hold (Cachix keeps no sources). That build fails, the run is recorded as `failed`, and the next daily run retries.
+The mirror holds the fork's commits, not its inputs. While GitHub is down, a `deploy/<host>` whose `flake.lock` is the one the machine already runs builds from the mirror. One whose `flake.lock` changed, as after every weekly lock update, needs its new `github:` inputs. Neither the mirror nor the binary cache holds them (Cachix keeps no sources). That build fails, the run is recorded as `failed`, and the next daily run retries.
 
 To set it up:
 
 1. Set the repository variable `MIRROR_URL` to the https URL of the mirror repository.
 2. Set the secret `MIRROR_TOKEN` to an access token of the mirror's forge that can push to it.
 
-`ci-mirror` sends the token with HTTP Basic auth, as the password of the user `x-access-token`, which GitHub, GitLab, Gitea, Forgejo and Codeberg accept. The header is read from the environment, never on the command line or in the log, and sent to the mirror URL only. Without `MIRROR_URL` the workflow is skipped; without `MIRROR_TOKEN` it pushes without credentials, which suits a remote that needs none.
+`ci-mirror` sends the token with HTTP Basic auth, as the password of the user `x-access-token`; GitHub, GitLab, Gitea, Forgejo and Codeberg accept it. The header is read from the environment, never on the command line or in the log, and sent to the mirror URL only.
+
+- Without `MIRROR_URL`, the workflow is skipped.
+- Without `MIRROR_TOKEN`, it pushes without credentials, which suits a remote that needs none.
 
 `ci-mirror <url>` pushes only `main` and `deploy/*`, never `develop` or any other branch:
 

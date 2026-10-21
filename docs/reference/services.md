@@ -28,7 +28,12 @@ If your fork enables avahi, also set `MulticastDNS = false` there, so the two do
 
 ## SSH: `ssh` (opt-in)
 
-Add `ssh` to the features of a host you log into remotely. It allows public keys only (no password, no keyboard-interactive, no root login) and keeps a single ED25519 host key, in `/persist/etc/ssh` when `/` is wiped at boot so clients do not see a new key after every reboot. Key exchange is limited to the post-quantum `mlkem768x25519-sha256` and `sntrup761x25519-sha512` and to `curve25519-sha256`: the finite-field Diffie-Hellman that OpenSSH 10 stopped offering by default is refused. OpenSSH's own `PerSourcePenalties` already slows down clients that keep failing, so fail2ban is not needed.
+Add `ssh` to the features of a host you log into remotely.
+
+- It allows public keys only: no password, no keyboard-interactive, no root login.
+- It keeps a single ED25519 host key, in `/persist/etc/ssh` when `/` is wiped at boot, so clients do not see a new key after every reboot.
+- Key exchange is limited to the post-quantum `mlkem768x25519-sha256` and `sntrup761x25519-sha512`, and to `curve25519-sha256`. The finite-field Diffie-Hellman that OpenSSH 10 stopped offering by default is refused.
+- OpenSSH's own `PerSourcePenalties` already slows down clients that keep failing, so fail2ban is not needed.
 
 Add your public key to your person, in `modules/users/<you>/default.nix`, before the first remote login; it then opens every machine that gives you an account:
 
@@ -50,7 +55,7 @@ CUPS with driverless printing (IPP Everywhere): network printers are found throu
 
 ## Snapshots: btrbk
 
-Hosts with `disk` snapshot `/home` and `/persist` every hour into the `@snapshots` subvolume, mounted on `/.snapshots` (`modules/features/disk/snapshots`). A snapshot is only taken when the subvolume changed; every snapshot is kept for 2 days, then one per day for 14 days and one per week for 4 weeks. `/` is not snapshotted: it is rebuilt at every boot.
+Hosts with `disk` snapshot `/home` and `/persist` every hour into the `@snapshots` subvolume, mounted on `/.snapshots` (`modules/features/disk/snapshots`). A snapshot is only taken when the subvolume changed. Every snapshot is kept for 2 days, then one per day for 14 days and one per week for 4 weeks. `/` is not snapshotted: it is rebuilt at every boot.
 
 A snapshot sits on the same disk: it undoes a deleted file or a bad edit, it is not a backup. Restore a file by copying it back:
 

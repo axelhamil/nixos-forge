@@ -1,6 +1,6 @@
 # Install without the ISO
 
-Two other ways to install a host with `disk`, for when the [installer ISO](../tutorials/install.md) does not fit: over SSH with nixos-anywhere, or by hand from any NixOS ISO with disko-install. Both erase the whole disk they are given, and both skip the assistant: you name the disk and prepare the passphrase and the passwords yourself.
+Two other ways to install a host with `disk`, for when the [installer ISO](../tutorials/install.md) does not fit: over SSH with nixos-anywhere, or by hand from any NixOS ISO with disko-install. Both erase the whole disk they are given. Both skip the assistant: you name the disk and prepare the passphrase and the passwords yourself.
 
 | Path | When | Picks the disk with |
 |---|---|---|

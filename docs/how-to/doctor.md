@@ -1,8 +1,8 @@
 # Doctor
 
-Ask a machine how it is doing. Every host has a `doctor` command that checks the boot chain, the disk, the updates and what the next boot will erase, then tells you what to do about each problem.
+Ask a machine how it is doing. Every host has a `doctor` command. It checks the boot chain, the disk, the updates and what the next boot will erase, then says what to do about each problem.
 
-One line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feature, with a hint under each problem. Run it as `sudo doctor`: without root it skips the checks that need it and says so. It exits non-zero when a check fails.
+It prints one line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feature, with a hint under each problem. Run it as `sudo doctor`; without root it skips the checks that need it and says so. It exits non-zero when a check fails.
 
 ```text
 [  OK] Secure Boot    enforced, keys enrolled
@@ -47,11 +47,31 @@ TIME                       OUTCOME      FROM          TO            SOURCE
 
 ## What the next boot erases
 
-With `disk`, `/` is restored from an empty snapshot at every boot. Whatever NixOS creates during the boot (`/etc`, users, tmpfiles) comes back on its own, so `doctor` only lists files created or changed on `/` after `sysinit.target` was reached, outside any mount: persisted paths are bind mounts from `/persist`, and `/nix`, `/home`, `/persist`, `/boot` are their own subvolumes, so none of them shows up. Symlinks into `/etc/static` or the store and the files activation rewrites (`/etc/passwd`, the files in `/etc/.clean`) are left out, so a `nixos-rebuild switch` adds nothing to the list.
+With `disk`, `/` is restored from an empty snapshot at every boot. This is impermanence: only `/nix`, `/home`, `/persist`, `/boot` and the paths you persist survive. This section is the home page for its rules.
 
-Each line is a choice, made in the module that owns the file:
+Whatever NixOS creates during the boot (`/etc`, users, tmpfiles) comes back on its own. So `doctor` lists only files created or changed on `/` after `sysinit.target`, outside any mount. It leaves out:
+
+- persisted paths, which are bind mounts from `/persist`;
+- `/nix`, `/home`, `/persist` and `/boot`, which are their own subvolumes;
+- symlinks into `/etc/static` or the store;
+- the files activation rewrites (`/etc/passwd`, the files in `/etc/.clean`), so a `nixos-rebuild switch` adds nothing.
+
+Each line is a choice, made in the module that owns the file, never in a central list:
 
 - keep it with `environment.persistence."/persist"`;
 - or declare its loss expected with `doctor.ephemeralPaths`.
 
-The shipped modules list `/tmp`, `/var/tmp` and `/var/lib/lastlog` in `base`, tuned's runtime profile in `server`, NetworkManager's unused `wpa_supplicant` file and power-profiles-daemon's state in `desktop`, the CUPS state in `printing`, fwupd's state in `firmware` and Plymouth's boot timing in `plymouth`; a fresh boot of upstream's examples reports nothing.
+State in a home follows the same rule on a host with `wipe-home` ([wipe-home](wipe-home.md)).
+
+The shipped modules already list their own lost files:
+
+| Module | Expected losses |
+|---|---|
+| `base` | `/tmp`, `/var/tmp`, `/var/lib/lastlog` |
+| `server` | tuned's runtime profile |
+| `desktop` | NetworkManager's unused `wpa_supplicant` file, power-profiles-daemon's state |
+| `printing` | the CUPS state |
+| `firmware` | fwupd's state |
+| `plymouth` | Plymouth's boot timing |
+
+A fresh boot of upstream's examples reports nothing.

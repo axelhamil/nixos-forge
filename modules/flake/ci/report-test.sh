@@ -306,7 +306,7 @@ expect_line no-base "| example-server | n/a | n/a | n/a | n/a |"
 
 perf_side() {
   jq -n -c --argjson total "$1" --argjson userspace "$2" --argjson memory "$3" --argjson closure "$4" --argjson services "$5" \
-    '{ total: $total, userspace: $userspace, memory: $memory, services: $services } as $boot
+    '{ total: $total, userspace: $userspace, memory: $memory, services: $services, cpu: 7500, memoryBandwidth: 50000, randomRead: 50000 } as $boot
     | { min: $boot, median: $boot, closure: $closure, samples: [] }'
 }
 
@@ -348,6 +348,25 @@ expect_line perf-regressed '- `example-server`: Closure +10.0 %, +204.0 MiB (thr
 if grep -q "Boot, userspace +" perf-regressed.md; then fail "perf-regressed: a change under its threshold is flagged"; fi
 expect_line perf-regressed "| Boot, total (best) | 7.0 s | 6.0 s | -14.3 % |"
 if grep -q "Fix what is listed below" perf-regressed.md; then fail "perf-regressed: a regression turns the report red"; fi
+
+perf_run perf-benchmarks "$(jq -c '.current.median += { cpu: 7000, memoryBandwidth: 60000, randomRead: 46000 }' <<<"$steady")" \
+  "$(jq -c '.current.median += { cpu: 7600, memoryBandwidth: 45000, randomRead: 42000 }' <<<"$steady")"
+report perf-benchmarks
+expect_line perf-benchmarks "3 metrics crossed their threshold:"
+expect_line perf-benchmarks '- `example`: CPU, sysbench -6.7 %, -500.0 events/s (threshold: -5 % and -100.0 events/s).'
+expect_line perf-benchmarks '- `example-server`: Disk, 4k random read -16.0 %, -8000 IOPS (threshold: -10 % and -2000 IOPS).'
+expect_line perf-benchmarks '- `example-server`: Memory bandwidth, sysbench -10.0 %, -5000.0 MiB/s (threshold: -5 % and -1000.0 MiB/s).'
+if grep -q "Memory bandwidth, sysbench +\|example\`: Disk, 4k random read\|example-server\`: CPU" perf-benchmarks.md; then fail "perf-benchmarks: a benchmark that rose or dropped under its threshold is flagged"; fi
+expect_line perf-benchmarks "| CPU, sysbench (median) | 7500.0 events/s | 7000.0 events/s | -6.7 % |"
+expect_line perf-benchmarks "| Memory bandwidth, sysbench (median) | 50000.0 MiB/s | 60000.0 MiB/s | +20.0 % |"
+expect_line perf-benchmarks "| Disk, 4k random read (median) | 50000 IOPS | 46000 IOPS | -8.0 % |"
+expect_line perf-benchmarks "| Disk, 4k random read (median) | 50000 IOPS | 42000 IOPS | -16.0 % |"
+if grep -q "Fix what is listed below" perf-benchmarks.md; then fail "perf-benchmarks: a benchmark drop turns the report red"; fi
+
+perf_run perf-benchmarks-small "$(jq -c '.base.median.cpu = 1000 | .current.median.cpu = 940' <<<"$steady")" "$steady"
+report perf-benchmarks-small
+expect_line perf-benchmarks-small "No metric crossed its threshold."
+expect_line perf-benchmarks-small "| CPU, sysbench (median) | 1000.0 events/s | 940.0 events/s | -6.0 % |"
 
 perf_run perf-small "$(perf_pair 2.0 1.0 200 209715200 20 2.3 1.0 225 241172480 20)" "$(perf_pair 7.0 3.0 400 3155385672 20 7.0 3.0 400 3154346392 20)"
 report perf-small

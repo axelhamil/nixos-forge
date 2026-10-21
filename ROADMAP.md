@@ -50,14 +50,11 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **39. FIDO2**: opt-in `fido2`: a security key logs in, runs `sudo` and, once enrolled, unlocks the disk | `feature-fido2` on an emulated CanoKey, `apps-once`, `example-hosts`, `init` |
 | **40. Measured performance in CI**: on a PR, the base and the new generation boot in turn, and the report flags boot time, idle RAM, closure size or services past a threshold; never required by `ci-ok` | `perf-regression`, `ci-report` |
 | **41. Docs a fork owns**: `docs/` follows Diataxis behind `docs/README.md`, names no example outside `docs/maintenance/`, every module has a section; the `docs` check resolves links offline and the `init` check runs it on its forks | `docs`, `init`, `options-doc` |
+| **42. Benchmarks in the CI VM**: on a PR, each boot of the base and of the new generation also runs CPU (`sysbench cpu`), memory bandwidth (`sysbench memory`) and disk (`fio`, 4k random read) benchmarks with the same binaries on both sides, and the report flags a median that drops past its threshold; never required by `ci-ok` | `perf-regression`, `ci-report` |
 
 ## Planned
 
-In order: each lot keeps the forge rule of `AGENTS.md` (the starter ships mechanisms, forks choose policy) and lands with its guardrail.
-
-| Lot | Guardrail |
-|---|---|
-| **42. Benchmarks on real hardware**: a self-hosted runner on a real machine benchmarks each night generation N against N-1 with the Phoronix Test Suite, games with a built-in benchmark (average FPS and 1 % low through MangoHud) and scheduler latency (`cyclictest`); `forge bench` (Rust) runs the same suite on any fork's hardware, and under the `dual-boot` Windows of the same machine for a fair comparison, with results in a standard format that forks may publish opt-in to cover hardware the starter lacks | nightly `bench` on the self-hosted runner, never required by `ci-ok` |
+Nothing is planned: the next lot is picked from the ideas below.
 
 ## Later
 
@@ -65,5 +62,6 @@ Kept for when a fork asks for them; none is planned yet.
 
 | Idea | Guardrail |
 |---|---|
+| **Benchmarks on real hardware**: a self-hosted runner on a real machine benchmarks each night generation N against N-1 with the Phoronix Test Suite, games with a built-in benchmark (average FPS and 1 % low through MangoHud) and scheduler latency (`cyclictest`), which need real hardware: the CI VM has no GPU and its hypervisor schedules the vCPUs; `forge bench` (Rust) runs the same suite on any fork's hardware, and under the `dual-boot` Windows of the same machine for a fair comparison, with results in a standard format that forks may publish opt-in to cover hardware the starter lacks | nightly `bench` on the self-hosted runner, never required by `ci-ok` |
 | **Variants as the machine's modes**: host field `defaultSpecialisation` makes a variant the default boot entry; the example hosts keep only what every mode shares (hardware, audio, browser) and show commented `dev` and `gaming` variants, each with its own desktop and terminal: `hyprland`, `kitty`, `direnv`, `docker` and `libvirt` for `dev`, a second desktop app such as `gnome` with `steam`, `gamemode` and `mangohud` for `gaming`; an app listed in one variant, home-manager part included, stays out of the others | `specialisations`, `specialisations-desktops`, `app-gnome`, `example-hosts`, `init` |
 | **Hot switch between modes**: `update -s <variant>` applies a variant with another desktop without a reboot; it asks before closing an open graphical session, reads the `app-*` units uwsm started, stops the session, lets greetd log the user into the variant's desktop and relaunches the same `.desktop` entries there, so Firefox restores its tabs and Steam reconnects; window positions and what ran in a terminal are not kept; a variant whose kernel, kernel parameters, initrd or GPU driver differ from the booted system is refused with the reason and set for the next boot instead, as the example hosts' variant comment says | `specialisations-hot-switch`, from `hyprland` to the second desktop and back, the new compositor running with the apps relaunched |

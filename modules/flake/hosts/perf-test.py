@@ -1,8 +1,47 @@
 import json
+import re
 import statistics
 
 settle_seconds = 10
-metrics = ("total", "userspace", "memory", "services")
+bench_seconds = 8
+bench_threads = 2
+bench_directory = "/perf-bench"
+metrics = ("total", "userspace", "memory", "services", "cpu", "memoryBandwidth", "randomRead")
+
+
+def sysbench(vm, test, *options):
+    return vm.succeed(
+        f"{tools['sysbench']} {test} --threads={bench_threads} --time={bench_seconds} {' '.join(options)} run"
+    )
+
+
+def fio(vm, direct, *options):
+    output = vm.succeed(
+        f"{tools['fio']} --name=bench --directory={bench_directory} --filename=bench --size=256M"
+        f" --direct={direct} --ioengine=libaio --time_based --runtime={bench_seconds}"
+        f" --output-format=json {' '.join(options)}"
+    )
+    return json.loads(output[output.index("{") :])["jobs"][0]
+
+
+def benchmark(vm):
+    cpu = re.search(r"events per second:\s+([\d.]+)", sysbench(vm, "cpu"))
+    memory = re.search(
+        r"MiB transferred \(([\d.]+) MiB/sec\)",
+        sysbench(vm, "memory", "--memory-block-size=1M", "--memory-total-size=1T"),
+    )
+    if cpu is None or memory is None:
+        raise RuntimeError("unexpected sysbench output")
+
+    vm.succeed(f"mkdir -p {bench_directory}")
+    direct = 1 if vm.execute(f"dd if=/dev/zero of={bench_directory}/probe bs=4k count=1 oflag=direct")[0] == 0 else 0
+    read = fio(vm, direct, "--rw=randread", "--bs=4k", "--iodepth=16")
+    vm.succeed(f"rm -rf {bench_directory}")
+    return {
+        "cpu": round(float(cpu.group(1)), 1),
+        "memoryBandwidth": round(float(memory.group(1)), 1),
+        "randomRead": round(read["read"]["iops"]),
+    }
 
 
 def measure(host, side, round_number):
@@ -22,7 +61,7 @@ def measure(host, side, round_number):
     sample = boot_time | {
         "memory": round((memory["MemTotal"] - memory["MemAvailable"]) / 1024, 1),
         "services": int(services.strip()),
-    }
+    } | benchmark(vm)
     vm.log(f"{host} ({side}, round {round_number}): {sample}")
     vm.shutdown()
     return sample

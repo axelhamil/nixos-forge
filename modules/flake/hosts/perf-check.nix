@@ -86,10 +86,17 @@ in
             pkgs.testers.runNixOSTest {
               name = "perf-regression";
               nodes = { };
+              meta.timeout = lib.max 3600 (1200 * lib.length (lib.attrNames hosts));
               testScript = ''
                 hosts = ${builtins.toJSON (machinesOf pkgs)}
                 skipped = ${builtins.toJSON skipped}
                 rounds = ${toString rounds}
+                tools = ${
+                  builtins.toJSON {
+                    sysbench = lib.getExe pkgs.sysbench;
+                    fio = lib.getExe' pkgs.fio "fio";
+                  }
+                }
                 ${builtins.readFile ./measure-boot.py}
                 ${builtins.readFile ./perf-test.py}
               '';

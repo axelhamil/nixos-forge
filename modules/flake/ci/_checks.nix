@@ -62,7 +62,7 @@ let
     feature-dual-boot-systemd-boot = "without secure-boot, Windows on its own disk starts from the plain systemd-boot menu, with or without BitLocker or its firmware entry";
     feature-dual-boot-hook-failure = "with lanzaboote, a boot loader install that fails makes the switch fail instead of passing";
     feature-migration = "a machine running `example` from the base revision keeps its state after switching to this version";
-    perf-regression = "the base revision and this one boot in turn in one VM, measured for boot time, idle RAM, closure size and running services";
+    perf-regression = "the base revision and this one boot in turn in one VM, measured for boot time, idle RAM, closure size, running services and CPU, memory and disk benchmarks";
     feature-migration-without-disk = "an `example` host without `disk`, here or on the base, gets no migration check and still evaluates";
     feature-rollback-failed-unit = "a generation whose service fails after boot is not blessed and is rolled back";
     flake-modules = "no name is published by two namespaces";

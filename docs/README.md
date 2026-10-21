@@ -16,6 +16,7 @@ New here? Read [the README](../README.md) first, then [Install on a machine](tut
 - [FIDO2](how-to/fido2.md): log in, `sudo` and unlock the disk with a security key.
 - [Dual boot with Windows](how-to/dual-boot.md): Windows in the systemd-boot menu, under Secure Boot.
 - [Raspberry Pi](how-to/raspberry-pi.md): from a host to a flashed card, kept up to date.
+- [Secrets](how-to/secrets.md): encrypted passwords and tokens in your fork, decrypted by each machine at boot.
 - [Variants](how-to/specialisations.md): several setups of one machine, picked at boot.
 - [Doctor](how-to/doctor.md): ask a machine how it is doing.
 - [CI and repository settings](how-to/ci.md): the settings a fork needs, the report, deploy branches and mirrors.

@@ -48,7 +48,7 @@ From any NixOS installer ISO, with your fork cloned in `~/nixos`:
    mkpasswd -m yescrypt | install -m 600 /dev/stdin ~/password
    ```
 
-   On a host that imports `secrets`, create its post-quantum age key now (`age-keygen` 1.3 or later: run `nix --experimental-features 'nix-command flakes' develop ~/nixos` first to get the version your flake pins), then follow [services.md](../reference/services.md#secrets-secrets-opt-in) to encrypt the host's secrets for the public key it prints before installing:
+   On a host that imports `secrets`, create its post-quantum age key now (`age-keygen` 1.3 or later: run `nix --experimental-features 'nix-command flakes' develop ~/nixos` first to get the version your flake pins), then follow [secrets.md](secrets.md) to encrypt the host's secrets for the public key it prints before installing:
 
    ```sh
    age-keygen -pq | install -m 600 /dev/stdin ~/key.txt

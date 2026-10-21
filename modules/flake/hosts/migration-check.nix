@@ -65,7 +65,7 @@ let
           else
             "False"
         }
-        ${nextSystem.disk.unlockTestScript}
+        unlock_prompt = ${builtins.toJSON nextSystem.disk.unlockPrompt}
         ${builtins.readFile ./migration-test.py}
       '';
     };

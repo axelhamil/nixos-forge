@@ -31,18 +31,22 @@
         description = "File disko reads the LUKS passphrase from at install, without a trailing newline.";
       };
 
+      options.disk.unlockPrompt = lib.mkOption {
+        type = lib.types.str;
+        readOnly = true;
+        default =
+          if config.boot.plymouth.enable then
+            "Please enter passphrase for disk"
+          else
+            "password query on /dev/tty1";
+        description = "Console text a test waits for before it types the LUKS passphrase of the installed disk.";
+      };
+
       options.disk.unlockTestScript = lib.mkOption {
         type = lib.types.lines;
         readOnly = true;
         default = ''
-          unlock_prompt = ${
-            builtins.toJSON (
-              if config.boot.plymouth.enable then
-                "Please enter passphrase for disk"
-              else
-                "password query on /dev/tty1"
-            )
-          }
+          unlock_prompt = ${builtins.toJSON config.disk.unlockPrompt}
         ''
         + builtins.readFile ./unlock-disk.py;
         description = "Python defining `unlock_disk(machine)` and `test_passphrase` for a test that boots the installed disk and types the passphrase at the prompt this host shows.";

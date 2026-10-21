@@ -16,7 +16,7 @@ The encrypted disk layout and the wiped `/`.
 - Users immutable, their passwords read from `/persist/passwords/<user>`.
 - The TPM2 tried first to open the disk (`tpm2-device=auto`), the passphrase as fallback.
 - systemd-boot with its editor off and 3 tries for each new generation ([going back](../tutorials/install.md#going-back-to-the-previous-generation)), and a monthly btrfs scrub.
-- The options `disk.device` (the disk erased at install, `/dev/null/no-disk-chosen` by default so a forgotten device erases nothing), `disk.passphraseFile` and `disk.unlockTestScript`.
+- The options `disk.device` (the disk erased at install, `/dev/null/no-disk-chosen` by default so a forgotten device erases nothing), `disk.passphraseFile`, `disk.unlockPrompt` and `disk.unlockTestScript`.
 
 ## `secure-boot`
 

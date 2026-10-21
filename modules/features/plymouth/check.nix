@@ -19,6 +19,7 @@
           virtualisation.rootDevice = "/dev/mapper/cryptroot";
         };
       };
+    globalTimeout = 600;
     testScripts = [ ./test.py ];
   };
 }

@@ -12,13 +12,14 @@ let
     name: modules:
     {
       machine ? { },
-      qemu ? null,
-      testScripts,
-    }:
-    config.helpers.vmCheck name {
-      nodes.machine.imports = [ base ] ++ modules ++ [ machine ];
-      inherit qemu testScripts;
-    };
+      ...
+    }@check:
+    config.helpers.vmCheck name (
+      removeAttrs check [ "machine" ]
+      // {
+        nodes.machine.imports = [ base ] ++ modules ++ [ machine ];
+      }
+    );
 in
 {
   helpers.testRevision = {
@@ -30,6 +31,7 @@ in
     {
       nodes,
       qemu ? null,
+      globalTimeout ? 400,
       testScripts,
     }:
     {
@@ -40,7 +42,7 @@ in
     }:
     lib.mkIf (system == "x86_64-linux") {
       checks.${name} = pkgs.testers.runNixOSTest {
-        inherit name nodes;
+        inherit name nodes globalTimeout;
         qemu = lib.optionalAttrs (qemu != null) { package = qemu pkgs; };
         defaults = {
           imports = [ config.helpers.testRevision ];
@@ -65,24 +67,26 @@ in
     app:
     {
       machine ? { },
-      testScripts,
-    }:
-    config.helpers.vmCheck "app-${app}" {
-      nodes.machine =
-        { lib, ... }:
-        {
-          imports = [
-            base
-            (appPart app "nixos")
-            machine
-          ];
-          users.users.tester.isNormalUser = true;
-          home-manager.users.tester = {
-            imports = [ (appPart app "homeManager") ];
-            home.stateVersion = "26.05";
+      ...
+    }@check:
+    config.helpers.vmCheck "app-${app}" (
+      removeAttrs check [ "machine" ]
+      // {
+        nodes.machine =
+          { lib, ... }:
+          {
+            imports = [
+              base
+              (appPart app "nixos")
+              machine
+            ];
+            users.users.tester.isNormalUser = true;
+            home-manager.users.tester = {
+              imports = [ (appPart app "homeManager") ];
+              home.stateVersion = "26.05";
+            };
+            virtualisation.memorySize = lib.mkDefault 2048;
           };
-          virtualisation.memorySize = lib.mkDefault 2048;
-        };
-      inherit testScripts;
-    };
+      }
+    );
 }

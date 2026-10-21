@@ -6,7 +6,7 @@
 }:
 
 let
-  inherit (config.helpers) testRevision baseFlake;
+  inherit (config.helpers) testRevision baseFlake diskTest;
 
   host = "example";
 
@@ -74,7 +74,8 @@ let
     next: base:
     lib.optionalAttrs (next.config ? disko && base.config ? disko) {
       feature-migration =
-        (base.extendModules { modules = [ (migrationTest next base) ]; }).config.system.build.installTest
+        diskTest 1500
+          (base.extendModules { modules = [ (migrationTest next base) ]; }).config.system.build.installTest
         // {
           baseInput = "migration-base";
         };

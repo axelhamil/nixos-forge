@@ -1,26 +1,6 @@
-import os
-import shutil
-import tempfile
-
 machine.shutdown()
 installer = copy_store_to_disk()
-
-state = tempfile.mkdtemp()
-variables = os.path.join(state, "vars.fd")
-shutil.copyfile(firmware_vars, variables)
-os.chmod(variables, 0o644)
-
-machine = create_machine(
-    start_command=" ".join([
-        qemu,
-        "-m 1024",
-        *disks(installer, 1),
-        f"-drive if=pflash,format=raw,unit=0,readonly=on,file={firmware}",
-        f"-drive if=pflash,format=raw,unit=1,file={variables}",
-    ]),
-    name="hibernating_machine",
-)
-driver.machines_qemu.append(machine)
+machine = create_uefi_machine("hibernating_machine", machine.state_dir, "-m 1024", *disks(installer, 1))
 
 
 def boot_id():

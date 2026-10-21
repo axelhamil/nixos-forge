@@ -1,0 +1,115 @@
+name: flaky
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: flaky
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: github.repository == 'axelhamil/nixos-forge' || vars.FLAKY == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      checks: ${{ steps.plan.outputs.checks }}
+      all: ${{ steps.plan.outputs.all }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - id: plan
+        run: nix run .#ci-flaky-plan >> "$GITHUB_OUTPUT"
+
+  flaky:
+    needs: plan
+    if: needs.plan.outputs.checks != '[]'
+    name: flaky (${{ matrix.check }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.checks) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          extra_nix_config: |
+            system-features = nixos-test benchmark big-parallel kvm
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        if: vars.CACHIX_CACHE != ''
+        continue-on-error: true
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skipPush: true
+      - env:
+          SYSTEM: ${{ matrix.system }}
+          CHECK: ${{ matrix.check }}
+          RUNS: ${{ matrix.runs }}
+        run: nix run .#ci-flaky -- "$SYSTEM" "$CHECK" "$RUNS" results
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: flaky-${{ matrix.system }}-${{ matrix.check }}
+          path: results/${{ matrix.system }}-${{ matrix.check }}.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  report:
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.all != '[]' }}
+    needs: [plan, flaky]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      record: ${{ steps.record.outputs.artifact-id }}
+    env:
+      MATRIX: ${{ needs.plan.outputs.all }}
+      PLANNED: ${{ needs.plan.outputs.checks }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: flaky-*
+          path: results
+          merge-multiple: true
+      - run: nix run .#ci-flaky-report -- results history >> "$GITHUB_STEP_SUMMARY"
+      - id: record
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: record-flaky
+          path: history/flaky.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  record:
+    if: ${{ !cancelled() && needs.report.outputs.record != '' && github.ref == 'refs/heads/main' }}
+    needs: report
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: record-flaky
+          path: history
+      - run: nix run .#ci-badges -- publish history

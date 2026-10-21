@@ -15,12 +15,13 @@ jobs:
   mirror:
     if: vars.MIRROR_URL != ''
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: cachix/install-nix-action@v31
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
       - env:
           MIRROR_URL: ${{ vars.MIRROR_URL }}
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}

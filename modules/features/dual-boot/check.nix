@@ -6,7 +6,7 @@
 }:
 
 let
-  inherit (config.helpers) testRevision secureMachineScript;
+  inherit (config.helpers) testRevision secureMachineScript diskTest;
   inherit (config) base features;
 
   dualBootTest =
@@ -112,11 +112,15 @@ in
     { system, pkgs, ... }:
     {
       checks = lib.optionalAttrs (system == "x86_64-linux") {
-        feature-dual-boot = (dualBootMachine system "separate-disk" true).config.system.build.installTest;
+        feature-dual-boot =
+          diskTest 2500
+            (dualBootMachine system "separate-disk" true).config.system.build.installTest;
         feature-dual-boot-same-disk =
-          (dualBootMachine system "same-disk" true).config.system.build.installTest;
+          diskTest 2200
+            (dualBootMachine system "same-disk" true).config.system.build.installTest;
         feature-dual-boot-systemd-boot =
-          (dualBootMachine system "separate-disk" false).config.system.build.installTest;
+          diskTest 1500
+            (dualBootMachine system "separate-disk" false).config.system.build.installTest;
         feature-dual-boot-hook-failure = failingHook system pkgs;
       };
     };

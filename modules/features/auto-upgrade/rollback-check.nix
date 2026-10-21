@@ -6,7 +6,11 @@
 }:
 
 let
-  inherit (config.helpers) testRevision storeOnDiskTest;
+  inherit (config.helpers)
+    testRevision
+    storeOnDiskTest
+    diskTest
+    ;
   inherit (config) base features;
 
   failures = {
@@ -55,18 +59,7 @@ let
 
   rollbackTest =
     failure:
-    {
-      lib,
-      pkgs,
-      config,
-      ...
-    }:
-    let
-      qemu = import "${pkgs.path}/nixos/lib/qemu-common.nix" {
-        inherit lib;
-        inherit (pkgs) stdenv;
-      };
-    in
+    { lib, config, ... }:
     {
       imports = [ storeOnDiskTest ];
 
@@ -77,16 +70,11 @@ let
           failed_unit = "${failure.unit}.service"
           idle_units = ${builtins.toJSON failure.idle}
         ''
-        + (
+        + builtins.readFile (
           if config.boot ? lanzaboote && config.boot.lanzaboote.enable then
-            builtins.readFile ./rollback-secure-machine.py
+            ./rollback-secure-machine.py
           else
-            ''
-              qemu = "${qemu.qemuBinary pkgs.qemu_test}"
-              firmware = "${pkgs.OVMF.firmware}"
-              firmware_vars = "${pkgs.OVMF.variables}"
-              ${builtins.readFile ./rollback-machine.py}
-            ''
+            ./rollback-machine.py
         )
         + builtins.readFile ./rollback-test.py
       );
@@ -124,12 +112,15 @@ in
     {
       checks = lib.optionalAttrs (system == "x86_64-linux") {
         feature-rollback =
-          (upgradingMachine system failures.boot-check [ ]).config.system.build.installTest;
+          diskTest 2400
+            (upgradingMachine system failures.boot-check [ ]).config.system.build.installTest;
         feature-rollback-secure-boot =
-          (upgradingMachine system failures.boot-check [ features.secure-boot ])
-          .config.system.build.installTest;
+          diskTest 3000
+            (upgradingMachine system failures.boot-check [ features.secure-boot ])
+            .config.system.build.installTest;
         feature-rollback-failed-unit =
-          (upgradingMachine system failures.failed-unit [ ]).config.system.build.installTest;
+          diskTest 2400
+            (upgradingMachine system failures.failed-unit [ ]).config.system.build.installTest;
       };
     };
 }

@@ -13,6 +13,7 @@ Plan about 15 minutes. Steps 1 and 2 are enough for CI to build and test every p
    - Give it the repository permissions **Contents** and **Pull requests**, read and write, and preferably **Workflows** too ([why](#validated-versions-per-machine)).
    - Generate a private key and install the App on your fork.
    - Set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key.
+   - Until `BOT_CLIENT_ID` is set, the lock PR, `sync-develop` and `promote` are skipped. Each job asks its token for the permissions it uses only ([list](../reference/ci.md#workflow-security)), so granting more to the App widens nothing but `sync-develop` and `sync-upstream`.
 4. **Allow auto-merge and merge commits**: Settings, General, "Allow auto-merge" (the lock PR) and "Allow merge commits" (the upstream PRs).
 5. **Ruleset on `main`**: require a pull request and the `ci-ok` status check. Without a required check, auto-merge merges at once.
 6. **Ruleset on `develop`**: block deletions and force pushes, or "Automatically delete head branches" deletes `develop` when a `develop` into `main` PR merges.
@@ -28,6 +29,8 @@ Plan about 15 minutes. Steps 1 and 2 are enough for CI to build and test every p
    - Every job pulls from it with the token, so a private cache works too. Pushes and PRs from a branch of this repository write what they built, except sources and images (SD card, ISO, disk, VM), so the push after a merge rebuilds nothing.
    - A PR from another fork and an upstream sync PR (`chore/sync-upstream-*`) read the cache but never get the token, so code nobody here wrote cannot poison it before review.
    - Without a cache, every run builds every check, and PRs never build kernels.
+10. **Flaky VM tests (optional)**: set the repository variable `FLAKY` to `true` to run the nightly `flaky` workflow, which measures how often each changed VM test passes ([why](#find-flaky-vm-tests)). It is off in a fork by default: a lock update costs about 1,000 runner minutes.
+11. **Nightly reproducibility (optional)**: set the repository variable `REPRODUCIBILITY` to `true` to run the `reproducibility` workflow every night ([what it checks](../reference/ci.md#reproducibility)). Without it, the job is skipped in a fork and costs no runner minute.
 
 Scheduled workflows and Dependabot only run from the default branch, so they start once the workflows are on `main`.
 
@@ -72,7 +75,7 @@ A comment over 64 KiB is cut and points to the run summary, which holds up to 1 
 - **Performance against the base**, on a PR ([below](#performance-against-the-base)).
 - **Screenshots**: every check whose VM test took a screenshot (`machine.screenshot`) lists its images and the artifact that holds them, `screenshot-<system>-<check>`, kept 7 days. They are evidence to look at, never compared.
 - **What went wrong**, for each failed check:
-  - the likely cause and what to do, read from `modules/flake/ci/causes.tsv` (the first row whose pattern matches a line of the excerpt wins);
+  - the likely cause and what to do, read from `modules/flake/ci/causes.tsv` (the first row whose pattern matches a line of the excerpt wins). A substitute Nix could not download from the binary cache is reported as `the binary cache could not be reached`, to rerun with nothing to fix; CI never retries it by itself, and a failing test or builder in the same excerpt keeps its own cause;
   - the excerpt of the log: the last 20 distinct lines that name an error, each with the two lines before it;
   - a link to the full log.
 - **Package changes per machine**, folded, on a PR: the nvd diff of each host against the base branch.
@@ -109,6 +112,14 @@ On a PR, the `perf` job boots the base revision's generation and this one in tur
 
 - A value is `n/a` when one side was not measured. The section is left out on a push, or when the job failed or produced nothing readable.
 - The raw samples are in the `perf-<system>` artifact. The base is the `migration-base` input, overridden by `ci-build --base` with the PR's base commit.
+
+## Find flaky VM tests
+
+A VM test that fails once and passes on its retry is marked unstable in the report, but one run says little. The nightly `flaky` workflow runs each VM test whose derivation changed 5 times and writes every pass rate to its run summary ([reference](../reference/ci.md#flaky-vm-checks)). It never blocks a merge.
+
+It runs upstream only. To run it in your fork, set the repository variable `FLAKY` to `true`. A night with no change costs about 2 minutes, a night after a lock update about 1,000 runner minutes, which a private repository pays from its quota.
+
+A check under 100 % fails on code that did not change: read the log of its failed run in that job, fix the wait or the timing it depends on, and run the workflow by hand from the Actions tab to confirm. A failing derivation is measured again every night until it passes.
 
 ## Rename the bot
 

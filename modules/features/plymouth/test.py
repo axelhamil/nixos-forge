@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 encrypted = "/run/current-system/specialisation/encrypted"
 
-machine.wait_for_unit("multi-user.target")
+machine.wait_for_unit("multi-user.target", timeout=timedelta(minutes=5))
 machine.succeed("systemctl show -p Result plymouth-quit.service | grep -qx Result=success")
 machine.succeed("journalctl -b -o cat _PID=1 | grep -q 'Show Plymouth Boot Screen'")
 
@@ -12,8 +14,8 @@ machine.succeed("sync")
 machine.crash()
 
 machine.start()
-machine.wait_for_console_text("Please enter passphrase for disk cryptroot")
+machine.wait_for_console_text("Please enter passphrase for disk cryptroot", timeout=timedelta(minutes=5))
 machine.send_chars("secretsecret\n")
-machine.wait_for_unit("multi-user.target")
+machine.wait_for_unit("multi-user.target", timeout=timedelta(minutes=5))
 machine.succeed("findmnt -no SOURCE / | grep -qx /dev/mapper/cryptroot")
 machine.succeed("journalctl -b -o cat | grep -q 'Started Forward Password Requests to Plymouth'")

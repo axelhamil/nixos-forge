@@ -18,12 +18,18 @@ let
 
   jobsOn =
     system:
-    map (check: {
-      inherit check system;
-      runner = runners.${system};
-      retry = config.flake.checks.${system}.${check} ? driver;
-      baseInput = config.flake.checks.${system}.${check}.baseInput or null;
-    }) (buildChecksOn system);
+    map (
+      check:
+      let
+        vm = config.flake.checks.${system}.${check} ? driver;
+      in
+      {
+        inherit check system vm;
+        runner = runners.${system};
+        retry = vm;
+        baseInput = config.flake.checks.${system}.${check}.baseInput or null;
+      }
+    ) (buildChecksOn system);
 
   kernelsOn =
     system:
@@ -45,6 +51,11 @@ let
 
   matrix = lib.concatMap jobsOn config.systems;
 
+  flakyMatrix = map (job: {
+    inherit (job) check system runner;
+    inherit (config.flake.checks.${job.system}.${job.check}) drvPath;
+  }) (lib.filter (job: job.vm) matrix);
+
   descriptions = lib.genAttrs (lib.unique (
     map (job: job.check) matrix
     ++ [
@@ -55,7 +66,12 @@ let
 in
 {
   flake.ci = {
-    inherit matrix hostChecks descriptions;
+    inherit
+      matrix
+      flakyMatrix
+      hostChecks
+      descriptions
+      ;
     hosts = lib.genAttrs config.systems hostNamesOn;
     kernels = lib.genAttrs config.systems kernelsOn;
     closureMatrix = map (system: {
@@ -65,12 +81,18 @@ in
     perfMatrix = map (system: {
       inherit system;
       runner = runners.${system};
-      inherit (config.flake.checks.${system}.perf-regression) baseInput;
+      inherit (config.flake.checks.${system}.perf-regression) baseInput timeout;
     }) (lib.filter (system: config.flake.checks.${system} ? perf-regression) config.systems);
   };
 
   perSystem =
     { pkgs, ... }:
+    let
+      flakyHistory = import ./_ci-flaky-history.nix {
+        inherit pkgs;
+        inherit (pkgs) nix;
+      };
+    in
     {
       packages.closure-diff = pkgs.writeShellApplication {
         name = "closure-diff";
@@ -94,6 +116,15 @@ in
       packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
 
       packages.ci-badges = import ./_ci-badges.nix { inherit pkgs; };
+
+      packages.ci-flaky = import ./_ci-flaky.nix {
+        inherit pkgs;
+        inherit (pkgs) nix;
+      };
+
+      packages.ci-flaky-plan = flakyHistory.plan;
+
+      packages.ci-flaky-report = flakyHistory.report;
 
       packages.ci-boot-time = pkgs.writeShellApplication {
         name = "ci-boot-time";

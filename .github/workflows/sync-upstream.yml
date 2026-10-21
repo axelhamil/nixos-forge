@@ -5,27 +5,30 @@ on:
   schedule:
     - cron: "0 7 * * 1"
 
-permissions:
-  contents: read
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+permissions: {}
 
 jobs:
   sync:
     if: github.repository != 'axelhamil/nixos-forge' && vars.SYNC_UPSTREAM == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 30
     steps:
       - id: bot
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.BOT_CLIENT_ID }}
           private-key: ${{ secrets.BOT_PRIVATE_KEY }}
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           fetch-depth: 0
           token: ${{ steps.bot.outputs.token }}
-      - uses: cachix/install-nix-action@v31
+          persist-credentials: true
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
       - env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
           UPSTREAM: ${{ vars.UPSTREAM || 'axelhamil/nixos-forge' }}

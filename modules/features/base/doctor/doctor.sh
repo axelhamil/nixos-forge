@@ -451,10 +451,59 @@ lost_files() {
     awk -F '\t' '
       FNR == NR { owned[$0] = 1; next }
       $1 == "l" && $2 ~ "^(/etc/static|/nix/store)/" { next }
-      $1 == "l" && $2 ~ "^(/|(\\.\\./)+)run(/|$)" { next }
       $3 in owned { next }
       { print $3 }
     ' <(activation_owned) - | sort || true
+}
+
+boot_setup_end() {
+  systemctl show --timestamp=us+utc \
+    -p Id,InactiveExitTimestamp,InactiveExitTimestampMonotonic,ActiveEnterTimestamp,ActiveEnterTimestampMonotonic \
+    systemd-tmpfiles-setup.service sysinit.target |
+    awk -v max_clock_step=2000000 '
+      BEGIN {
+        RS = ""
+        FS = "\n"
+        properties["InactiveExitTimestamp"]
+        properties["ActiveEnterTimestamp"]
+      }
+
+      function clock_offset(property, parts) {
+        if (split(stamp[property], parts, /[ :.-]/) < 9 || stamp[property "Monotonic"] + 0 == 0) {
+          return ""
+        }
+        return mktime(parts[2] " " parts[3] " " parts[4] " " parts[5] " " parts[6] " " parts[7], 1) * 1000000 + parts[8] - stamp[property "Monotonic"]
+      }
+
+      {
+        delete stamp
+        for (i = 1; i <= NF; i++) {
+          split($i, pair, "=")
+          stamp[pair[1]] = substr($i, length(pair[1]) + 2)
+        }
+
+        for (property in properties) {
+          offset = clock_offset(property)
+          if (offset != "" && (latest == "" || offset > latest)) {
+            latest = offset
+          }
+        }
+
+        if (stamp["Id"] == "sysinit.target") {
+          reached = stamp["ActiveEnterTimestampMonotonic"]
+          offset_at_reached = clock_offset("ActiveEnterTimestamp")
+        }
+      }
+
+      END {
+        end = reached + latest
+        if (end > reached + offset_at_reached + max_clock_step) {
+          end = reached + offset_at_reached + max_clock_step
+        }
+        seconds = int(end / 1000000)
+        printf "@%d.%06d\n", seconds, end - seconds * 1000000
+      }
+    '
 }
 
 check_impermanence() {
@@ -464,7 +513,7 @@ check_impermanence() {
   fi
 
   local since
-  since=$(systemctl show --timestamp=us+utc -P ActiveEnterTimestamp sysinit.target)
+  since=$(boot_setup_end)
 
   local scope=""
   if ! is_root; then

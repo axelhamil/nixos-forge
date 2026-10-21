@@ -5,24 +5,32 @@ on:
   schedule:
     - cron: "0 6 * * 1"
 
+concurrency:
+  group: update-flake-lock
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
   update:
+    if: vars.BOT_CLIENT_ID != ''
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
       - id: bot
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.BOT_CLIENT_ID }}
           private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - id: update
-        uses: DeterminateSystems/update-flake-lock@v29
+        uses: DeterminateSystems/update-flake-lock@da03c0f078bc4b2c37ee4f7e072d34bf8f188bb3 # v29
         with:
           base: main
           branch: chore/update-flake-lock
@@ -38,4 +46,5 @@ jobs:
       - if: steps.update.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
-        run: gh pr merge ${{ steps.update.outputs.pull-request-number }} --auto --squash --delete-branch
+          PR_NUMBER: ${{ steps.update.outputs.pull-request-number }}
+        run: gh pr merge "$PR_NUMBER" --auto --squash --delete-branch

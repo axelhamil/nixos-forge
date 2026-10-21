@@ -1,3 +1,4 @@
+from datetime import timedelta
 import shlex
 
 monitor_log = "/home/tester/notify.log"
@@ -27,7 +28,7 @@ def monitored():
 
 def notifications_after(probe):
     as_tester(f"notify-send {probe} probe")
-    machine.wait_until_succeeds(f"grep -q '\"{probe}\"' {monitor_log}", timeout=60)
+    machine.wait_until_succeeds(f"grep -q '\"{probe}\"' {monitor_log}", timeout=timedelta(minutes=1))
     return monitored().count('"System updated"')
 
 
@@ -39,7 +40,7 @@ def start_session(probe):
     machine.wait_for_unit("multi-user.target")
     machine.wait_until_succeeds("systemctl --user -M tester@ is-active default.target")
     machine.succeed("systemd-run --user -M tester@ --unit=notification-stub /run/current-system/sw/bin/notification-stub")
-    machine.wait_until_succeeds(tester_command("busctl --user status org.freedesktop.Notifications"), timeout=60)
+    machine.wait_until_succeeds(tester_command("busctl --user status org.freedesktop.Notifications"), timeout=timedelta(minutes=1))
     machine.succeed(
         "systemd-run --user -M tester@ --unit=notify-monitor /bin/sh -c"
         f" 'exec /run/current-system/sw/bin/dbus-monitor --session type=method_call,interface=org.freedesktop.Notifications,member=Notify >> {monitor_log}'"

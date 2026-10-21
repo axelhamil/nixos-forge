@@ -66,6 +66,25 @@
         }
 
         (lib.optionalAttrs (options ? disko) {
+          disko.tests.extraConfig.systemd = {
+            tmpfiles.rules = [ "f /var/lib/doctor-boot-state 0644 root root - written at boot" ];
+            services.doctor-clock-step-back = {
+              wantedBy = [ "sysinit.target" ];
+              after = [ "systemd-tmpfiles-setup.service" ];
+              before = [ "sysinit.target" ];
+              unitConfig.DefaultDependencies = false;
+              serviceConfig = {
+                Type = "oneshot";
+                RemainAfterExit = true;
+              };
+              script = ''
+                ${lib.optionalString pkgs.stdenv.hostPlatform.isx86_64 "${pkgs.kmod}/bin/modprobe rtc_cmos"}
+                stepped=$(($(date +%s%N) - 1500000000))
+                date -s "@$((stepped / 1000000000)).$(printf %09d $((stepped % 1000000000)))"
+              '';
+            };
+          };
+
           disko.tests.extraChecks = lib.mkMerge [
             (lib.mkOrder 1300 (builtins.readFile ./disk-test.py))
             (lib.mkIf (secureBoot && pkgs.stdenv.hostPlatform.isx86_64) (

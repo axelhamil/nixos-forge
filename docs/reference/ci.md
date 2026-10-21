@@ -10,18 +10,33 @@ The source of truth is the flake itself: `nix eval --json .#ci.descriptions` pri
 |---|---|---|
 | `check` | every PR, push to `main` and `develop`; a newer push cancels the running check of its PR or of `develop`, never of `main` | Lints the flake, then plans the build with `ci-plan`: checks already in the binary cache are skipped. Builds each remaining check on a runner of its system (`ubuntu-24.04` with KVM, or `ubuntu-24.04-arm`) and retries a failed VM test once. On a PR, it also computes the package diff per system ([nvd](https://git.sr.ht/~khumba/nvd)) and measures the base revision against this one in the `perf` job. It ends with one report ([how-to/ci.md](../how-to/ci.md#the-ci-report)); `ci-ok` sums up the result, without waiting for `perf`. On a push to `main`, `promote` moves `deploy/<host>` for every machine whose checks all passed, and `badges` publishes the live badges. |
 | `mirror` | push to `main` or `deploy/*`, when `MIRROR_URL` is set | Pushes `main` and every `deploy/<host>` to a second forge ([how-to/ci.md](../how-to/ci.md#mirror-to-a-second-forge)). |
-| `reproducibility` | every day 03:00 UTC, or by hand | Rebuilds the system of every `x86_64-linux` machine and compares it ([below](#reproducibility)). On `main`, it publishes the `reproducibility` badge. Informational: `ci-ok` never waits for it. |
-| `update-flake-lock` | Monday 06:00 UTC, or by hand | Opens a PR updating `flake.lock` against `main`, with auto-merge on. Its body lists the inputs that moved. |
-| `sync-develop` | push to `main` | Merges `main` into `develop` with the App token, so `check` runs on the merged `develop`. |
+| `flaky` | every day 01:00 UTC, or by hand; upstream, or a fork whose repository variable `FLAKY` is `true` | Runs each `x86_64-linux` VM test whose derivation changed 5 times on the same commit and reports each one that did not pass all of its runs ([below](#flaky-vm-checks)). On `main`, it records the results in `flaky.json` on the `badges` branch. Informational: `ci-ok` never waits for it. |
+| `reproducibility` | every day 03:00 UTC, or by hand; upstream, or a fork whose repository variable `REPRODUCIBILITY` is `true` | Rebuilds the system of every `x86_64-linux` machine and compares it ([below](#reproducibility)). On `main`, it publishes the `reproducibility` badge. Informational: `ci-ok` never waits for it. |
+| `update-flake-lock` | Monday 06:00 UTC, or by hand, when `BOT_CLIENT_ID` is set | Opens a PR updating `flake.lock` against `main`, with auto-merge on. Its body lists the inputs that moved. |
+| `sync-develop` | push to `main`, when `BOT_CLIENT_ID` is set | Merges `main` into `develop` with the App token, so `check` runs on the merged `develop`. |
 | `sync-upstream` | Monday 07:00 UTC, or by hand; forks only, when the repository variable `SYNC_UPSTREAM` is `true` | Runs `nix run .#upstream -- --yes` on `main` and opens the PR that merges upstream's latest release ([updates.md](../explanation/updates.md#your-fork-follows-upstream)). The variable `UPSTREAM` (`owner/repo`) points it at another upstream repository. |
 | `release` | push to `develop`, upstream only | Skipped in a fork. |
-| Dependabot | weekly | Updates GitHub Actions versions, with PRs against `develop`. |
+| Dependabot | weekly | Updates the pinned GitHub Actions in one grouped PR against `develop`, only to versions released at least 7 days ago. |
+
+### Workflow security
+
+The workflows follow GitHub's [security hardening guide](https://docs.github.com/en/actions/reference/security/secure-use), the [OpenSSF Scorecard](https://github.com/ossf/scorecard/blob/main/docs/checks.md) checks and the [zizmor](https://docs.zizmor.sh/audits/) audits:
+
+- **Least privilege.** Each workflow grants `GITHUB_TOKEN` `contents: read` at most, or nothing where it uses the App token alone (`release`, `sync-develop`, `sync-upstream`); a write scope is set on the one job that needs it (`report`: `pull-requests: write`; `badges`, `reproducibility` and the `record` job of `flaky`: `contents: write`, to push the `badges` branch). App tokens ask for the permissions their job uses: `report` **Pull requests**, `promote` **Contents**, `update-flake-lock` **Contents** and **Pull requests**, `release` **Contents**, **Issues** and **Pull requests**, as [release-please-action](https://github.com/googleapis/release-please-action#workflow-permissions) lists, plus **Workflows** to move `main`. `sync-develop` and `sync-upstream` take what the installation grants, since the merge they push may change `.github/workflows/`, which needs **Workflows** on an App that may lack it; `.github/zizmor.yml` records these two exceptions.
+- **Pinned actions.** Every action is pinned to a full commit SHA with its tag in a trailing comment, and Dependabot keeps both current.
+- **Credentials.** `actions/checkout` keeps its token in the git config only in jobs that push (`promote`, `badges`, `reproducibility`, `release`, `sync-develop`, `sync-upstream`, the `record` job of `flaky`) or fetch the `badges` branch of a repository that may be private (the `plan` and `report` jobs of `flaky`, with a `contents: read` token), and says so with `persist-credentials: true`; every other job sets `false`.
+- **No expression in a script.** `run:` lines read event data, matrix values and step outputs from `env:`, never from `${{ }}`.
+- **Bounded runs.** Every job has a `timeout-minutes`; a newer run cancels an older `check` (except on `main`) or `reproducibility`, while the workflows that push serialize in their own `concurrency` group. Jobs whose variable is unset (`BOT_CLIENT_ID`, `MIRROR_URL`, `SYNC_UPSTREAM`, `FLAKY` and `REPRODUCIBILITY` in a fork) are skipped, never started.
+
+`GH_TOKEN=$(gh auth token) nix run nixpkgs#zizmor -- .github/workflows .github/dependabot.yml` audits them, and reports nothing.
 
 A check that compiles a kernel is only evaluated in a PR, and built on the push to `develop` or `main` after the merge. A newer push to `develop` cancels that build, and its own run starts it again, since nothing was cached. `main` never cancels, so a release always builds every kernel.
 
 ## Checks
 
 Every host gets its checks from the registry, so a new host reaches CI without touching a workflow.
+
+Every VM test has a time budget, its `globalTimeout`, about 3 times its longest green run in CI: 400 seconds for a module test, 800 for `<host>-boots`, 1400 for `<host>-installer`, 1500 for `<host>-disk` and `<host>-wipe-home`, 2000 per measured host for `perf-regression`, whose derivation timeout adds 10 minutes and whose `perf` job, from the `timeout` of `ci.perfMatrix`, 60. A test past its budget fails with `timeout reached; test terminating`, before the derivation and job limits, and the report says which wait never ended. A wait that can hang on something outside the test script (console text, a password prompt, the firmware, a long `nix copy` or install) has its own timeout below the budget, and no test waits for a fixed delay.
 
 ### Checks of each host
 
@@ -59,6 +74,7 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 | `fork-overrides` | always, on `x86_64-linux` | plain definitions in a host's `module` override the default policy values of the shipped modules without `mkForce`, `nvidia` with a nixos-hardware profile keeps that profile's NVIDIA choice, and a Raspberry Pi with `firmware` and `plymouth` evaluates |
 | `hyprland-alone` | always, on `x86_64-linux` | `hyprland` alone evaluates and binds no key to an app or to audio the host lacks; with `kitty`, `fuzzel`, `lock` and the `audio` hardware module it binds them all |
 | `flake-modules` | always, on `x86_64-linux` | no name is published by two namespaces |
+| `vm-launchers` | on `x86_64-linux` | every test script under `modules/` that starts its own QEMU machine goes through `machine_command` of `helpers.testMachineScript`, which turns off QEMU's default network card so the firmware never boots over PXE: a call of a `create_*machine` launcher not defined under `modules/` (disko's `create_test_machine` included) must pass `start_command=machine_command(...)`; the check names each file and line that does not, and proves it on fixtures |
 | `facter` | always, on `x86_64-linux` | a host with `facter` set to a sample report turns on nixpkgs' facter module |
 | `options-doc` | always | `docs/reference/options.md` matches the registry options |
 | `docs` | always, on `x86_64-linux` | every relative link and `#anchor` of `README.md` and `docs/` resolves (lychee, offline); every page of `docs/` is in `docs/README.md`; no page outside `docs/maintenance/` names upstream's examples or repository, unless the line says `<!-- docs-check: allow <name> -->`; every app, feature, hardware module and profile has a heading or first table cell naming it. Violations listed in `modules/flake/docs/pending.txt` pass, and a listed one that no longer fails stops the check |
@@ -71,7 +87,8 @@ Every host gets its checks from the registry, so a new host reaches CI without t
 | `ci-promote` | always, on `x86_64-linux` | `deploy/<host>` moves only when every check of that host passed, never backwards, and with `DEPLOY_SIGNING_KEY` only to a promotion commit signed by that key; a tip the key did not sign is replaced with a warning |
 | `ci-mirror` | always, on `x86_64-linux` | `main` and every `deploy/<host>` reach the mirror and nothing else does, a deploy branch moved back in the fork follows on the mirror, and the `MIRROR_TOKEN` header is sent |
 | `ci-report` | always, on `x86_64-linux` | `ci-build` keeps a clean log excerpt and retries a VM test once; `ci-report` turns sample runs into the right verdict, tables, failure causes, boot times and performance sections, with the hosts left out of the performance comparison and their reason |
-| `ci-badges` | always, on `x86_64-linux` | `ci-badges` turns sample runs into the right badges, and a publish keeps the badges it does not write |
+| `ci-badges` | always, on `x86_64-linux` | `ci-badges` turns sample runs into the right badges, a publish keeps the badges it does not write, a read prints a published file, and both stop when the `badges` branch cannot be fetched |
+| `ci-flaky` | always, on `x86_64-linux` | with stand-ins for `nix` and a local `origin`, `ci-flaky` records every run of a check without stopping at a failure, counts a rebuild whose output differs as a pass, never counts the first build and calls `nix build --rebuild` only once the check is realised; `ci-flaky-plan` plans nothing and without evaluating the flake on a tree already measured green, skips a derivation recorded with 5 passing runs, measures a failing or missing one again, measures everything when `flaky.json` is missing or malformed, and stops, saying so, when the `badges` branch cannot be fetched; `ci-flaky-report` lists every check, the skipped ones as not rerun, fails on a check under 100 % or without result, and records the tree only when every check passed |
 | `reproducibility` | always, on `x86_64-linux` | with a stand-in for `nix`, `reproducibility` reports an identical rebuild, shows the diffoscope lines of a differing one without failing, and fails only when a system does not build |
 | `try-install` | always, on `x86_64-linux` | `nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything |
 | `upstream` | always, on `x86_64-linux` | `nix run .#upstream` lists upstream's breaking changes and merges its release into a branch whose PR lists the upstream commits, or stops cleanly on a conflict |
@@ -87,23 +104,43 @@ VM tests run on `x86_64-linux` only: they need KVM, and GitHub's arm64 Linux run
 
 A difference now and then is expected. The job stays green, and its summary shows diffoscope's first 200 lines for each machine that differs. It fails only when a system does not build.
 
+## Flaky VM checks
+
+The nightly `flaky` workflow measures how often each VM test passes on code that does not change. `nix eval --json .#ci.flakyMatrix` lists the checks it may run: every NixOS VM test (the checks whose `vm` is true in `ci.matrix`, all on `x86_64-linux` today), each with its system, its runner and its `drvPath`.
+
+It runs upstream, and in a fork only when the repository variable `FLAKY` is `true`; otherwise the `if:` of the `plan` job, its only gate, skips every job. It measures only what changed, from the record `flaky.json` on the `badges` branch: the tree of the last commit measured with every check green, and the runs of each derivation.
+
+- When the checked-out tree is the one recorded, `plan` stops before evaluating anything and the other jobs are skipped.
+- Otherwise, a check whose `drvPath` is recorded with 5 passing runs is not rerun. A derivation that failed, or wrote no result, is measured again every night until it passes.
+- A missing or malformed `flaky.json` is ignored: every check is measured. A `badges` branch that cannot be fetched stops `plan` and `report` with that reason, since measuring every check again would cost a night after a lock update.
+
+Each check to measure gets its own job, with up to 300 minutes. The job realises the check once, from the binary cache or by building it, and that first build is not counted. It then runs `nix build --rebuild` 5 times, so the test itself runs again each time on the same inputs, and never stops at a failure. A rebuild whose output differs from the first one (a screenshot, a boot time) still passed. When the check could not be realised, each run builds it plainly until one passes.
+
+The `report` job writes a table to the run summary: every check, its pass rate and its median time, marked `(not rerun, unchanged)` when it comes from the record. Below it, one sentence names each check under 100 % or without result, or says `Every VM check passed all of its runs.` The job fails only in the first case. On `main`, the `record` job, the only one allowed to write, publishes the new `flaky.json` to the `badges` branch; it runs only when `report` uploaded one, so a report that could not read the record, or stopped before writing it, never replaces it.
+
+A night with no change costs one plan job of about 2 minutes. A night after a lock update changes every derivation and runs all 46 VM tests of upstream, about 1,000 runner minutes: about 180 minutes per round of every test, 5 rounds, plus each job's setup; the longest job, `feature-rollback-secure-boot`, takes about 2 and a half hours.
+
 ## Running the CI scripts locally
 
 The matrix and scripts live in Nix (`modules/flake/ci/`), so they run the same on your machine.
 
 | Command | What it does |
 |---|---|
-| `nix eval --json .#ci.matrix` | every check with its system, runner and `retry` (true for a NixOS VM test), except `treefmt` (the `lint` job) and `perf-regression` (listed by `nix eval --json .#ci.perfMatrix`) |
+| `nix eval --json .#ci.matrix` | every check with its system, runner, `vm` (true for a NixOS VM test) and `retry` (true for a VM test, whose failure CI rebuilds once), except `treefmt` (the `lint` job) and `perf-regression` (listed by `nix eval --json .#ci.perfMatrix`, with its `baseInput` and its job `timeout` in minutes) |
 | `nix eval --json .#ci.descriptions` | what each check proves, as the report says it |
 | `nix eval --json .#ci.hostChecks` | the checks of each host, the exact list the report groups them by |
 | `nix run .#ci-plan -- pull_request` | plan a run as CI does (`pull_request` or `push`), skipping what your store or substituters hold |
 | `nix build -L .#checks.x86_64-linux.<host>-boots` | build one check |
-| `nix run .#ci-build -- x86_64-linux <host>-boots results --retry` | build one check as CI does and write `results/x86_64-linux-<host>-boots.json`: the outcome, the attempts, an excerpt of a failing log, the boot time and screenshots of a passing check. With `--retry`, a failure is rebuilt once and a pass on the second attempt is `unstable`. `--base-input <input> --base <flake-ref>` overrides that input of the check, as CI does for a check whose plan names a `baseInput`; a commit of all zeros keeps the locked input |
+| `nix run .#ci-build -- x86_64-linux <host>-boots results --retry` | build one check as CI does and write `results/x86_64-linux-<host>-boots.json`: the outcome, the attempts, an excerpt of a failing log, the boot time and screenshots of a passing check. With `--retry`, a failure is rebuilt once and a pass on the second attempt is `unstable`. `--base-input <input> --base <flake-ref>` overrides that input of the check, as CI does for a check whose plan names a `baseInput`; a commit of all zeros keeps the locked input. CI passes them as environment instead: `RETRY=true` for `--retry`, `BASE_INPUT` with `BASE_SHA` for `--base-input $BASE_INPUT --base github:$GITHUB_REPOSITORY/$BASE_SHA`, an empty `BASE_INPUT` overriding nothing |
 | `nix run .#ci-boot-time -- <flake ref> results/base` | read the boot time of every `<host>-boots` of `<flake ref>` that the binary cache or your store already holds, without building, into `results/base/boot-time.json`, which `ci-report` shows as the base |
+| `nix eval --json .#ci.flakyMatrix` | the checks the `flaky` workflow may run, with their system, runner and `drvPath` |
+| `nix run .#ci-flaky-plan` | print the `checks` (to run, with `runs`) and `all` outputs of the `flaky` plan, from the record on the `badges` branch of `origin` |
+| `nix run .#ci-flaky -- x86_64-linux <check> 5 results` | realise one check, then rebuild it 5 times and write `results/x86_64-linux-<check>.json`: `{ check, system, runs: [{ passed, seconds }] }`; it always exits 0 once the runs are done |
+| `MATRIX=<all> PLANNED=<checks> nix run .#ci-flaky-report -- results history` | print the Markdown table and sentences of the `flaky` workflow from the results in `results/` and the record of the `badges` branch, and write the new record to `history/flaky.json`; exits 1 when a check did not pass all of its runs or wrote no result |
 | `nix run .#reproducibility [-- <host>...]` | rebuild each host's system (every host of your platform by default) and print a Markdown summary; exits 1 only when a system does not build |
 | `HOST_CHECKS=$(nix eval --json .#ci.hostChecks) DESCRIPTIONS=$(nix eval --json .#ci.descriptions) RESULTS_DIR=results nix run .#ci-report` | write the report of the results in `results/` to stdout; `--comment` cuts it to fit a PR comment. `PLANNED` and `SKIPPED` take the `checks` and `skipped` JSON of `ci-plan`; `CACHE_OUTCOME`, `LINT_RESULT` and `PLAN_RESULT` the outcome of the cache step, the lint job and the plan job; `RUN_URL` the link to the run |
-| `RESULTS_DIR=results HOST_CHECKS=... PLANNED=... SKIPPED=... LINT_RESULT=success nix run .#ci-badges -- checks badges` | write the shields endpoint files of a run to `badges/`; `reproducibility <summary.md> badges` writes `reproducibility.json`; `publish badges` commits `badges/` to the `badges` branch of `origin` |
+| `RESULTS_DIR=results HOST_CHECKS=... PLANNED=... SKIPPED=... LINT_RESULT=success nix run .#ci-badges -- checks badges` | write the shields endpoint files of a run to `badges/`; `reproducibility <summary.md> badges` writes `reproducibility.json`; `publish badges` commits `badges/` to the `badges` branch of `origin`; `read flaky.json` prints that file of the branch, and exits 3 when the branch or the file is missing, 1 when the branch cannot be fetched |
 | `HOST_CHECKS=$(nix eval --json .#ci.hostChecks) PLANNED='[...]' SKIPPED='[...]' nix run .#ci-promote -- results <sha>` | move each `deploy/<host>` of `origin` to `<sha>` when every check of that host in `results/` passed; `DEPLOY_SIGNING_KEY` takes the private key that signs the promotion commits |
 | `MIRROR_TOKEN=<token> nix run .#ci-mirror -- <mirror url>` | push `main` and every `deploy/<host>` as `origin` held them at the last fetch, pruning the deploy branches `origin` no longer has; `MIRROR_TOKEN` is optional |
-| `nix run .#closure-diff -- <base rev or branch>` | package diff of the hosts in `nix eval --json .#ci.hosts` for the current platform |
+| `nix run .#closure-diff -- <base rev or branch>` | package diff of the hosts in `nix eval --json .#ci.hosts` for the current platform; with `BUILD=false` (or `--no-build`), as the `closure` job sets it when a kernel is not cached, it only says why nothing was built |
 | `nix run .#sync-develop` | merge `main` into `develop` and push, from a checkout of `develop` |

@@ -41,7 +41,7 @@ with subtest("NixOS installs in the free space beside Windows, over an old LUKS 
     installer.succeed("sync")
     installer.shutdown()
 
-machine = create_test_machine(oldmachine=installer, name="beside_machine")
+machine = create_uefi_machine("beside_machine", installer.state_dir, "-m 1024", shared_store, *disks(installer, 1))
 machine.start()
 unlock_disk(machine)
 machine.wait_for_unit("multi-user.target")

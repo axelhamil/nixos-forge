@@ -1,6 +1,3 @@
-from subprocess import run as run_on_host
-
-
 def windows_digest(m=None):
     m = m or machine
     contents = [f"sha256sum < {windows_disk}{n}" for n in windows_content]
@@ -16,19 +13,7 @@ def wait_for_nixos(m=None):
 
 
 def start_uefi_machine(name, *drives):
-    run_on_host([prepare_secure_machine, state], check=True)
-    m = create_machine(
-        start_command=" ".join([
-            secure_machine,
-            "-virtfs local,path=/nix/store,security_model=none,mount_tag=nix-store",
-            *disks(installer, 1),
-            f"-drive if=pflash,format=raw,unit=1,file={state}/vars.fd",
-            f"-chardev socket,id=chrtpm,path={state}/swtpm/socket.ctrl",
-            *drives,
-        ]),
-        name=name,
-    )
-    driver.machines_qemu.append(m)
+    m = create_secure_machine(name, state, installer, shared_store, *drives)
     m.start(allow_reboot=True)
     m.connected = False
     wait_for_nixos(m)

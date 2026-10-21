@@ -35,7 +35,7 @@ plan=$(
     )) as $all
     | {
         checks: [$all[] | select(.build) | del(.cached, .kernel, .build)],
-        skipped: [$all[] | select(.build | not) | { check, system, retry, reason: (if .cached then "cached" else "compiles a kernel" end) }],
+        skipped: [$all[] | select(.build | not) | { check, system, vm, reason: (if .cached then "cached" else "compiles a kernel" end) }],
         closures: [$closures[] | . as $closure | . + { build: (any($all[]; .system == $closure.system and .kernel and (.cached | not)) | not) }]
       }
   '

@@ -84,7 +84,6 @@ jobs:
       - env:
           SYSTEM: ${{ matrix.system }}
           CHECK: ${{ matrix.check }}
-          RETRY: ${{ matrix.retry }}
           BASE_INPUT: ${{ matrix.baseInput }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: nix run .#ci-build -- "$SYSTEM" "$CHECK" results

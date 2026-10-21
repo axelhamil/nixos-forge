@@ -32,7 +32,7 @@ verdicts=$(
     | .key as $host
     | [ .value[] as $check
         | ([ $statuses[] | select(.check == $check) | .status ] | if . == [] then [ "did not finish" ] else . end)[]
-        | select(IN("passed", "unstable") | not) as $status
+        | select(. != "passed") as $status
         | "\($check) \($status)" ] as $kept
     | if $kept == [] then "\($host)\tpromote" else "\($host)\tkept: \($kept | unique | join(", "))" end
   '

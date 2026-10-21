@@ -224,7 +224,6 @@ else
   | ($all | map(select(bad))) as $bad
   | ($bad | map(.check)) as $badNames
   | ([ $hosts | to_entries[] | select(any(.value[]; IN($badNames[]))) | .key ] | sort) as $badHosts
-  | ($all | map(select(.status == "unstable")) | length) as $unstable
   | ($all | map(select(.status == "skipped" and .reason == "cached")) | length) as $cached
   | ($all | map(select(.check | IN($hostCheckNames[]) | not))) as $modules
   | ($bad | length) as $nbad
@@ -242,7 +241,6 @@ else
       end
     ) as $verdict
   | [ $verdict, "", (if $nbad == 0 then ready else toFix end), "" ]
-    + (if $unstable > 0 then [ "\($unstable) \(plural($unstable; "test passed only on its second try and is"; "tests passed only on their second try and are")) marked unstable.", "" ] else [] end)
     + (if $cache == "failure" then [ "The binary cache was unreachable: everything was built from scratch.", "" ] else [] end)
     + (if any($skipped[]; .reason == "compiles a kernel") then [ "Checks that compile a kernel run after the merge.", "" ] else [] end)
     + (if $cached > 0 then [ "\($cached) \(plural($cached; "check was skipped: it already passed with the same code"; "checks were skipped: they already passed with the same code")).", "" ] else [] end)
@@ -256,7 +254,7 @@ else
   | . + (
       if $modules == [] then []
       else
-        ([ "passed", "unstable", "failed", "did not finish", "skipped" ]
+        ([ "passed", "failed", "did not finish", "skipped" ]
          | map(. as $s | ($modules | map(select(.status == $s)) | length) as $n | select($n > 0) | "\($n) \($s)")
          | join(", ")) as $counts
         | [ (if any($modules[]; bad) then "<details open>" else "<details>" end),

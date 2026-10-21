@@ -39,7 +39,7 @@ results() {
   rm -rf "$dir"
   mkdir -p "$dir"
   jq -c '.[]' <<<"$PLANNED" | while read -r job; do
-    jq '{ check, system, outcome: "passed", attempts: 1, excerpt: [] }' <<<"$job" >"$dir/$(jq -r '.system + "-" + .check' <<<"$job").json"
+    jq '{ check, system, outcome: "passed", excerpt: [] }' <<<"$job" >"$dir/$(jq -r '.system + "-" + .check' <<<"$job").json"
   done
   while [ $# -gt 0 ]; do
     if [ "$2" = missing ]; then
@@ -52,7 +52,7 @@ results() {
   done
 }
 
-results ../first example-boots unstable example-server-boots failed
+results ../first example-server-boots failed
 status=0
 "$CI_PROMOTE" ../first "$b" >first.out 2>&1 || status=$?
 [ "$status" -eq 0 ] || fail "promoting B exits with $status: $(cat first.out)"

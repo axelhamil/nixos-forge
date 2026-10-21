@@ -26,7 +26,6 @@ let
       {
         inherit check system vm;
         runner = runners.${system};
-        retry = vm;
         baseInput = config.flake.checks.${system}.${check}.baseInput or null;
       }
     ) (buildChecksOn system);

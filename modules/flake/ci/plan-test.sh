@@ -31,8 +31,8 @@ EVALUATED=$PLAN/evaluated.jsonl
 
 plan pull_request pr.out
 [ "$(names pr.out checks)" = '["example-boots","feature-migration","example-pi-sd-image"]' ] || fail "pull_request: wrong checks: $(output pr.out checks)"
-expect pr.out skipped '. == [{"check":"example-toplevel","system":"x86_64-linux","retry":false,"reason":"compiles a kernel"},{"check":"docs","system":"x86_64-linux","retry":false,"reason":"cached"}]'
-expect pr.out checks '.[0] == {"check":"example-boots","system":"x86_64-linux","runner":"ubuntu-24.04","retry":true,"baseInput":null,"timeout":60}'
+expect pr.out skipped '. == [{"check":"example-toplevel","system":"x86_64-linux","vm":false,"reason":"compiles a kernel"},{"check":"docs","system":"x86_64-linux","vm":false,"reason":"cached"}]'
+expect pr.out checks '.[0] == {"check":"example-boots","system":"x86_64-linux","runner":"ubuntu-24.04","vm":true,"baseInput":null,"timeout":60}'
 expect pr.out checks '.[1].baseInput == "migration-base"'
 expect pr.out closures '. == [{"system":"x86_64-linux","runner":"ubuntu-24.04","build":false},{"system":"aarch64-linux","runner":"ubuntu-24.04-arm","build":true}]'
 expect pr.out perf ". == $(jq -c . "$PLAN/perfMatrix.json")"
@@ -44,7 +44,7 @@ grep -qxF -- '- `example-toplevel` (x86_64-linux): compiles a kernel' pr.out.sum
 plan push push.out
 [ "$(names push.out checks)" = '["example-toplevel","example-boots","feature-migration","example-pi-sd-image"]' ] || fail "push: wrong checks: $(output push.out checks)"
 expect push.out checks '.[0].timeout == 240'
-expect push.out skipped '. == [{"check":"docs","system":"x86_64-linux","retry":false,"reason":"cached"}]'
+expect push.out skipped '. == [{"check":"docs","system":"x86_64-linux","vm":false,"reason":"cached"}]'
 
 MATRIX=$PLAN/matrix-without-base.json
 EVALUATED=$PLAN/cached.jsonl

@@ -106,7 +106,7 @@ A difference now and then is expected. The job stays green, and its summary show
 
 ## Flaky VM checks
 
-The nightly `flaky` workflow measures how often each VM test passes on code that does not change. `nix eval --json .#ci.flakyMatrix` lists the checks it may run: every NixOS VM test (the checks whose `vm` is true in `ci.matrix`, all on `x86_64-linux` today), each with its system, its runner and its `drvPath`.
+The nightly `flaky` workflow measures how often each VM test passes on code that does not change. `nix eval --json .#ci.flakyMatrix` lists the checks it may run: every NixOS VM test (the checks whose `vm` is true in `ci.matrix`, all on `x86_64-linux` today), each with its system and its runner. It leaves out each check's `drvPath`, which would make one evaluation hold every VM test at once: `plan` reads them from `nix-eval-jobs`, as `ci-plan` does, and adds them to the matrix it prints.
 
 It runs upstream, and in a fork only when the repository variable `FLAKY` is `true`; otherwise the `if:` of the `plan` job, its only gate, skips every job. It measures only what changed, from the record `flaky.json` on the `badges` branch: the tree of the last commit measured with every check green, and the runs of each derivation.
 
@@ -133,7 +133,7 @@ The matrix and scripts live in Nix (`modules/flake/ci/`), so they run the same o
 | `nix build -L .#checks.x86_64-linux.<host>-boots` | build one check |
 | `nix run .#ci-build -- x86_64-linux <host>-boots results --retry` | build one check as CI does and write `results/x86_64-linux-<host>-boots.json`: the outcome, the attempts, an excerpt of a failing log, the boot time and screenshots of a passing check. With `--retry`, a failure is rebuilt once and a pass on the second attempt is `unstable`. `--base-input <input> --base <flake-ref>` overrides that input of the check, as CI does for a check whose plan names a `baseInput`; a commit of all zeros keeps the locked input. CI passes them as environment instead: `RETRY=true` for `--retry`, `BASE_INPUT` with `BASE_SHA` for `--base-input $BASE_INPUT --base github:$GITHUB_REPOSITORY/$BASE_SHA`, an empty `BASE_INPUT` overriding nothing |
 | `nix run .#ci-boot-time -- <flake ref> results/base` | read the boot time of every `<host>-boots` of `<flake ref>` that the binary cache or your store already holds, without building, into `results/base/boot-time.json`, which `ci-report` shows as the base |
-| `nix eval --json .#ci.flakyMatrix` | the checks the `flaky` workflow may run, with their system, runner and `drvPath` |
+| `nix eval --json .#ci.flakyMatrix` | the checks the `flaky` workflow may run, with their system and runner; `ci-flaky-plan` adds each `drvPath` from `nix-eval-jobs` |
 | `nix run .#ci-flaky-plan` | print the `checks` (to run, with `runs`) and `all` outputs of the `flaky` plan, from the record on the `badges` branch of `origin` |
 | `nix run .#ci-flaky -- x86_64-linux <check> 5 results` | realise one check, then rebuild it 5 times and write `results/x86_64-linux-<check>.json`: `{ check, system, runs: [{ passed, seconds }] }`; it always exits 0 once the runs are done |
 | `MATRIX=<all> PLANNED=<checks> nix run .#ci-flaky-report -- results history` | print the Markdown table and sentences of the `flaky` workflow from the results in `results/` and the record of the `badges` branch, and write the new record to `history/flaky.json`; exits 1 when a check did not pass all of its runs or wrote no result |

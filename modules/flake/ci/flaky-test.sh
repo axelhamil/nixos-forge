@@ -44,16 +44,30 @@ git -C repo remote add origin "$PWD/origin.git"
 git -C repo push -q origin main
 
 job() {
-  jq -n -c --arg check "$1" --arg drv "$2" '{ check: $check, system: "x86_64-linux", runner: "ubuntu-24.04", drvPath: ("/nix/store/" + $drv + ".drv") }'
+  jq -n -c --arg check "$1" '{ check: $check, system: "x86_64-linux", runner: "ubuntu-24.04" }'
+}
+
+evaluated() {
+  jq -n -c --arg attr "$1" --arg drv "$2" '{ attr: $attr, drvPath: ("/nix/store/" + $drv + ".drv") }'
 }
 
 {
-  job steady s1
-  job flaky f1
-  job changed c2
-  job new n1
+  job steady
+  job flaky
+  job changed
+  job new
 } | jq -s . >matrix.json
 export MATRIX_FILE=$PWD/matrix.json
+
+{
+  evaluated x86_64-linux.new n1
+  evaluated x86_64-linux.treefmt t1
+  evaluated x86_64-linux.changed c2
+  evaluated x86_64-linux.flaky f1
+  evaluated x86_64-linux.steady s1
+  evaluated aarch64-linux.steady a1
+} >evaluated.jsonl
+export EVALUATED_FILE=$PWD/evaluated.jsonl
 
 record() {
   jq -n -c --arg drv "$1" --arg check "$2" --argjson passed "$3" \

@@ -51,10 +51,7 @@ let
 
   matrix = lib.concatMap jobsOn config.systems;
 
-  flakyMatrix = map (job: {
-    inherit (job) check system runner;
-    inherit (config.flake.checks.${job.system}.${job.check}) drvPath;
-  }) (lib.filter (job: job.vm) matrix);
+  flakyMatrix = map (job: { inherit (job) check system runner; }) (lib.filter (job: job.vm) matrix);
 
   descriptions = lib.genAttrs (lib.unique (
     map (job: job.check) matrix
@@ -90,7 +87,7 @@ in
     let
       flakyHistory = import ./_ci-flaky-history.nix {
         inherit pkgs;
-        inherit (pkgs) nix;
+        inherit (pkgs) nix nix-eval-jobs;
       };
     in
     {

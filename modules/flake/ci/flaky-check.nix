@@ -15,9 +15,19 @@
         nix = fakeNix;
       };
 
+      fakeEvalJobs = pkgs.writeShellApplication {
+        name = "nix-eval-jobs";
+        runtimeInputs = [ pkgs.coreutils ];
+        text = ''
+          echo "nix-eval-jobs $*" >>"$STATE/calls"
+          cat "$EVALUATED_FILE"
+        '';
+      };
+
       flakyHistory = import ./_ci-flaky-history.nix {
         inherit pkgs;
         nix = fakeNix;
+        nix-eval-jobs = fakeEvalJobs;
       };
 
       test = pkgs.writeShellApplication {

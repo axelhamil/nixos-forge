@@ -21,7 +21,7 @@ while IFS=$'\t' read -r name path; do
     continue
   fi
 
-  if cachix pin "$cache" "$name" "$path" --keep-revisions 3; then
+  if nix copy --from "https://$cache.cachix.org" "$path" && cachix pin "$cache" "$name" "$path" --keep-revisions 3; then
     echo "pinned $name $path"
   else
     echo "failed to pin $name $path" >&2

@@ -11,6 +11,8 @@ if [ -z "${CACHIX_AUTH_TOKEN:-}" ]; then
 fi
 
 pins=$(nix eval --json .#ci.kernelPins)
+rows=$(jq -r '.[] | [.name, .path] | @tsv' <<<"$pins")
+[ -n "$rows" ] || exit 0
 
 failed=0
 while IFS=$'\t' read -r name path; do
@@ -25,6 +27,6 @@ while IFS=$'\t' read -r name path; do
     echo "failed to pin $name $path" >&2
     failed=1
   fi
-done < <(jq -r '.[] | [.name, .path] | @tsv' <<<"$pins")
+done <<<"$rows"
 
 exit "$failed"

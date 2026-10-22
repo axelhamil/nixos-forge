@@ -50,6 +50,7 @@ let
     ci-promote = "a machine's deploy branch moves only once every check of that machine passed, signed when CI holds the key, never on a tip the key did not sign";
     feature-auto-upgrade-signed = "a machine with signers applies only a deploy commit they signed for it, never an older one";
     feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build, and one over ssh warns that it needs a root key and known host";
+    ci-pin-kernels = "every host kernel the binary cache holds is pinned there so it is never evicted, a kernel it lacks is reported, and a failed pin fails the job after the others are tried";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";
     try-install = "`nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything";
     upstream = "`nix run .#upstream` lists the starter's breaking changes and merges its release into a branch whose pull request lists the upstream commits, or stops cleanly on a conflict";

@@ -25,7 +25,7 @@ Plan about 15 minutes. Steps 1 and 2 are enough for CI to build and test every p
 
    Without the App on the bypass list, `promote` prints `refused` with GitHub's reason.
 8. **Environment `deploy`, with the signing key (recommended)**. In Settings, Environments, New environment, name it `deploy`. Under Deployment branches and tags, choose Selected branches and add `main`. Add the environment secret `DEPLOY_SIGNING_KEY` with the private key file `nix run .#init` names, then `shred -u` that file ([why](#sign-the-deploy-branches)). Only the `promote` job runs in that environment, so no other job and no branch but `main` can read the key.
-9. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token.
+9. **Binary cache (recommended)**: create a public [Cachix](https://www.cachix.org) cache, set the repository variable `CACHIX_CACHE` to its name and the secret `CACHIX_AUTH_TOKEN` to a read and write token. On each push, CI pins each kernel it built for a host, such as the Raspberry Pi one, so Cachix never evicts it; pins count toward the cache's storage.
    - Every job pulls from it with the token, so a private cache works too. Pushes and PRs from a branch of this repository write what they built, except sources and images (SD card, ISO, disk, VM), so the push after a merge rebuilds nothing.
    - A PR from another fork and an upstream sync PR (`chore/sync-upstream-*`) read the cache but never get the token, so code nobody here wrote cannot poison it before review.
    - Without a cache, every run builds every check, and PRs never build kernels.

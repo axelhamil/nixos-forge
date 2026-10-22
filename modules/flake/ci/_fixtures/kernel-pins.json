@@ -1,0 +1,14 @@
+[
+  {
+    "name": "kernel-example-out",
+    "path": "/nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-linux-6.18"
+  },
+  {
+    "name": "kernel-example-dev",
+    "path": "/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-linux-6.18-dev"
+  },
+  {
+    "name": "kernel-example-modules",
+    "path": "/nix/store/cccccccccccccccccccccccccccccccc-linux-6.18-modules"
+  }
+]

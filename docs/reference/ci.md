@@ -68,7 +68,7 @@ Every VM test has a time budget, its `globalTimeout`, about 3 times its longest 
 
 | Check | When | What it proves |
 |---|---|---|
-| `treefmt` | every run, in the `lint` job | nixfmt, statix and deadnix find nothing |
+| `treefmt` | every run, in the `lint` job | nixfmt, statix, deadnix and rustfmt find nothing |
 | `wrong-namespace` | always, on `x86_64-linux` | a name given to the wrong field (`features`, `profile`, `hardware`, `apps`, `users`) fails to evaluate, with an error that names the field and lists its own names; in `apps`, a name that is neither an app nor a package of the host's pkgs, overlays included |
 | `apps-once` | always, on `x86_64-linux` | an app named by both the host and the person is imported once, and an unfree package added by a host overlay and named in `apps` is installed and allowed |
 | `fork-overrides` | always, on `x86_64-linux` | plain definitions in a host's `module` override the default policy values of the shipped modules without `mkForce`, `nvidia` with a nixos-hardware profile keeps that profile's NVIDIA choice, and a Raspberry Pi with `firmware` and `plymouth` evaluates |
@@ -77,7 +77,19 @@ Every VM test has a time budget, its `globalTimeout`, about 3 times its longest 
 | `vm-launchers` | on `x86_64-linux` | every test script under `modules/` that starts its own QEMU machine goes through `machine_command` of `helpers.testMachineScript`, which turns off QEMU's default network card so the firmware never boots over PXE: a call of a `create_*machine` launcher not defined under `modules/` (disko's `create_test_machine` included) must pass `start_command=machine_command(...)`; the check names each file and line that does not, and proves it on fixtures |
 | `facter` | always, on `x86_64-linux` | a host with `facter` set to a sample report turns on nixpkgs' facter module |
 | `options-doc` | always | `docs/reference/options.md` matches the registry options |
-| `docs` | always, on `x86_64-linux` | every relative link and `#anchor` of `README.md` and `docs/` resolves (lychee, offline); every page of `docs/` is in `docs/README.md`; no page outside `docs/maintenance/` names upstream's examples or repository, unless the line says `<!-- docs-check: allow <name> -->`; every app, feature, hardware module and profile has a heading or first table cell naming it. Violations listed in `modules/flake/docs/pending.txt` pass, and a listed one that no longer fails stops the check |
+| `docs` | always, on `x86_64-linux` | every relative link and `#anchor` of `README.md` and `docs/` resolves (`forge check-docs`, offline); every page of `docs/` is in `docs/README.md`; no page outside `docs/maintenance/` names upstream's examples or repository, unless the line says `<!-- docs-check: allow <name> -->`; every app, feature, hardware module and profile has a heading or first table cell naming it. Violations listed in `modules/flake/docs/pending.txt` pass, and a listed one that no longer fails stops the check |
+
+### Checks of the Rust code
+
+The Cargo workspace `crates/` is built with [crane](https://github.com/ipetkov/crane) and the Rust toolchain of the locked nixpkgs; its dependencies are built once and shared by the package and these checks.
+
+| Check | When | What it proves |
+|---|---|---|
+| `rust-clippy` | always, on `x86_64-linux` | `cargo clippy --all-targets` finds nothing, with `clippy::pedantic` on and every warning an error |
+| `rust-fmt` | always, on `x86_64-linux` | `cargo fmt --check` changes nothing |
+| `rust-deny` | always, on `x86_64-linux` | `cargo deny` (bans, licenses, sources, offline) accepts every dependency: a license of `crates/deny.toml`, crates.io only |
+| `rust-audit` | always, on `x86_64-linux` | `cargo audit` finds no RustSec advisory against `Cargo.lock`, with the advisory database of the `advisory-db` input, which the weekly lock PR refreshes |
+| `rust-tests` | always, on `x86_64-linux` | every Rust test passes under nextest, the insta snapshots included, never written in CI |
 
 ### Checks of the CI scripts
 

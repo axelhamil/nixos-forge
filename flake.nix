@@ -30,6 +30,14 @@
       url = "github:nix-community/lanzaboote/v1.2.0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.pre-commit.follows = "git-hooks";
+      inputs.crane.follows = "crane";
+    };
+
+    crane.url = "github:ipetkov/crane/v0.24.0";
+
+    advisory-db = {
+      url = "github:rustsec/advisory-db";
+      flake = false;
     };
 
     nixos-hardware = {

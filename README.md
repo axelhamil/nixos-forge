@@ -250,9 +250,10 @@ Every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) modul
 ```text
 modules/
 ├── flake/     flake wiring: host registry and its checks, installer ISO, init, upstream,
-│              formatter, dev shell, CI scripts, helpers/ (functions shared by modules)
+│              formatter, dev shell, CI scripts, rust/ (builds and checks crates/, the
+│              forge command), helpers/ (functions shared by modules)
 ├── features/  the system: base/ (nix, home-manager, impermanence, resolved, journald,
-│              doctor, update), profiles/ (desktop, laptop, server, pi),
+│              doctor, update, forge), profiles/ (desktop, laptop, server, pi),
 │              hardware/ (firmware, audio, bluetooth, GPUs, Raspberry Pi), and disk,
 │              wipe-home, hibernate, secure-boot, fido2, dual-boot, ssh, secrets,
 │              auto-upgrade, docker, libvirt, nix-ld, greetd, plymouth, printing

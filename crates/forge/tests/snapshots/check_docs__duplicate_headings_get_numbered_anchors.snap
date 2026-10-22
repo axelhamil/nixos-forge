@@ -1,0 +1,7 @@
+---
+source: forge/tests/check_docs.rs
+expression: fixture.report()
+---
+docs/how-to/guide.md:17: broken link to docs/how-to/guide.md#hidden (Cannot find fragment) [link docs/how-to/guide.md docs/how-to/guide.md#hidden]
+docs/how-to/guide.md:13: broken link to docs/how-to/guide.md#same-2 (Cannot find fragment) [link docs/how-to/guide.md docs/how-to/guide.md#same-2]
+check-docs: 2 problem(s); a known violation waiting for its fix goes in modules/flake/docs/pending.txt as "<rule> <what>"

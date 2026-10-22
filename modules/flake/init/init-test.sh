@@ -43,7 +43,7 @@ fork_fails() {
 
 docs_pass() {
   local output
-  output=$(check-docs "$PWD" 2>&1) || fail "the docs of the fork in $PWD fail: $output"
+  output=$(forge check-docs "$PWD" 2>&1) || fail "the docs of the fork in $PWD fail: $output"
 }
 
 refuses() {

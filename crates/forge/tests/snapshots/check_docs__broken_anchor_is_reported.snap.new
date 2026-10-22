@@ -1,0 +1,12 @@
+---
+source: forge/tests/check_docs.rs
+assertion_line: 100
+expression: fixture.report()
+---
+docs/how-to/guide.md:9: broken link to docs#nope (Cannot find fragment) [link docs/how-to/guide.md docs#nope]
+docs/how-to/guide.md:9: broken link to docs/how-to#guide (Cannot find fragment) [link docs/how-to/guide.md docs/how-to#guide]
+docs/how-to/guide.md:7: broken link to docs/how-to/guide.md#gone (Cannot find fragment) [link docs/how-to/guide.md docs/how-to/guide.md#gone]
+docs/how-to/guide.md:9: broken link to docs/reference#x (Cannot find fragment) [link docs/how-to/guide.md docs/reference#x]
+docs/how-to/guide.md:7: broken link to docs/reference/apps.md#also-gone (Cannot find fragment) [link docs/how-to/guide.md docs/reference/apps.md#also-gone]
+docs/how-to/guide.md:7: broken link to docs/reference/apps.md#nowhere (Cannot find fragment) [link docs/how-to/guide.md docs/reference/apps.md#nowhere]
+check-docs: 6 problem(s); a known violation waiting for its fix goes in modules/flake/docs/pending.txt as "<rule> <what>"

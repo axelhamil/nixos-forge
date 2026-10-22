@@ -68,6 +68,12 @@ let
     feature-migration-without-disk = "an `example` host without `disk`, here or on the base, gets no migration check and still evaluates";
     feature-rollback-failed-unit = "a generation whose service fails after boot is not blessed and is rolled back";
     flake-modules = "no name is published by two namespaces";
+    rust-clippy = "clippy, pedantic lints included, finds nothing in the Rust code";
+    rust-fmt = "the Rust code is formatted";
+    rust-deny = "every Rust dependency has an allowed license and comes from crates.io";
+    rust-audit = "no Rust dependency has a RustSec advisory";
+    rust-tests = "every Rust test and snapshot passes";
+    base-forge = "forge runs a command a host lists with its arguments and exit code, lists it in its help, refuses one of another contract and names an unknown one";
   };
 
   provesOnHost =

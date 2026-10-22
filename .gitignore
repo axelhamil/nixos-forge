@@ -6,3 +6,4 @@ result-*
 .ruff_cache/
 __pycache__/
 .claude/worktrees/
+crates/target/

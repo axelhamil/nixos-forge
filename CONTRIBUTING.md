@@ -8,7 +8,7 @@ Thanks for helping improve nixos-forge, the forge where you build your own NixOS
 
 ## Setup
 
-Fork the repository on GitHub, clone your fork and run `nix develop` once. It installs a pre-push hook (treefmt, `nix flake check --no-build`, actionlint) that runs in seconds. You need Nix with flakes, and KVM to run the boot tests.
+Fork the repository on GitHub, clone your fork and run `nix develop` once. It installs a pre-push hook (treefmt, `nix flake check --no-build`, actionlint) that runs in seconds, and gives the Rust toolchain of the flake. You need Nix with flakes, and KVM to run the boot tests.
 
 ## Before a PR
 
@@ -16,7 +16,8 @@ Fork the repository on GitHub, clone your fork and run `nix develop` once. It in
 |---|---|
 | `nix fmt` | always |
 | `nix flake check -L` | always: lint, host builds, boot tests |
-| `nix run .#check-docs` | after touching `README.md` or `docs/`: links, anchors, the `docs/README.md` index, a section per module; the `docs` check runs the same |
+| `nix run .#forge -- check-docs` | after touching `README.md` or `docs/`: links, anchors, the `docs/README.md` index, a section per module; the `docs` check runs the same |
+| `cargo clippy --all-targets`, `cargo nextest run`, in `crates/` from `nix develop` | after touching `crates/`; a changed report rewrites its snapshot with `INSTA_UPDATE=always cargo nextest run`: review the `.snap` diff. The `rust-*` checks run the same |
 | `nix run .#options-doc` | after touching `modules/flake/hosts/options.nix`, to regenerate `docs/reference/options.md` |
 | `nix run nixpkgs#actionlint` | after touching `.github/workflows/` |
 

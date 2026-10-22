@@ -34,6 +34,7 @@ New here? Read [the README](../README.md) first, then [Install on a machine](tut
 - [Services](reference/services.md): DNS, SSH, secrets, printing and snapshots.
 - [Performance](reference/performance.md): what each profile brings and tunes.
 - [CI](reference/ci.md): the workflows, every check and the CI scripts you can run locally.
+- [forge](reference/forge.md): the `forge` command, its built-in checks and the commands a fork adds.
 
 ## Explanation
 

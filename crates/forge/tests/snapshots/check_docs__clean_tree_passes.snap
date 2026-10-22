@@ -1,0 +1,5 @@
+---
+source: forge/tests/check_docs.rs
+expression: outcome.report()
+---
+check-docs: docs pass, 0 pending entries in modules/flake/docs/pending.txt

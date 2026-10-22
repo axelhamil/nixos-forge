@@ -18,6 +18,10 @@
               [ "$2 $3" = "--store https://forge.cachix.org" ] || exit 1
               [ "$4" != /nix/store/cccccccccccccccccccccccccccccccc-linux-6.18-modules ]
               ;;
+            copy)
+              [ "$2 $3" = "--from https://forge.cachix.org" ] || exit 1
+              [ -z "''${COPY_FAIL:-}" ] || [ "$4" != "$COPY_FAIL" ]
+              ;;
             *) exit 1 ;;
           esac
         '';

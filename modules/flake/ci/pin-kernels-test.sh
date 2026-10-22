@@ -3,7 +3,7 @@ fail() {
   exit 1
 }
 
-export CALLS CACHIX_AUTH_TOKEN CACHIX_FAIL
+export CALLS CACHIX_AUTH_TOKEN CACHIX_FAIL COPY_FAIL
 
 held_out=/nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-linux-6.18
 held_dev=/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-linux-6.18-dev
@@ -20,9 +20,13 @@ run() {
 
 CACHIX_AUTH_TOKEN=token
 CACHIX_FAIL=
+COPY_FAIL=
 
 status=$(run held.out forge)
 [ "$status" -eq 0 ] || fail "pins that succeed exit with $status: $(cat held.out.err)"
+grep -qxF "nix copy --from https://forge.cachix.org $held_out" held.out.calls || fail "the out kernel is not fetched before its pin: $(cat held.out.calls)"
+grep -qxF "nix copy --from https://forge.cachix.org $held_dev" held.out.calls || fail "the dev kernel is not fetched before its pin: $(cat held.out.calls)"
+! grep -qF "nix copy --from https://forge.cachix.org $missing" held.out.calls || fail "a path the cache lacks is fetched: $(cat held.out.calls)"
 grep -qxF "cachix pin forge kernel-example-out $held_out --keep-revisions 3" held.out.calls || fail "the out kernel is not pinned: $(cat held.out.calls)"
 grep -qxF "cachix pin forge kernel-example-dev $held_dev --keep-revisions 3" held.out.calls || fail "the dev kernel is not pinned: $(cat held.out.calls)"
 [ "$(grep -c '^cachix' held.out.calls)" -eq 2 ] || fail "wrong number of pins: $(cat held.out.calls)"
@@ -36,6 +40,14 @@ status=$(run failing.out forge)
 grep -qxF "cachix pin forge kernel-example-dev $held_dev --keep-revisions 3" failing.out.calls || fail "a failing pin stops the next ones: $(cat failing.out.calls)"
 grep -qF "failed to pin kernel-example-out $held_out" failing.out.err || fail "the failing pin is not named: $(cat failing.out.err)"
 CACHIX_FAIL=
+
+COPY_FAIL=$held_out
+status=$(run unfetched.out forge)
+[ "$status" -ne 0 ] || fail "a path that cannot be fetched exits with 0: $(cat unfetched.out)"
+! grep -qF "cachix pin forge kernel-example-out" unfetched.out.calls || fail "a path that cannot be fetched is still pinned: $(cat unfetched.out.calls)"
+grep -qxF "cachix pin forge kernel-example-dev $held_dev --keep-revisions 3" unfetched.out.calls || fail "a path that cannot be fetched stops the next pins: $(cat unfetched.out.calls)"
+grep -qF "failed to pin kernel-example-out $held_out" unfetched.out.err || fail "the path that cannot be fetched is not named: $(cat unfetched.out.err)"
+COPY_FAIL=
 
 CACHIX_AUTH_TOKEN=
 status=$(run no-token.out forge)

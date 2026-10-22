@@ -29,7 +29,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **18. Init**: commented example hosts, `nix run .#init` writes a fork's first host and drops the examples | `init`, `example-hosts` |
 | **19. Hibernate**: opt-in `hibernate`, swap file in LUKS, resume before the `/` rollback, suspend-then-hibernate | `feature-hibernate` |
 | **20. Doctor**: `doctor` reports Secure Boot, TPM2, snapshots, failed units, updates and what the next boot erases | `base-doctor`, `<host>-disk` |
-| **21. CI report**: one report per run, a table per machine, the likely cause of a failure, a flaky VM test retried once | `ci-report` |
+| **21. CI report**: one report per run, a table per machine, the likely cause of a failure, a flaky VM test retried once until lot 43 | `ci-report` |
 | **22. Registry layout**: `features/`, `apps/`, `users/`, `hosts/`, `flake/`; people defined once, with an account per host | `wrong-namespace`, `apps-once`, `flake-modules`, `example-hosts`, `init` |
 | **23. Wiped home by default**: `example` lists `wipe-home`, every home keeps `~/.ssh` and `~/.gnupg`, and the `gh` app keeps `~/.config/gh` | `example-disk`, `example-server-disk`, `profile-desktop`, `feature-printing` |
 | **24. Validated upgrades**: CI moves `deploy/<host>` once its checks pass, `auto-upgrade` applies only that version, from the fork or a mirror, and a generation that does not start is rolled back | `ci-promote`, `feature-auto-upgrade`, `feature-auto-upgrade-sources`, `feature-rollback`, `feature-rollback-secure-boot`, `ci-mirror` |
@@ -51,6 +51,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **40. Measured performance in CI**: on a PR, the base and the new generation boot in turn, and the report flags boot time, idle RAM, closure size or services past a threshold; never required by `ci-ok` | `perf-regression`, `ci-report` |
 | **41. Docs a fork owns**: `docs/` follows Diataxis behind `docs/README.md`, names no example outside `docs/maintenance/`, every module has a section; the `docs` check resolves links offline and the `init` check runs it on its forks | `docs`, `init`, `options-doc` |
 | **42. Benchmarks in the CI VM**: on a PR, each boot of the base and of the new generation also runs CPU (`sysbench cpu`), memory bandwidth (`sysbench memory`) and disk (`fio`, 4k random read) benchmarks with the same binaries on both sides, and the report flags a median that drops past its threshold; never required by `ci-ok` | `perf-regression`, `ci-report` |
+| **43. Reliable CI**: every check passes or fails for a reason, never by chance: no VM falls back to network boot, tests wait for a unit, a log line or a file within their `globalTimeout`, a failed cache download is told apart from a failing build, the nightly `flaky` workflow reports the pass rate of every VM check (230 of 230 runs passed), and a check is built once, without the retry of lot 21 | `vm-launchers`, `ci-flaky`, `ci-report`, `ci-plan`, nightly `flaky` |
 
 ## Planned
 
@@ -58,7 +59,6 @@ In order, each with its guardrail. Every lot starts with a state of the art revi
 
 | Lot | Guardrail |
 |---|---|
-| **43. Reliable CI**: every check passes or fails for a reason, never by chance. Find and fix the cause of each flaky test, first `feature-rollback`, whose VM looped 47 times on PXE boot locally; no VM ever falls back to network boot. Tests wait for a unit, a log line or a file, never a fixed delay, and each has a time budget. A download from a binary cache that fails is told apart from a failing build in the report. A nightly `flaky` job runs every VM check several times and reports its pass rate and duration; the CI report lists any check under 100 % in plain words. Once every check holds 100 %, the single retry of lot 21 goes away: no automatic retry hides a failure | nightly `flaky` (every VM check at 100 % over its runs), `ci-report` |
 | **44. Rust workspace and `forge` CLI**: a Cargo workspace in `crates/`, built with crane; clippy pedantic, rustfmt, cargo-deny and nextest as flake checks; one `forge` binary with subcommands. Forks add their own `forge-<name>` commands and `doctor` checks by listing packages in a module option, called with a versioned JSON contract, without a recompile. First port: `check-docs` | `rust-clippy`, `rust-fmt`, `rust-deny`, `rust-tests`, `docs` |
 | **45. `forge doctor`** replaces `doctor.sh` | `base-doctor`, the `<host>-disk` tests, `rust-tests` |
 | **46. `forge update` and `auto-upgrade`** | `base-update`, `feature-auto-upgrade`, `feature-auto-upgrade-signed`, `feature-auto-upgrade-sources`, `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit` |

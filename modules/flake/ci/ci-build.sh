@@ -1,5 +1,5 @@
-usage="usage: ci-build <system> <check> <out-dir> [--retry] [--base-input <input> --base <flake-ref>]
-  RETRY=true stands for --retry; BASE_INPUT with BASE_SHA for --base-input \$BASE_INPUT --base github:\$GITHUB_REPOSITORY/\$BASE_SHA"
+usage="usage: ci-build <system> <check> <out-dir> [--base-input <input> --base <flake-ref>]
+  BASE_INPUT with BASE_SHA stands for --base-input \$BASE_INPUT --base github:\$GITHUB_REPOSITORY/\$BASE_SHA"
 
 if [ $# -lt 3 ]; then
   echo "$usage" >&2
@@ -11,12 +11,10 @@ check=$2
 out=$3
 shift 3
 
-allowed=1
 base=""
 base_input=""
 while [ $# -gt 0 ]; do
   case "$1" in
-  --retry) allowed=2 ;;
   --base | --base-input)
     [ $# -ge 2 ] || {
       echo "$usage" >&2
@@ -36,10 +34,6 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-
-if [ "${RETRY:-}" = true ]; then
-  allowed=2
-fi
 
 if [ -z "$base_input" ] && [ -n "${BASE_INPUT:-}" ]; then
   base_input=$BASE_INPUT
@@ -75,11 +69,10 @@ write_result() {
     --arg check "$check" \
     --arg system "$system" \
     --arg outcome "$outcome" \
-    --argjson attempts "$attempts" \
     --rawfile excerpt "$work/excerpt" \
     --slurpfile bootTime "$work/boot-time" \
     --slurpfile screenshots "$work/screenshots" \
-    '{ check: $check, system: $system, outcome: $outcome, attempts: $attempts, excerpt: ($excerpt | split("\n") | map(select(. != ""))), bootTime: $bootTime[0], screenshots: $screenshots[0] }' \
+    '{ check: $check, system: $system, outcome: $outcome, excerpt: ($excerpt | split("\n") | map(select(. != ""))), bootTime: $bootTime[0], screenshots: $screenshots[0] }' \
     >"$out/$system-$check.json"
 }
 
@@ -113,25 +106,17 @@ keep_evidence() {
 }
 
 outcome=failed
-attempts=0
-while [ "$attempts" -lt "$allowed" ]; do
-  attempts=$((attempts + 1))
-
-  if nix build --no-link --print-build-logs --print-out-paths "${override[@]}" ".#checks.$system.$check" 2>&1 >"$work/out-paths" | tee "$work/log"; then
-    outcome=passed
-    [ "$attempts" -eq 1 ] || outcome=unstable
-    if ! keep_evidence; then
-      echo "ci-build: the boot time, measures or screenshots of $check could not be kept, the check still passed" >&2
-      echo null >"$work/boot-time"
-      echo '[]' >"$work/screenshots"
-    fi
-    break
+if nix build --no-link --print-build-logs --print-out-paths "${override[@]}" ".#checks.$system.$check" 2>&1 >"$work/out-paths" | tee "$work/log"; then
+  outcome=passed
+  if ! keep_evidence; then
+    echo "ci-build: the boot time, measures or screenshots of $check could not be kept, the check still passed" >&2
+    echo null >"$work/boot-time"
+    echo '[]' >"$work/screenshots"
   fi
-
+else
   awk -f "$EXCERPT" "$work/log" >"$work/excerpt"
-  write_result
-done
+fi
 
 write_result
 
-[ "$outcome" != failed ]
+[ "$outcome" = passed ]

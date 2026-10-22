@@ -47,8 +47,8 @@ checks() {
     | if $planned == null then
         { "checks.json": badge("checks"; "flake does not evaluate"; "red") }
       else
-        ( [ $planned[] | . as $p | { check, system, vm: (.retry == true), ok: (($byCheck[$p.system + "." + $p.check].outcome // "") | IN("passed", "unstable")) } ]
-          + [ $skipped[] | { check, system, vm: (.retry == true), ok: (.reason == "cached") } ]
+        ( [ $planned[] | . as $p | { check, system, vm: (.vm == true), ok: ($byCheck[$p.system + "." + $p.check].outcome == "passed") } ]
+          + [ $skipped[] | { check, system, vm: (.vm == true), ok: (.reason == "cached") } ]
         ) as $jobs
         | ($jobs + [ { check: "treefmt", ok: ($lint == "success") } ]) as $all
         | ($all | length) as $total

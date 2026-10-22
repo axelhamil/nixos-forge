@@ -14,7 +14,7 @@ expect_badge() {
 pass_all() {
   mkdir -p "$1"
   jq -c '.[]' <<<"$PLANNED" | while read -r job; do
-    jq '{ check, system, outcome: "passed", attempts: 1, excerpt: [], bootTime: null, screenshots: [] }' <<<"$job" >"$1/$(jq -r '.system + "-" + .check' <<<"$job").json"
+    jq '{ check, system, outcome: "passed", excerpt: [], bootTime: null, screenshots: [] }' <<<"$job" >"$1/$(jq -r '.system + "-" + .check' <<<"$job").json"
   done
 }
 
@@ -48,7 +48,7 @@ rm cached/x86_64-linux-example-boots.json cached/x86_64-linux-feature-ssh.json
 mkdir -p cached/current
 echo '{ "example": { "total": 6.84, "userspace": 2.1 } }' >cached/current/boot-time.json
 PLANNED=$(jq -c 'map(select(.check != "example-boots" and .check != "feature-ssh"))' "$RUNS/planned.json") \
-  SKIPPED='[{"check":"example-boots","system":"x86_64-linux","retry":true,"reason":"cached"},{"check":"feature-ssh","system":"x86_64-linux","retry":true,"reason":"cached"}]' \
+  SKIPPED='[{"check":"example-boots","system":"x86_64-linux","vm":true,"reason":"cached"},{"check":"feature-ssh","system":"x86_64-linux","vm":true,"reason":"cached"}]' \
   badges cached
 expect_badge cached/badges/checks.json "12/12 passing" brightgreen
 expect_badge cached/badges/vm-tests.json 7 5277C3
@@ -56,7 +56,6 @@ expect_badge cached/badges/boot-time.json "6.8 s" 5277C3
 
 pass_all red
 set_field red/x86_64-linux-example-server-toplevel.json '.outcome = "failed"'
-set_field red/x86_64-linux-feature-ssh.json '.outcome = "unstable" | .attempts = 2'
 rm red/x86_64-linux-example-disk.json
 LINT_RESULT=failure badges red
 expect_badge red/badges/checks.json "3/12 failing" red

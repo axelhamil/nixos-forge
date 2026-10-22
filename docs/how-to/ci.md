@@ -60,16 +60,15 @@ A comment over 64 KiB is cut and points to the run summary, which holds up to 1 
 
 - **The verdict**, in bold, above everything else: `Everything works: every machine builds, boots and passed its tests.`, or how many checks failed or did not finish and which machines would not get the change. A failure in a check that belongs to no machine still keeps CI red.
 - **What to do**, under the verdict: `Nothing to fix: this commit is ready for the machines.` on a green run, `Fix what is listed below and push again: CI runs on every push.` on a red one.
-- `N tests passed only on their second try and are marked unstable.`: a VM test failed once, then passed on its retry. The run stays green, but a test that keeps showing up here is flaky.
 - `The binary cache was unreachable: everything was built from scratch.`: Cachix did not answer, so the run was slower than usual.
 - `Checks that compile a kernel run after the merge.`: a PR never compiles a kernel; the push to `develop` after the merge builds those checks.
 - `N checks were skipped: they already passed with the same code.`: their result is already in the binary cache.
 - **One table per machine**, with each check, what it proves and its result:
-  - `passed`, `failed` or `unstable`;
-  - `did not finish`: the job was cancelled or hit its time limit before its first attempt ended;
+  - `passed` or `failed`: a check is built once, never retried, so a failure always shows its cause;
+  - `did not finish`: the job was cancelled or hit its time limit before the build ended;
   - `skipped`, with the reason.
 
-  A retry cut by the time limit keeps the `failed` result and the excerpt of the first attempt. A check that runs on two systems gets one row per system.
+  A check that runs on two systems gets one row per system.
 - **Module checks**, folded, with the same columns; the block opens by itself when one of them failed.
 - **Boot time**: for each machine with a `<host>-boots` check, the `systemd-analyze` total and userspace time, beside the same values on the base revision (the PR's base, or the previous commit on a push). `ci-boot-time` reads the base's values from the binary cache. A value is `n/a` when the check was skipped as already passed, the base's test is not in the cache, or the boot did not finish within 120 s. There is no threshold: a shared CI VM is noisy, so read the trend over several runs.
 - **Performance against the base**, on a PR ([below](#performance-against-the-base)).
@@ -115,7 +114,7 @@ On a PR, the `perf` job boots the base revision's generation and this one in tur
 
 ## Find flaky VM tests
 
-A VM test that fails once and passes on its retry is marked unstable in the report, but one run says little. The nightly `flaky` workflow runs each VM test whose derivation changed 5 times and writes every pass rate to its run summary ([reference](../reference/ci.md#flaky-vm-checks)). It never blocks a merge.
+CI builds every check once: a VM test that fails by chance turns the run red, and one run says little about why. The nightly `flaky` workflow runs each VM test whose derivation changed 5 times and writes every pass rate to its run summary ([reference](../reference/ci.md#flaky-vm-checks)). It never blocks a merge.
 
 It runs upstream only. To run it in your fork, set the repository variable `FLAKY` to `true`. A night with no change costs about 2 minutes, a night after a lock update about 1,000 runner minutes, which a private repository pays from its quota.
 
@@ -136,7 +135,7 @@ Each machine has a branch `deploy/<host>` that points to the last commit of `mai
 
 The `promote` job runs after every push to `main`, once the builds ended, even when some failed or hit their time limit; a cancelled run promotes nothing. It reads the exact list of checks of each machine from `nix eval --json .#ci.hostChecks`, never a name prefix, so `<host>-server-boots` failing never holds `deploy/<host>` back.
 
-- A check counts as passed when its result is `passed` or `unstable`, or when the plan skipped it because the binary cache already holds it.
+- A check counts as passed when its result is `passed`, or when the plan skipped it because the binary cache already holds it.
 - A check without a result (its job was cancelled or hit its time limit), or skipped for any other reason, keeps the branch where it is.
 
 `ci-promote` prints one line per machine, after a first line `unsigned: ...` when `DEPLOY_SIGNING_KEY` is not set:

@@ -27,12 +27,9 @@
           '';
         };
 
-      flakyNix = fakeNix ''
-        if [ "$(wc -l < "$NIX_CALLS")" -eq 1 ]; then
-          cat ${./_fixtures/logs/timeout.log} >&2
-          exit 1
-        fi
-        echo "built" >&2
+      timeoutNix = fakeNix ''
+        cat ${./_fixtures/logs/timeout.log} >&2
+        exit 1
       '';
 
       brokenNix = fakeNix ''
@@ -57,15 +54,6 @@
         echo "$PWD/unreadable-output"
       '';
 
-      killedNix = fakeNix ''
-        if [ "$(wc -l < "$NIX_CALLS")" -eq 1 ]; then
-          cat ${./_fixtures/logs/timeout.log} >&2
-          exit 1
-        fi
-        kill -KILL "$PPID"
-        exit 1
-      '';
-
       baseNix = fakeNix "";
 
       test = pkgs.writeShellApplication {
@@ -83,9 +71,8 @@
           RUNS = ./_fixtures/runs;
           CI_REPORT = lib.getExe ciReport;
           DESCRIPTIONS_FILE = pkgs.writeText "descriptions.json" (builtins.toJSON descriptions);
-          FLAKY_CI_BUILD = lib.getExe (ciBuildWith flakyNix);
+          TIMEOUT_CI_BUILD = lib.getExe (ciBuildWith timeoutNix);
           BROKEN_CI_BUILD = lib.getExe (ciBuildWith brokenNix);
-          KILLED_CI_BUILD = lib.getExe (ciBuildWith killedNix);
           EVIDENCE_CI_BUILD = lib.getExe (ciBuildWith evidenceNix);
           UNREADABLE_EVIDENCE_CI_BUILD = lib.getExe (ciBuildWith unreadableEvidenceNix);
           BASE_CI_BUILD = lib.getExe (ciBuildWith baseNix);

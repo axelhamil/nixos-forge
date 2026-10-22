@@ -1,4 +1,4 @@
 [
-  { "check": "example-toplevel", "system": "x86_64-linux", "runner": "ubuntu-24.04", "retry": false, "baseInput": null },
-  { "check": "example-pi-sd-image", "system": "aarch64-linux", "runner": "ubuntu-24.04-arm", "retry": false, "baseInput": null }
+  { "check": "example-toplevel", "system": "x86_64-linux", "runner": "ubuntu-24.04", "vm": false, "baseInput": null },
+  { "check": "example-pi-sd-image", "system": "aarch64-linux", "runner": "ubuntu-24.04-arm", "vm": false, "baseInput": null }
 ]

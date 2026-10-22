@@ -30,52 +30,29 @@ seq -f "machine # line %g of a healthy boot" 5000 >quiet.log
 
 export NIX_CALLS
 
-NIX_CALLS=$PWD/flaky-calls
-if ! "$FLAKY_CI_BUILD" x86_64-linux example-boots results --retry >flaky.out; then
-  fail "a vm test passing on its second attempt exits non-zero"
-fi
+NIX_CALLS=$PWD/timeout-calls
+status=0
+"$TIMEOUT_CI_BUILD" x86_64-linux example-boots results >timeout.out || status=$?
+[ "$status" -eq 1 ] || fail "timeout: a vm test failing once exits with $status instead of 1"
 result=results/x86_64-linux-example-boots.json
-jq -e '.check == "example-boots" and .system == "x86_64-linux"' "$result" >/dev/null || fail "flaky: wrong check or system: $(cat "$result")"
-jq -e '.outcome == "unstable" and .attempts == 2' "$result" >/dev/null || fail "flaky: not unstable after 2 attempts: $(cat "$result")"
-jq -e '.excerpt | any(test("^RequestedAssertionFailed: action timed out"))' "$result" >/dev/null || fail "flaky: excerpt misses the first failure: $(cat "$result")"
-[ "$(wc -l <"$NIX_CALLS")" -eq 2 ] || fail "flaky: nix called $(wc -l <"$NIX_CALLS") times"
-grep -qx "build --no-link --print-build-logs --print-out-paths .#checks.x86_64-linux.example-boots" "$NIX_CALLS" || fail "flaky: unexpected nix call: $(cat "$NIX_CALLS")"
-grep -q "action timed out" flaky.out || fail "flaky: the full log is not on stdout"
+jq -e '.check == "example-boots" and .system == "x86_64-linux"' "$result" >/dev/null || fail "timeout: wrong check or system: $(cat "$result")"
+jq -e '.outcome == "failed"' "$result" >/dev/null || fail "timeout: a first failure is not kept as failed: $(cat "$result")"
+jq -e '.excerpt | any(test("^RequestedAssertionFailed: action timed out"))' "$result" >/dev/null || fail "timeout: excerpt misses the failure: $(cat "$result")"
+[ "$(wc -l <"$NIX_CALLS")" -eq 1 ] || fail "timeout: a failing check was built $(wc -l <"$NIX_CALLS") times instead of 1"
+grep -qx "build --no-link --print-build-logs --print-out-paths .#checks.x86_64-linux.example-boots" "$NIX_CALLS" || fail "timeout: unexpected nix call: $(cat "$NIX_CALLS")"
+grep -q "action timed out" timeout.out || fail "timeout: the full log is not on stdout"
 
 NIX_CALLS=$PWD/broken-calls
 status=0
 "$BROKEN_CI_BUILD" x86_64-linux example-toplevel results >broken.out || status=$?
 [ "$status" -eq 1 ] || fail "a failing check exits with $status instead of 1"
 result=results/x86_64-linux-example-toplevel.json
-jq -e '.outcome == "failed" and .attempts == 1' "$result" >/dev/null || fail "broken: not failed after 1 attempt: $(cat "$result")"
+jq -e '.outcome == "failed"' "$result" >/dev/null || fail "broken: not failed: $(cat "$result")"
 jq -e '.bootTime == null and .screenshots == []' "$result" >/dev/null || fail "broken: a failed build has evidence: $(cat "$result")"
 jq -e '.excerpt == ["error: undefined variable '"'"'foo'"'"'"]' "$result" >/dev/null || fail "broken: wrong excerpt: $(cat "$result")"
-[ "$(wc -l <"$NIX_CALLS")" -eq 1 ] || fail "broken: a check without --retry was built $(wc -l <"$NIX_CALLS") times"
-
-NIX_CALLS=$PWD/env-retry-calls
-RETRY=true "$BROKEN_CI_BUILD" x86_64-linux example-disk env-retry >/dev/null || true
-[ "$(wc -l <"$NIX_CALLS")" -eq 2 ] || fail "RETRY=true built a failing check $(wc -l <"$NIX_CALLS") times instead of 2"
-
-NIX_CALLS=$PWD/env-no-retry-calls
-RETRY=false "$BROKEN_CI_BUILD" x86_64-linux example-disk env-no-retry >/dev/null || true
-[ "$(wc -l <"$NIX_CALLS")" -eq 1 ] || fail "RETRY=false built a failing check $(wc -l <"$NIX_CALLS") times instead of 1"
-
-NIX_CALLS=$PWD/broken-vm-calls
-status=0
-"$BROKEN_CI_BUILD" x86_64-linux example-disk results --retry >broken-vm.out || status=$?
-[ "$status" -eq 1 ] || fail "a vm test failing twice exits with $status instead of 1"
-jq -e '.outcome == "failed" and .attempts == 2' results/x86_64-linux-example-disk.json >/dev/null || fail "broken vm: not failed after 2 attempts: $(cat results/x86_64-linux-example-disk.json)"
-
-NIX_CALLS=$PWD/killed-calls
-status=0
-"$KILLED_CI_BUILD" x86_64-linux example-boots killed --retry >killed.out || status=$?
-[ "$status" -ne 0 ] || fail "killed: a build killed by the time limit exits 0"
-result=killed/x86_64-linux-example-boots.json
-jq -e '.outcome == "failed" and .attempts == 1' "$result" >/dev/null || fail "killed: the first failure is not kept: $(cat "$result" 2>&1)"
-jq -e '.excerpt | any(test("^RequestedAssertionFailed: action timed out"))' "$result" >/dev/null || fail "killed: the excerpt of the first failure is lost: $(cat "$result")"
 
 NIX_CALLS=$PWD/evidence-calls
-"$EVIDENCE_CI_BUILD" x86_64-linux app-hyprland evidence --retry >evidence.out || fail "evidence: a passing check exits non-zero"
+"$EVIDENCE_CI_BUILD" x86_64-linux app-hyprland evidence >evidence.out || fail "evidence: a passing check exits non-zero"
 result=evidence/x86_64-linux-app-hyprland.json
 jq -e '.bootTime == { total: 7.04, userspace: 3.0 }' "$result" >/dev/null || fail "evidence: the boot time of the check output is not kept: $(cat "$result")"
 jq -e '.screenshots == ["desktop.png"]' "$result" >/dev/null || fail "evidence: the screenshot is not listed: $(cat "$result")"
@@ -83,13 +60,13 @@ jq -e '.screenshots == ["desktop.png"]' "$result" >/dev/null || fail "evidence: 
 jq -e '.rounds == 3' evidence/perf/x86_64-linux.json >/dev/null || fail "evidence: the measures of the check output are not kept for the artifact"
 
 NIX_CALLS=$PWD/unreadable-calls
-"$UNREADABLE_EVIDENCE_CI_BUILD" x86_64-linux example-boots unreadable --retry >unreadable.out 2>unreadable.err || fail "unreadable: evidence that cannot be read turns a passing check red"
+"$UNREADABLE_EVIDENCE_CI_BUILD" x86_64-linux example-boots unreadable >unreadable.out 2>unreadable.err || fail "unreadable: evidence that cannot be read turns a passing check red"
 result=unreadable/x86_64-linux-example-boots.json
 jq -e '.outcome == "passed" and .bootTime == null and .screenshots == []' "$result" >/dev/null || fail "unreadable: wrong result: $(cat "$result")"
 grep -q "could not be kept, the check still passed" unreadable.err || fail "unreadable: the lost evidence is not logged: $(cat unreadable.err)"
 
 NIX_CALLS=$PWD/base-calls
-"$BASE_CI_BUILD" x86_64-linux feature-migration results --retry --base-input migration-base --base github:owner/repo/0123abc >base.out || fail "base: a passing check with a base exits non-zero"
+"$BASE_CI_BUILD" x86_64-linux feature-migration results --base-input migration-base --base github:owner/repo/0123abc >base.out || fail "base: a passing check with a base exits non-zero"
 grep -qx "build --no-link --print-build-logs --print-out-paths --override-input migration-base github:owner/repo/0123abc .#checks.x86_64-linux.feature-migration" "$NIX_CALLS" || fail "base: the check does not run against the base: $(cat "$NIX_CALLS")"
 
 NIX_CALLS=$PWD/no-base-calls
@@ -121,17 +98,17 @@ RUN_URL=https://github.com/owner/repo/actions/runs/42
 pass_all() {
   mkdir -p "$1"
   jq -c '.[]' <<<"$PLANNED" | while read -r job; do
-    jq '{ check, system, outcome: "passed", attempts: 1, excerpt: [] }' <<<"$job" >"$1/$(jq -r '.system + "-" + .check' <<<"$job").json"
+    jq '{ check, system, outcome: "passed", excerpt: [] }' <<<"$job" >"$1/$(jq -r '.system + "-" + .check' <<<"$job").json"
   done
 }
 
 set_outcome() {
-  local dir=$1 check=$2 outcome=$3 attempts=$4 log=${5:-} system=${6:-x86_64-linux}
+  local dir=$1 check=$2 outcome=$3 log=${4:-} system=${5:-x86_64-linux}
   local excerpt='[]'
   local file=$dir/$system-$check.json
   [ -z "$log" ] || excerpt=$(awk -f "$EXCERPT" "$log" | jq -R . | jq -s -c .)
-  jq --arg outcome "$outcome" --argjson attempts "$attempts" --argjson excerpt "$excerpt" \
-    '.outcome = $outcome | .attempts = $attempts | .excerpt = $excerpt' "$file" >"$file.tmp"
+  jq --arg outcome "$outcome" --argjson excerpt "$excerpt" \
+    '.outcome = $outcome | .excerpt = $excerpt' "$file" >"$file.tmp"
   mv "$file.tmp" "$file"
 }
 
@@ -176,7 +153,7 @@ expect_line all-green "new host"
 if grep -q "What went wrong" all-green.md; then fail "all-green: a green run lists failures"; fi
 
 pass_all one-failed
-set_outcome one-failed example-server-boots failed 2 "$LOGS/assertion.log"
+set_outcome one-failed example-server-boots failed "$LOGS/assertion.log"
 report one-failed
 expect_first_line one-failed "**1 check failed: example-server would not get this change.**"
 expect_rows one-failed example "example-toplevel=passed example-boots=passed example-disk=passed example-wipe-home=passed"
@@ -186,13 +163,6 @@ expect_line one-failed "- Cause: the system started but a test found it behaving
 expect_line one-failed '- What to do: read the failing line, then reproduce with `nix build -L .#checks.x86_64-linux.example-server-boots`.'
 expect_line one-failed "AssertionError: doctor misses a file written to /"
 expect_line one-failed "[Open the full log](https://github.com/owner/repo/actions/runs/42)"
-
-pass_all unstable
-set_outcome unstable example-boots unstable 2 "$LOGS/timeout.log"
-report unstable
-expect_first_line unstable "**Everything works: every machine builds, boots and passed its tests.**"
-[ "$(sed -n 5p unstable.md)" = "1 test passed only on its second try and is marked unstable." ] || fail "unstable: line 5 is '$(sed -n 5p unstable.md)'"
-expect_rows unstable example "example-toplevel=passed example-boots=unstable example-disk=passed example-wipe-home=passed"
 
 pass_all missing
 rm missing/x86_64-linux-example-disk.json
@@ -218,7 +188,7 @@ expect_rows kernel example-pi "example-pi-sd-image=skipped:runsafterthemerge"
 expect_line kernel '| `feature-ssh` | ssh works in a VM | skipped: already passed |'
 
 pass_all module-failed
-set_outcome module-failed feature-ssh failed 1 "$LOGS/eval-error.log"
+set_outcome module-failed feature-ssh failed "$LOGS/eval-error.log"
 LINT_RESULT=failure report module-failed
 expect_first_line module-failed "**2 checks failed: no machine is affected, but CI stays red until it is fixed.**"
 expect_line module-failed "<details open>"
@@ -226,20 +196,20 @@ expect_line module-failed "- Cause: the configuration does not evaluate."
 expect_line module-failed '- What to do: run `nix fmt`, then commit the result.'
 
 pass_all timeout
-set_outcome timeout example-boots failed 2 "$LOGS/timeout.log"
+set_outcome timeout example-boots failed "$LOGS/timeout.log"
 report timeout
 expect_line timeout "- Cause: a VM test hit its time limit."
 expect_line timeout '- What to do: read the wait the log names before the timeout: the unit, file or text it waited for never came; reproduce with `nix build -L .#checks.x86_64-linux.example-boots`.'
 
 printf 'machine # [   12.0] systemd[1]: Started backup.service.\nRequestedAssertionFailed: command `test -e /persist/state` failed (exit code 1)\n' >assertion-only.log
 pass_all assertion-only
-set_outcome assertion-only example-boots failed 2 "$PWD/assertion-only.log"
+set_outcome assertion-only example-boots failed "$PWD/assertion-only.log"
 report assertion-only
 expect_line assertion-only "- Cause: the system started but a test found it behaving wrong."
 
 printf 'machine # [    8.0] dhcpcd[612]: eth0: DHCPv6 solicit timed out\nAssertionError: the greeter never showed\n' >guest-noise.log
 pass_all guest-noise
-set_outcome guest-noise example-boots failed 2 "$PWD/guest-noise.log"
+set_outcome guest-noise example-boots failed "$PWD/guest-noise.log"
 report guest-noise
 expect_line guest-noise "- Cause: the system started but a test found it behaving wrong."
 
@@ -255,7 +225,7 @@ if grep -q "Everything works" plan-failed.md; then fail "plan-failed: a flake th
 
 pass_all fence
 printf '    > ````markdown\n    > ``x``\nerror: builder failed\n' >fence.log
-set_outcome fence feature-ssh failed 1 "$PWD/fence.log"
+set_outcome fence feature-ssh failed "$PWD/fence.log"
 report fence
 expect_line fence "\`\`\`\`markdown"
 expect_line fence "\`\`\`\`\`"
@@ -263,26 +233,26 @@ expect_line fence "\`\`\`\`\`"
 
 pass_all escape
 for name in 'system-a|b' 'app-x`y'; do
-  jq -n --arg check "$name" '{ check: $check, system: "x86_64-linux", outcome: "passed", attempts: 1, excerpt: [] }' >"escape/x86_64-linux-$name.json"
+  jq -n --arg check "$name" '{ check: $check, system: "x86_64-linux", outcome: "passed", excerpt: [] }' >"escape/x86_64-linux-$name.json"
 done
 PLANNED=$(jq -c '. + [{ check: "system-a|b", system: "x86_64-linux" }, { check: "app-x`y", system: "x86_64-linux" }]' <<<"$PLANNED") report escape
 expect_line escape '| `system-a\|b` | its own test passes | passed |'
 expect_line escape '| ``app-x`y`` | its own test passes | passed |'
 
 pass_all compile
-set_outcome compile example-toplevel failed 1 "$LOGS/compile-error.log"
+set_outcome compile example-toplevel failed "$LOGS/compile-error.log"
 report compile
 expect_line compile "- Cause: a package or test failed to build."
 expect_line compile '- What to do: read the lines above `Cannot build` in the full log.'
 expect_line compile "main.c:3:1: error: expected ';' before '}' token"
 
 pass_all hash
-set_outcome hash example-toplevel failed 1 "$LOGS/hash-mismatch.log"
+set_outcome hash example-toplevel failed "$LOGS/hash-mismatch.log"
 report hash
 expect_line hash "- Cause: a download changed upstream."
 
 pass_all substitute
-set_outcome substitute example-toplevel failed 1 "$LOGS/substitute.log"
+set_outcome substitute example-toplevel failed "$LOGS/substitute.log"
 report substitute
 expect_line substitute "- Cause: the binary cache could not be reached."
 expect_line substitute "- What to do: rerun the job; nothing in the change is at fault."
@@ -290,31 +260,31 @@ expect_line substitute "- What to do: rerun the job; nothing in the change is at
 grep -h "^warning:" "$LOGS/substitute.log" >download-warnings.log
 echo "AssertionError: the greeter never showed" >>download-warnings.log
 pass_all download-warnings
-set_outcome download-warnings example-boots failed 2 "$PWD/download-warnings.log"
+set_outcome download-warnings example-boots failed "$PWD/download-warnings.log"
 report download-warnings
 expect_line download-warnings "- Cause: the system started but a test found it behaving wrong."
 
 cat "$LOGS/substitute.log" "$LOGS/assertion.log" >substitute-and-assertion.log
 pass_all substitute-and-assertion
-set_outcome substitute-and-assertion example-boots failed 2 "$PWD/substitute-and-assertion.log"
+set_outcome substitute-and-assertion example-boots failed "$PWD/substitute-and-assertion.log"
 report substitute-and-assertion
 expect_line substitute-and-assertion "- Cause: the system started but a test found it behaving wrong."
 
 cat "$LOGS/substitute.log" "$LOGS/compile-error.log" >substitute-and-compile.log
 pass_all substitute-and-compile
-set_outcome substitute-and-compile example-toplevel failed 1 "$PWD/substitute-and-compile.log"
+set_outcome substitute-and-compile example-toplevel failed "$PWD/substitute-and-compile.log"
 report substitute-and-compile
 expect_line substitute-and-compile "- Cause: a package or test failed to build."
 
 printf 'error: writing to file: No space left on device\nerror: Cannot build '"'"'/nix/store/x-example.drv'"'"'.\n' >no-space.log
 pass_all no-space
-set_outcome no-space example-toplevel failed 1 "$PWD/no-space.log"
+set_outcome no-space example-toplevel failed "$PWD/no-space.log"
 report no-space
 expect_line no-space "- Cause: the CI runner ran out of disk."
 
 two_systems=$(jq -c '. + [{ check: "feature-ssh", system: "aarch64-linux" }]' <<<"$PLANNED")
 PLANNED=$two_systems pass_all two-systems
-PLANNED=$two_systems set_outcome two-systems feature-ssh failed 1 "$LOGS/eval-error.log" aarch64-linux
+PLANNED=$two_systems set_outcome two-systems feature-ssh failed "$LOGS/eval-error.log" aarch64-linux
 PLANNED=$two_systems report two-systems
 expect_line two-systems '| `feature-ssh` (x86_64-linux) | ssh works in a VM | passed |'
 expect_line two-systems '| `feature-ssh` (aarch64-linux) | ssh works in a VM | failed |'
@@ -472,7 +442,7 @@ report green-note
 if grep -q "Fix what is listed below" green-note.md; then fail "green-note: a green report asks for a fix"; fi
 
 pass_all red-note
-set_outcome red-note example-server-boots failed 2 "$LOGS/assertion.log"
+set_outcome red-note example-server-boots failed "$LOGS/assertion.log"
 report red-note --comment
 [ "$(sed -n 3p red-note.md)" = "Fix what is listed below and push again: CI runs on every push." ] || fail "red-note: the note is not under the verdict: $(head -n 3 red-note.md)"
 [ "$(grep -c "Fix what is listed below" red-note.md)" -eq 1 ] || fail "red-note: the note is repeated in the details"

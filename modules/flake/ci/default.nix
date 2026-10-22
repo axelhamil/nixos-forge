@@ -30,13 +30,19 @@ let
       }
     ) (buildChecksOn system);
 
+  kernelOf = host: config.flake.nixosConfigurations.${host}.config.boot.kernelPackages.kernel;
+
   kernelsOn =
-    system:
-    lib.unique (
-      lib.mapAttrsToList (
-        name: _: config.flake.nixosConfigurations.${name}.config.boot.kernelPackages.kernel.drvPath
-      ) (hostsOn system)
-    );
+    system: lib.unique (lib.mapAttrsToList (name: _: (kernelOf name).drvPath) (hostsOn system));
+
+  kernelPinsOf =
+    host:
+    map (output: {
+      name = "kernel-${host}-${output}";
+      path = (kernelOf host).${output}.outPath;
+    }) (kernelOf host).outputs;
+
+  kernelPins = lib.concatMap kernelPinsOf (lib.attrNames config.configurations.nixos);
 
   hostNamesOn = system: lib.attrNames (hostsOn system);
 
@@ -67,6 +73,7 @@ in
       flakyMatrix
       hostChecks
       descriptions
+      kernelPins
       ;
     hosts = lib.genAttrs config.systems hostNamesOn;
     kernels = lib.genAttrs config.systems kernelsOn;
@@ -156,6 +163,11 @@ in
           pkgs.coreutils
         ];
         text = builtins.readFile ./ci-mirror.sh;
+      };
+
+      packages.ci-pin-kernels = import ./_ci-pin-kernels.nix {
+        inherit pkgs;
+        inherit (pkgs) nix cachix;
       };
 
       packages.sync-develop = pkgs.writeShellApplication {

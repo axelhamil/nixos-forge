@@ -272,6 +272,27 @@ jobs:
           DEPLOY_SIGNING_KEY: ${{ secrets.DEPLOY_SIGNING_KEY }}
         run: nix run .#ci-promote -- results "$GITHUB_SHA"
 
+  pin:
+    if: ${{ !cancelled() && github.event_name == 'push' && vars.CACHIX_CACHE != '' }}
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: {}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skipPush: true
+      - env:
+          CACHIX_CACHE: ${{ vars.CACHIX_CACHE }}
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: nix run .#ci-pin-kernels -- "$CACHIX_CACHE"
+
   badges:
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [lint, plan, build]

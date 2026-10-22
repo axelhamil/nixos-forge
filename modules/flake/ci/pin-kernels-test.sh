@@ -24,9 +24,9 @@ COPY_FAIL=
 
 status=$(run held.out forge)
 [ "$status" -eq 0 ] || fail "pins that succeed exit with $status: $(cat held.out.err)"
-grep -qxF "nix copy --from https://forge.cachix.org $held_out" held.out.calls || fail "the out kernel is not fetched before its pin: $(cat held.out.calls)"
-grep -qxF "nix copy --from https://forge.cachix.org $held_dev" held.out.calls || fail "the dev kernel is not fetched before its pin: $(cat held.out.calls)"
-! grep -qF "nix copy --from https://forge.cachix.org $missing" held.out.calls || fail "a path the cache lacks is fetched: $(cat held.out.calls)"
+grep -qxF "nix copy --from https://forge.cachix.org --substitute-on-destination $held_out" held.out.calls || fail "the out kernel is not fetched before its pin: $(cat held.out.calls)"
+grep -qxF "nix copy --from https://forge.cachix.org --substitute-on-destination $held_dev" held.out.calls || fail "the dev kernel is not fetched before its pin: $(cat held.out.calls)"
+! grep -qF "nix copy --from https://forge.cachix.org --substitute-on-destination $missing" held.out.calls || fail "a path the cache lacks is fetched: $(cat held.out.calls)"
 grep -qxF "cachix pin forge kernel-example-out $held_out --keep-revisions 3" held.out.calls || fail "the out kernel is not pinned: $(cat held.out.calls)"
 grep -qxF "cachix pin forge kernel-example-dev $held_dev --keep-revisions 3" held.out.calls || fail "the dev kernel is not pinned: $(cat held.out.calls)"
 [ "$(grep -c '^cachix' held.out.calls)" -eq 2 ] || fail "wrong number of pins: $(cat held.out.calls)"

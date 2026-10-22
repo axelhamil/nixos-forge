@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/axelhamil/nixos-forge/compare/v0.2.3...v0.2.4) (2026-10-22)
+
+
+### Bug fixes
+
+* **ci:** let the flaky plan evaluate every vm check within the runner ([#88](https://github.com/axelhamil/nixos-forge/issues/88)) ([5bf99c6](https://github.com/axelhamil/nixos-forge/commit/5bf99c6e117cf4fce88e11e34864a29d93497295))
+
 ## [0.2.3](https://github.com/axelhamil/nixos-forge/compare/v0.2.2...v0.2.3) (2026-10-21)
 
 

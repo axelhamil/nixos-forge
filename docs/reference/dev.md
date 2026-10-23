@@ -6,6 +6,8 @@ The Nix housekeeping every host gets for free, then the opt-in modules that turn
 
 **nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`: `nh clean all` runs weekly and keeps every generation younger than 14 days plus the last 5; set `programs.nh.clean.extraArgs` in your host to keep other ones. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. The host's `flake` field points it at your fork and gives the `update` command ([updates.md](../explanation/updates.md)).
 
+`forge` is on every host: its built-in commands, and the `forge-<name>` commands you list in `forge.commands` ([forge.md](forge.md)).
+
 Channels are off: `nixpkgs` in `nix shell nixpkgs#hello` and in `NIX_PATH` is the revision the system was built from. User profiles live in `~/.local/state/nix` (`use-xdg-base-directories`). Members of `wheel` are trusted users of the Nix daemon; a host adds users to `nix.settings.trusted-users`, or sets it with `lib.mkForce` to remove `wheel`.
 
 ## `nix-index` (opt-in app)

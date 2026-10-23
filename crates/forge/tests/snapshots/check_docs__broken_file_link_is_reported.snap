@@ -1,0 +1,7 @@
+---
+source: forge/tests/check_docs.rs
+expression: fixture.report()
+---
+docs/how-to/guide.md:7: broken link to docs/assets/gone.svg (File not found. Check if file exists and path is correct) [link docs/how-to/guide.md docs/assets/gone.svg]
+docs/how-to/guide.md:7: broken link to docs/how-to/missing.md (File not found. Check if file exists and path is correct) [link docs/how-to/guide.md docs/how-to/missing.md]
+check-docs: 2 problem(s); a known violation waiting for its fix goes in modules/flake/docs/pending.txt as "<rule> <what>"

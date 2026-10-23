@@ -7,5 +7,9 @@
     nixfmt.enable = true;
     statix.enable = true;
     deadnix.enable = true;
+    rustfmt = {
+      enable = true;
+      edition = "2024";
+    };
   };
 }

@@ -110,6 +110,13 @@ in
 
 - `{ lib, ... }: { helpers.<name> = ...; }`, read with `inherit (config.helpers) <name>;`. One file per topic.
 
+## `forge` command: `crates/forge/`
+
+- A built-in subcommand is a variant of `Command` in `crates/forge/src/main.rs` and a module under `crates/forge/src/`, with typed errors (`thiserror`), no `unwrap` or `expect` outside tests, and no comments.
+- Tests under `crates/forge/tests/`, one per rule, with `tempfile` and `insta` snapshots: write them with `INSTA_UPDATE=always cargo nextest run` in `crates/`, review and `git add` the `.snap` files.
+- A command a fork adds needs no Rust: a package with a `bin/forge-<name>` that answers `--forge-describe` ([docs/reference/forge.md](../../../docs/reference/forge.md)), listed in `forge.commands`.
+- Checks: `rust-clippy`, `rust-fmt`, `rust-deny`, `rust-audit`, `rust-tests`; a new dependency has a license of `crates/deny.toml`.
+
 ## Flake package or CI script
 
 - Folder `modules/flake/<tool>/` (CI: `modules/flake/ci/`) with `<tool>.sh` and a `default.nix`:
@@ -139,7 +146,7 @@ in
 ## Finish
 
 1. Every new profile, feature, hardware module or app: one line in each of `modules/hosts/example`, `example-server` and `example-pi`, in its list, as `"<name>" # what the forker gets (docs/<page>.md)`, commented out (`# "<name>" # ...`) where it does not fit the role. A commented line changes nothing in the build. The `example-hosts` check names any missing line.
-2. Every new page of `docs/` gets a line in `docs/README.md`, and every new app, feature, hardware module or profile a heading or first table cell naming it in backticks; `nix run .#check-docs` names what is missing. Fix a violation rather than adding it to `modules/flake/docs/pending.txt`, and delete the line of one you fixed.
+2. Every new page of `docs/` gets a line in `docs/README.md`, and every new app, feature, hardware module or profile a heading or first table cell naming it in backticks; `nix run .#forge -- check-docs` names what is missing. Fix a violation rather than adding it to `modules/flake/docs/pending.txt`, and delete the line of one you fixed.
 3. `ROADMAP.md` when the change ships a lot, with its guardrail check.
 4. `nix fmt`, then `nix flake check --no-build`; build the new check: `nix build -L .#checks.x86_64-linux.<check>`.
 5. Show the staged diff and wait for the maintainer's go before committing.

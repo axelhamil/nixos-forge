@@ -1,0 +1,13 @@
+---
+source: forge/tests/check_docs.rs
+expression: fixture.report()
+---
+docs/how-to/guide.md:7: names "alice", which a fork does not have (or mark the line with <!-- docs-check: allow alice -->) [forbidden docs/how-to/guide.md alice]
+docs/how-to/guide.md:10: names "axelhamil", which a fork does not have (or mark the line with <!-- docs-check: allow axelhamil -->) [forbidden docs/how-to/guide.md axelhamil]
+docs/how-to/guide.md:13: names "example", which a fork does not have (or mark the line with <!-- docs-check: allow example -->) [forbidden docs/how-to/guide.md example]
+docs/how-to/guide.md:9: names "example-pi", which a fork does not have (or mark the line with <!-- docs-check: allow example-pi -->) [forbidden docs/how-to/guide.md example-pi]
+docs/how-to/guide.md:8: names "example-server", which a fork does not have (or mark the line with <!-- docs-check: allow example-server -->) [forbidden docs/how-to/guide.md example-server]
+docs/how-to/guide.md:11: names "nixos-forge", which a fork does not have (or mark the line with <!-- docs-check: allow nixos-forge -->) [forbidden docs/how-to/guide.md nixos-forge]
+docs/how-to/guide.md:12: names "nixos-starter", which a fork does not have (or mark the line with <!-- docs-check: allow nixos-starter -->) [forbidden docs/how-to/guide.md nixos-starter]
+docs/how-to/guide.md:14: names "the starter", which a fork does not have (or mark the line with <!-- docs-check: allow the starter -->) [forbidden docs/how-to/guide.md the starter]
+check-docs: 8 problem(s); a known violation waiting for its fix goes in modules/flake/docs/pending.txt as "<rule> <what>"

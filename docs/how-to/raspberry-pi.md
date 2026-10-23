@@ -47,7 +47,7 @@ ssh <you>@<address>
 systemctl is-system-running
 ```
 
-**It worked when** SSH logs you in with your key and `systemctl is-system-running` prints `running`. `degraded` names failed units: `systemctl --failed` lists them, and `sudo doctor` says more ([doctor.md](doctor.md)).
+**It worked when** SSH logs you in with your key and `systemctl is-system-running` prints `running`. `degraded` names failed units: `systemctl --failed` lists them, and `sudo forge doctor` says more ([doctor.md](doctor.md)).
 
 ## Boot from NVMe
 

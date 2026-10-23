@@ -299,7 +299,7 @@ null
 
 
 
-SSH public keys that sign the deploy commits CI promotes (the secret ` DEPLOY_SIGNING_KEY `, which ` nix run .#init ` generates)\. When set, ` auto-upgrade ` applies a ` deploy/<host> ` commit only when it carries a valid signature from one of them, and skips a source that serves anything else\. Empty, it trusts whatever its sources serve, and ` doctor ` warns\.
+SSH public keys that sign the deploy commits CI promotes (the secret ` DEPLOY_SIGNING_KEY `, which ` nix run .#init ` generates)\. When set, ` auto-upgrade ` applies a ` deploy/<host> ` commit only when it carries a valid signature from one of them, and skips a source that serves anything else\. Empty, it trusts whatever its sources serve, and ` forge doctor ` warns\.
 
 
 

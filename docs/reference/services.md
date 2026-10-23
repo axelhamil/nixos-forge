@@ -51,7 +51,7 @@ Add `secrets` to the features of a host to decrypt [sops](https://github.com/get
 
 ## Printing: `printing` (opt-in)
 
-CUPS with driverless printing (IPP Everywhere): network printers are found through Avahi and its mDNS name resolution, with no driver to install. Their state starts fresh at every boot on a host with `disk`, so printers are found again rather than kept; `sudo doctor` does not report it as lost.
+CUPS with driverless printing (IPP Everywhere): network printers are found through Avahi and its mDNS name resolution, with no driver to install. Their state starts fresh at every boot on a host with `disk`, so printers are found again rather than kept; `sudo forge doctor` does not report it as lost.
 
 ## Snapshots: btrbk
 

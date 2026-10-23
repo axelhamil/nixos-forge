@@ -8,7 +8,7 @@ hardware = [ "firmware" "amd-gpu" "audio" "bluetooth" ];
 
 ## `firmware`
 
-On a physical machine. It installs the redistributable firmware, loads the Intel and AMD CPU microcode updates (each a `mkDefault`) and runs fwupd, so `fwupdmgr` can update the firmware of the machine and its devices. fwupd's state in `/var/lib/fwupd` is not kept across boots, and `doctor` does not report it.
+On a physical machine. It installs the redistributable firmware, loads the Intel and AMD CPU microcode updates (each a `mkDefault`) and runs fwupd, so `fwupdmgr` can update the firmware of the machine and its devices. fwupd's state in `/var/lib/fwupd` is not kept across boots, and `forge doctor` does not report it.
 
 ## `audio`
 

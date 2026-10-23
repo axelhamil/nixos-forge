@@ -1,8 +1,8 @@
 # Doctor
 
-Ask a machine how it is doing. Every host has a `doctor` command. It checks the boot chain, the disk, the updates and what the next boot will erase, then says what to do about each problem.
+Ask a machine how it is doing. Every host has a `forge doctor` command. It checks the boot chain, the disk, the updates and what the next boot will erase, then says what to do about each problem.
 
-It prints one line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feature, with a hint under each problem. Run it as `sudo doctor`; without root it skips the checks that need it and says so. It exits non-zero when a check fails.
+It prints one line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lacks the feature, with a hint under each problem. Run it as `sudo forge doctor`; without root it skips the checks that need it and says so. It exits 1 when a check fails. It reads what the host imports from `/etc/forge/doctor.json`, which the `doctor` base tool writes, so it runs only on hosts built from this flake.
 
 ```text
 [  OK] Secure Boot    enforced, keys enrolled
@@ -11,15 +11,15 @@ It prints one line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lack
 [  OK] Disk space     81 % free on / (btrfs, 380G left)
 [  OK] Failed units   none
 [WARN] Updates        /home/<you>/nixos: behind by 3
-                      run update
+                     run update
 [  OK] Upgrades       upgraded 2026-05-12 04:21: Closure size: 2154 -> 2161 (31 paths added, 24 paths removed, delta +12.4 MiB)
 [  OK] Signed deploys auto-upgrade applies only deploy commits signed by 1 key of update.signers
 [  OK] Boot           the newest generation started, or has tries left
 [WARN] Impermanence   2 files written to / since boot are lost at the next boot
-                      keep them in environment.persistence."/persist", or list them in doctor.ephemeralPaths
-                          1  /srv/app
-                          1  /
-                      doctor --all lists every file
+                     keep them in environment.persistence."/persist", or list them in doctor.ephemeralPaths
+                         1  /srv/app
+                         1  /
+                     forge doctor --all lists every file
 ```
 
 | Check | Runs when | Looks at |
@@ -35,9 +35,44 @@ It prints one line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lack
 | Boot | systemd-boot, as root | `bootctl list`: a warning when the newest generation spent its tries (`+0-`) and the machine runs an older one: it went back to the previous version |
 | Impermanence | `disk` | files on `/` written since `sysinit.target`, which the rollback erases |
 
+## Checks your fork adds
+
+After its own checks, `forge doctor` runs every `forge` command your fork adds whose `--forge-describe` answer has `"doctor": true` ([the contract](../reference/forge.md#the-doctor-checks-of-a-command)). Each line it prints is reported and counted like a built-in one:
+
+```nix
+{ pkgs, ... }:
+{
+  forge.commands = [
+    (pkgs.writeShellApplication {
+      name = "forge-backup-age";
+      text = ''
+        if [ "''${1:-}" = --forge-describe ]; then
+          echo '{"contract":1,"name":"backup-age","summary":"Says how old the last backup is","doctor":true}'
+          exit 0
+        fi
+        if [ "''${1:-}" = --forge-doctor ]; then
+          echo '{"status":"WARN","check":"Backup age","detail":"last backup 3 days ago","hint":"systemctl start backup"}'
+          exit 0
+        fi
+        echo "the last backup is 3 days old"
+      '';
+    })
+  ];
+}
+```
+
+`sudo forge doctor` then prints, after `Impermanence`:
+
+```text
+[WARN] Backup age     last backup 3 days ago
+                     systemctl start backup
+```
+
+A command that fails, hangs past 30 seconds, prints nothing or prints a line that is not a check gets one `FAIL` line named after it, such as `forge-backup-age`.
+
 ## Upgrade history
 
-`doctor --history` prints the last 10 runs of `auto-upgrade` from `/var/lib/auto-upgrade/history.tsv`, without running the checks:
+`forge doctor --history` prints the last 10 runs of `auto-upgrade` from `/var/lib/auto-upgrade/history.tsv`, without running the checks:
 
 ```text
 TIME                       OUTCOME      FROM          TO            SOURCE
@@ -49,7 +84,7 @@ TIME                       OUTCOME      FROM          TO            SOURCE
 
 With `disk`, `/` is restored from an empty snapshot at every boot. This is impermanence: only `/nix`, `/home`, `/persist`, `/boot` and the paths you persist survive. This section is the home page for its rules.
 
-Whatever NixOS creates during the boot (`/etc`, users, tmpfiles) comes back on its own. So `doctor` lists only files created or changed on `/` after `sysinit.target`, outside any mount. The kernel may step the clock back when it reads the hardware clock during the boot; `doctor` then dates `sysinit.target` on the clock tmpfiles wrote with, so what tmpfiles created stays out, and it allows such a step 2 seconds at most, so nothing written later hides behind it. It leaves out:
+Whatever NixOS creates during the boot (`/etc`, users, tmpfiles) comes back on its own. So `forge doctor` lists only files created or changed on `/` after `sysinit.target`, outside any mount. The kernel may step the clock back when it reads the hardware clock during the boot; `forge doctor` then dates `sysinit.target` on the clock tmpfiles wrote with, so what tmpfiles created stays out, and it allows such a step 2 seconds at most, so nothing written later hides behind it. It leaves out:
 
 - persisted paths, which are bind mounts from `/persist`;
 - `/nix`, `/home`, `/persist` and `/boot`, which are their own subvolumes;

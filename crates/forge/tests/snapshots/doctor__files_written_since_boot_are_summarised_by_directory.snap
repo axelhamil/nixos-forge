@@ -1,0 +1,22 @@
+---
+source: forge/tests/doctor.rs
+expression: output
+---
+[SKIP] Secure Boot    secure-boot is not imported
+[SKIP] LUKS unlock    needs disk and secure-boot
+[SKIP] Snapshots      no btrbk snapshots on this host
+[  OK] Disk space     81 % free on / (btrfs, 81G left)
+[  OK] Failed units   none
+[SKIP] Updates        the host's flake is not a git checkout on this machine
+[SKIP] Upgrades       auto-upgrade is off
+[SKIP] Signed deploys auto-upgrade is off
+[SKIP] Boot           no systemd-boot entries on this machine
+[WARN] Impermanence   6 files written to / since boot are lost at the next boot
+                     keep them in environment.persistence."/persist", or list them in doctor.ephemeralPaths
+                          2  /var/lib
+                          2  /srv/doctor
+                          1  /a/b/c
+                          1  /
+                     forge doctor --all lists every file
+
+failed: 0, warnings: 1

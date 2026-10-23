@@ -2,15 +2,16 @@ use std::collections::BTreeMap;
 use std::env;
 use std::ffi::OsString;
 use std::fs;
-use std::io::{self, Read};
+use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, ExitStatus, Stdio};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::process::{Command, ExitStatus};
+use std::time::Duration;
 
 use serde::Deserialize;
+
+use crate::process;
 
 pub const CONTRACT: u64 = 1;
 pub const CONTRACT_VARIABLE: &str = "FORGE_CONTRACT";
@@ -18,7 +19,6 @@ pub const COMMANDS_PATH_VARIABLE: &str = "FORGE_COMMANDS_PATH";
 pub const DESCRIBE_FLAG: &str = "--forge-describe";
 pub const DESCRIBE_TIMEOUT: Duration = Duration::from_secs(2);
 const PREFIX: &str = "forge-";
-const POLL_INTERVAL: Duration = Duration::from_millis(10);
 
 #[derive(Debug, thiserror::Error)]
 pub enum PluginError {
@@ -38,6 +38,11 @@ pub enum PluginError {
         #[source]
         source: io::Error,
     },
+    #[error(
+        "`{path} {DESCRIBE_FLAG}` printed more than {} bytes",
+        process::OUTPUT_LIMIT
+    )]
+    DescribeTooLong { path: PathBuf },
     #[error("`{path} {DESCRIBE_FLAG}` failed ({status})")]
     DescribeFailed { path: PathBuf, status: ExitStatus },
     #[error("`{path} {DESCRIBE_FLAG}` printed no valid description: {source}")]
@@ -68,6 +73,8 @@ pub struct Description {
     pub contract: u64,
     pub name: String,
     pub summary: String,
+    #[serde(default)]
+    pub doctor: bool,
 }
 
 #[must_use]
@@ -137,62 +144,39 @@ pub fn list(dirs: &[PathBuf], builtins: &[String]) -> Vec<Plugin> {
     plugins.into_values().collect()
 }
 
-fn describe(plugin: &Plugin, timeout: Duration) -> Result<Description, PluginError> {
+pub fn describe(plugin: &Plugin, timeout: Duration) -> Result<Description, PluginError> {
     let spawn_error = |source| PluginError::Spawn {
         path: plugin.path.clone(),
         source,
     };
-    let mut child = Command::new(&plugin.path)
-        .arg(DESCRIBE_FLAG)
-        .env(CONTRACT_VARIABLE, CONTRACT.to_string())
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .map_err(spawn_error)?;
+    let captured = process::run_within(
+        Command::new(&plugin.path)
+            .arg(DESCRIBE_FLAG)
+            .env(CONTRACT_VARIABLE, CONTRACT.to_string()),
+        timeout,
+    )
+    .map_err(spawn_error)?;
 
-    let mut stdout = child.stdout.take();
-    let reader = thread::spawn(move || {
-        let mut output = Vec::new();
-        if let Some(stdout) = stdout.as_mut() {
-            stdout.read_to_end(&mut output)?;
-        }
-        Ok::<_, io::Error>(output)
-    });
-
-    let Some(status) = wait_within(&mut child, timeout).map_err(spawn_error)? else {
+    let Some(captured) = captured else {
         return Err(PluginError::DescribeTimedOut {
             path: plugin.path.clone(),
             timeout,
         });
     };
-    if !status.success() {
+    if captured.overflowed {
+        return Err(PluginError::DescribeTooLong {
+            path: plugin.path.clone(),
+        });
+    }
+    let _ = io::stderr().write_all(&captured.stderr);
+    if !captured.status.success() {
         return Err(PluginError::DescribeFailed {
             path: plugin.path.clone(),
-            status,
+            status: captured.status,
         });
     }
 
-    let output = reader
-        .join()
-        .unwrap_or_else(|_| Err(io::Error::other("the reader of the description panicked")))
-        .map_err(spawn_error)?;
-    parse_description(&plugin.path, &output)
-}
-
-fn wait_within(child: &mut Child, timeout: Duration) -> io::Result<Option<ExitStatus>> {
-    let deadline = Instant::now() + timeout;
-    loop {
-        if let Some(status) = child.try_wait()? {
-            return Ok(Some(status));
-        }
-        if Instant::now() >= deadline {
-            child.kill()?;
-            child.wait()?;
-            return Ok(None);
-        }
-        thread::sleep(POLL_INTERVAL);
-    }
+    parse_description(&plugin.path, &captured.stdout)
 }
 
 fn parse_description(path: &Path, stdout: &[u8]) -> Result<Description, PluginError> {
@@ -252,13 +236,16 @@ pub fn overview(dirs: &[PathBuf], builtins: &[String]) -> String {
     format!("External commands:\n{}", lines.join("\n"))
 }
 
-fn is_executable(path: &Path) -> bool {
+#[must_use]
+pub fn is_executable(path: &Path) -> bool {
     fs::metadata(path)
         .is_ok_and(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
 }
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
     use super::*;
 
     #[test]

@@ -71,7 +71,7 @@ Why it is different:
 ## Philosophy
 
 - **Proven before trusted.** CI builds every machine of your fork and boots it in a VM before any of them applies a change. A machine with `disk` is also installed on a blank encrypted disk, and goes back to the previous generation (system version) when a new one fails to boot.
-- **nixos-forge ships mechanisms, your fork chooses policy.** The forge gives you the registry of hosts, its checks, impermanence (a `/` wiped at every boot), `doctor` and `update`. Your desktop, terminal, editor or kernel is a name you list, never imposed. [More on this rule](docs/explanation/architecture.md#the-forge-rule).
+- **nixos-forge ships mechanisms, your fork chooses policy.** The forge gives you the registry of hosts, its checks, impermanence (a `/` wiped at every boot), `forge doctor` and `update`. Your desktop, terminal, editor or kernel is a name you list, never imposed. [More on this rule](docs/explanation/architecture.md#the-forge-rule).
 - **Your fork is sovereign.** After `nix run .#init` it is your distro. You take upstream's releases when you choose, with `nix run .#upstream`. Nothing reaches your machines without passing your own CI.
 - **Read it top to bottom.** Plain lists of names, one file per machine, one folder per tool. A mistyped name stops the build and lists the known ones.
 - **Nothing brings anything else.** An app keeps only what it cannot work without. Your terminal, launcher, bar or lock screen is always a name you listed.
@@ -206,7 +206,7 @@ Fork it, run `nix run .#init`, [turn CI on](docs/how-to/ci.md#turn-ci-on-in-your
 | **Hardware** | firmware with CPU microcode, PipeWire, Bluetooth, NVIDIA, AMD and Intel GPUs, any [nixos-hardware](https://github.com/NixOS/nixos-hardware) profile, Raspberry Pi 4 and 5. [raspberry-pi](docs/how-to/raspberry-pi.md) |
 | **Services and dev** | systemd-resolved, key-only SSH, driverless printing, [sops-nix](https://github.com/Mic92/sops-nix) secrets, [nh](https://github.com/nix-community/nh), offline `nix-locate`, rootless Docker, libvirt, nix-ld, direnv. [services](docs/reference/services.md), [dev](docs/reference/dev.md) |
 | **Updates** | a weekly lock PR, upstream's releases merged when you choose, `update` on a desktop, `auto-upgrade` daily on its own with only what CI validated for that machine (and, with `signers`, signed for it), and a desktop notification of what changed. [updates](docs/explanation/updates.md) |
-| **Doctor** | `sudo doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, the last auto-upgrade, signed deploys and rollbacks, and lists what the next boot erases from `/`. [doctor](docs/how-to/doctor.md) |
+| **Doctor** | `sudo forge doctor` checks Secure Boot, the TPM2 token, snapshots, failed units, disk space, your checkout, the last auto-upgrade, signed deploys and rollbacks, and lists what the next boot erases from `/`. [doctor](docs/how-to/doctor.md) |
 | **CI** | every host builds and boots in a VM, the install is tested on a blank disk, each PR gets a package diff, only what the cache lacks is built ([above](#what-ci-proves)). [ci](docs/how-to/ci.md) |
 
 ## Make it yours

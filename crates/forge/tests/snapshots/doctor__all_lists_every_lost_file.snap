@@ -1,0 +1,21 @@
+---
+source: forge/tests/doctor.rs
+expression: output
+---
+Running without root: the checks that need it are skipped. Run sudo forge doctor for all of them.
+
+[SKIP] Secure Boot    secure-boot is not imported
+[SKIP] LUKS unlock    needs disk and secure-boot
+[SKIP] Snapshots      no btrbk snapshots on this host
+[  OK] Disk space     81 % free on / (btrfs, 81G left)
+[  OK] Failed units   none
+[SKIP] Updates        the host's flake is not a git checkout on this machine
+[SKIP] Upgrades       auto-upgrade is off
+[SKIP] Signed deploys auto-upgrade is off
+[SKIP] Boot           needs root, run sudo forge doctor
+[WARN] Impermanence   2 files written to / since boot are lost at the next boot, without the directories only root reads (run sudo forge doctor)
+                     keep them in environment.persistence."/persist", or list them in doctor.ephemeralPaths
+                     /doctor-lost
+                     /srv/doctor/state
+
+failed: 0, warnings: 1

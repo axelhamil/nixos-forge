@@ -1,7 +1,7 @@
 import re
 
 
-def doctor(command="doctor"):
+def doctor(command="forge doctor"):
     status, output = machine.execute(f"{command} 2>&1")
     print(output)
     return status, output
@@ -42,15 +42,15 @@ status, output = doctor()
 assert status == 1, "doctor exits 0 with a failed unit"
 assert line("FAIL", "Failed units", output) and "doctor-broken.service" in output
 
-status, output = doctor("runuser -u alice -- doctor")
-assert "Run sudo doctor" in output, "doctor does not say it runs without root"
+status, output = doctor("runuser -u alice -- forge doctor")
+assert "Run sudo forge doctor" in output, "doctor does not say it runs without root"
 
 status, output = doctor()
 assert line("SKIP", "Upgrades", output) and "auto-upgrade is off" in output, "doctor checks upgrades without auto-upgrade"
 assert line("SKIP", "Boot", output), "doctor reads boot entries without systemd-boot"
 assert line("SKIP", "Signed deploys", output), "doctor checks deploy signatures without auto-upgrade"
 
-upgrades_doctor = "/run/current-system/specialisation/upgrades/sw/bin/doctor"
+upgrades_doctor = "/run/current-system/specialisation/upgrades/sw/bin/forge doctor"
 
 
 def seed_state(outcome, age, message, changes=""):
@@ -68,7 +68,7 @@ assert line("SKIP", "Upgrades", output) and "never ran yet" in output, "doctor m
 assert line("WARN", "Signed deploys", output), "doctor does not warn that auto-upgrade trusts unsigned deploy commits"
 assert "update.signers" in output, "doctor does not say how to require signed deploy commits"
 
-status, output = doctor("/run/current-system/specialisation/signed/sw/bin/doctor")
+status, output = doctor("/run/current-system/specialisation/signed/sw/bin/forge doctor")
 assert line("OK", "Signed deploys", output) and "1 key" in output, "doctor does not report the keys deploy commits must be signed by"
 
 seed_state("refused", "1 hour ago", "this machine runs uncommitted changes")
@@ -121,3 +121,20 @@ for broken in ['{"time":"x"', '{"time":"not-a-date","outcome":"upgraded"}']:
     status, output = doctor(upgrades_doctor)
     assert line("WARN", "Upgrades", output) and "cannot read /var/lib/auto-upgrade/state.json" in output, f"doctor misreads {broken}"
     assert line("SKIP", "Boot", output) and "\nfailed: " in output, f"{broken} stops doctor before its other checks"
+
+
+def totals(output):
+    found = re.search(r"failed: (\d+), warnings: (\d+)", output)
+    assert found, f"no totals in {output}"
+    return int(found[1]), int(found[2])
+
+
+machine.succeed("systemctl reset-failed doctor-broken.service")
+_, plain = doctor()
+status, output = doctor("/run/current-system/specialisation/forks/sw/bin/forge doctor")
+assert line("WARN", "Backup age", output) and "last backup 3 days ago" in output, "forge doctor does not run a check a fork adds"
+assert "systemctl start backup" in output, "forge doctor drops the hint of a fork check"
+assert line("FAIL", "forge-crash", output), "forge doctor does not fail a fork check that exits 1"
+assert status == 1, "forge doctor exits 0 with a failed fork check"
+failures, warnings = totals(plain)
+assert totals(output) == (failures + 1, warnings + 1), "fork checks do not count in the totals"

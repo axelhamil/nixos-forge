@@ -1,0 +1,19 @@
+---
+source: forge/tests/doctor.rs
+expression: output
+---
+[SKIP] Secure Boot    secure-boot is not imported
+[SKIP] LUKS unlock    needs disk and secure-boot
+[SKIP] Snapshots      no btrbk snapshots on this host
+[  OK] Disk space     81 % free on / (btrfs, 81G left)
+[  OK] Failed units   none
+[SKIP] Updates        the host's flake is not a git checkout on this machine
+[SKIP] Upgrades       auto-upgrade is off
+[SKIP] Signed deploys auto-upgrade is off
+[SKIP] Boot           no systemd-boot entries on this machine
+[SKIP] Impermanence   / is not wiped at boot on this host
+[WARN] Backup age     last backup 3 days ago, root=1 contract=1
+                     systemctl start backup
+[  OK] Backup target  reachable
+
+failed: 0, warnings: 1

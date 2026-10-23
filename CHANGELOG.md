@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.5](https://github.com/axelhamil/nixos-forge/compare/v0.2.4...v0.2.5) (2026-10-23)
+
+
+### Features
+
+* **doctor:** replace doctor.sh with forge doctor and let forks add checks ([#97](https://github.com/axelhamil/nixos-forge/issues/97)) ([4e9afe4](https://github.com/axelhamil/nixos-forge/commit/4e9afe425249aab5b5d6c1b35ac2535095ef5e7a))
+* **forge:** add the forge cli in rust and port check-docs to it ([#96](https://github.com/axelhamil/nixos-forge/issues/96)) ([26afb92](https://github.com/axelhamil/nixos-forge/commit/26afb92ce66cd8f9ce7b25da96f021077f1645cc))
+
+
+### Bug fixes
+
+* **ci:** fetch each kernel from cachix before pinning it ([#92](https://github.com/axelhamil/nixos-forge/issues/92)) ([ab58e67](https://github.com/axelhamil/nixos-forge/commit/ab58e678dbc4cc8b7eeff706ac314d893853a7c1))
+* **ci:** fetch the references of a kernel output before pinning it ([#94](https://github.com/axelhamil/nixos-forge/issues/94)) ([f58f360](https://github.com/axelhamil/nixos-forge/commit/f58f36067b49a1b994c91f057ead3d003929e7c1))
+* **ci:** keep every host kernel cached by pinning it in cachix ([#91](https://github.com/axelhamil/nixos-forge/issues/91)) ([f6081e6](https://github.com/axelhamil/nixos-forge/commit/f6081e672835e01471fb92e4de75c3d6b07e6ea4))
+* **ci:** realise a kernel output from every substituter before pinning it ([#95](https://github.com/axelhamil/nixos-forge/issues/95)) ([3aff570](https://github.com/axelhamil/nixos-forge/commit/3aff5705a43728c575c7eb52af526d11d3016924))
+
 ## [0.2.4](https://github.com/axelhamil/nixos-forge/compare/v0.2.3...v0.2.4) (2026-10-22)
 
 

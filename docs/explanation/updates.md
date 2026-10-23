@@ -214,20 +214,20 @@ The history check above compares the commits of `main` that promotions carry: th
 
 - an older signed promotion replayed by a source is refused;
 - a deploy branch deleted or reset by hand, then promoted again from a later commit of `main`, is applied;
-- a source that keeps serving an old signed commit leaves the machine `up-to-date` on it, and `doctor` warns once the last success is more than 14 days old.
+- a source that keeps serving an old signed commit leaves the machine `up-to-date` on it, and `forge doctor` warns once the last success is more than 14 days old.
 
-Without `signers`, the machine applies whatever its sources serve, signed or not, and `doctor` shows a `Signed deploys` warning at every run.
+Without `signers`, the machine applies whatever its sources serve, signed or not, and `forge doctor` shows a `Signed deploys` warning at every run.
 
 To change the key, add the new public key to `signers` and let the machines upgrade once, still signed by the old key. Then replace the secret and remove the old key from `signers`. A machine learns its keys only from its own configuration: revoke a leaked key by rebuilding each machine with the key removed, not from CI.
 
 ### Know what it did
 
-`sudo doctor` reads that state ([doctor.md](../how-to/doctor.md)):
+`sudo forge doctor` reads that state ([doctor.md](../how-to/doctor.md)):
 
 - its `Upgrades` line says when the last run upgraded and what it changed, or since when the machine is up to date;
 - it warns with the reason when the last run was `refused`, `unreachable`, `waiting`, `failed` or `rolled-back`, or when the last success is more than 14 days old;
 - its `Boot` line warns when the newest generation spent its tries and the machine runs an older one;
-- `doctor --history` prints the last 10 runs.
+- `forge doctor --history` prints the last 10 runs.
 
 The `upgrade-notify` app shows a desktop notification for each upgrade, for a user whose apps include it (the host's, the person's or the host user's). Its user service runs when a graphical session starts:
 

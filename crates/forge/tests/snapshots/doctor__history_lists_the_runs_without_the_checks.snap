@@ -1,0 +1,7 @@
+---
+source: forge/tests/doctor.rs
+expression: fake.history(&upgrades())
+---
+TIME                       OUTCOME      FROM          TO            SOURCE
+2026-01-01T04:00:00+00:00  waiting      -             -             -
+2026-01-02T04:00:00+00:00  upgraded     aaaaaaaaaaaa  bbbbbbbbbbbb  https://example.org/fork.git

@@ -46,7 +46,7 @@ with subtest("the next version starts and keeps the state"):
         machine.succeed(f"grep -qx home {home_state}")
 
 with subtest("doctor finds nothing the switch left behind"):
-    status, report = machine.execute("doctor --all 2>&1")
+    status, report = machine.execute("forge doctor --all 2>&1")
     print(report)
     assert re.search(r"\[\s*OK\]\s+Impermanence\s", report), "the next version loses files written since boot"
     failed_line = re.search(r"Failed units\s+(.*)", report)

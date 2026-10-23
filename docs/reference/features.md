@@ -34,4 +34,4 @@ Secure Boot through [lanzaboote](https://github.com/nix-community/lanzaboote), i
 Daily upgrades to the version CI validated for the host. The flow, its sources, outcomes and signed deploys are in [updates.md](../explanation/updates.md#a-machine-upgrades-on-its-own).
 
 - Every day from 04:00, randomized over 45 minutes; the new version applies at the next boot, and a version that does not start is abandoned after 3 tries on a host with `disk`.
-- The last run and its history in `/var/lib/auto-upgrade`, kept in `/persist`, read by `doctor` and `upgrade-notify`.
+- The last run and its history in `/var/lib/auto-upgrade`, kept in `/persist`, read by `forge doctor` and `upgrade-notify`.

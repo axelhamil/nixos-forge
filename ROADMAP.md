@@ -53,6 +53,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **42. Benchmarks in the CI VM**: on a PR, each boot of the base and of the new generation also runs CPU (`sysbench cpu`), memory bandwidth (`sysbench memory`) and disk (`fio`, 4k random read) benchmarks with the same binaries on both sides, and the report flags a median that drops past its threshold; never required by `ci-ok` | `perf-regression`, `ci-report` |
 | **43. Reliable CI**: every check passes or fails for a reason, never by chance: no VM falls back to network boot, tests wait for a unit, a log line or a file within their `globalTimeout`, a failed cache download is told apart from a failing build, the nightly `flaky` workflow reports the pass rate of every VM check (230 of 230 runs passed), and a check is built once, without the retry of lot 21 | `vm-launchers`, `ci-flaky`, `ci-report`, `ci-plan`, nightly `flaky` |
 | **44. Rust workspace and `forge` CLI**: a Cargo workspace in `crates/`, built with crane and the nixpkgs toolchain; clippy pedantic, rustfmt, cargo-deny, cargo-audit and nextest as flake checks; one `forge` binary with subcommands, on every host. Forks add their own `forge-<name>` commands by listing packages in `forge.commands`, called with a versioned JSON contract, without a recompile. First port: `check-docs`, lychee replaced by an offline Rust link and anchor check | `rust-clippy`, `rust-fmt`, `rust-deny`, `rust-audit`, `rust-tests`, `docs`, `init`, `base-forge` |
+| **45. `forge doctor`**: `doctor.sh` replaced by the Rust `forge doctor`, which reads the host's settings from a JSON file each system's `forge` points to; forks add checks with `forge` commands that declare `"doctor":true` and print JSON lines, run in their own process group and stopped after 30 s | `rust-tests`, `rust-clippy`, `base-doctor`, `base-forge`, the `<host>-disk` tests, `feature-rollback`, `feature-migration` |
 
 ## Planned
 
@@ -60,7 +61,6 @@ In order, each with its guardrail. Every lot starts with a state of the art revi
 
 | Lot | Guardrail |
 |---|---|
-| **45. `forge doctor`** replaces `doctor.sh`, and runs the `doctor` checks a fork lists as `forge` commands | `base-doctor`, the `<host>-disk` tests, `rust-tests` |
 | **46. `forge update` and `auto-upgrade`** | `base-update`, `feature-auto-upgrade`, `feature-auto-upgrade-signed`, `feature-auto-upgrade-sources`, `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit` |
 | **47. `forge install`** replaces `install-host`, `tpm2-enroll` and `fido2-enroll` | `<host>-installer`, `<host>-disk`, `feature-fido2` |
 | **48. `forge dual-boot`** replaces `dual-boot.sh` and `beside-windows.sh` | `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot`, `feature-dual-boot-hook-failure` |

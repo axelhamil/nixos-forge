@@ -109,7 +109,7 @@ sudo sbctl verify
 
 **It worked when** `bootctl` prints `Secure Boot: enabled (user)`: the firmware only runs what your keys signed. `sbctl verify` lists kernels under `/EFI/nixos/` as unsigned. That is expected: the signed lanzaboote stub checks them by hash.
 
-On that first boot, `systemd-bless-boot.service` fails with `Can't find boot counter source file`: lanzaboote has just signed the boot files again under a new name. `doctor` lists it among the failed units until the next reboot. It is harmless, and the next boot blesses the fresh `+3` entry.
+On that first boot, `systemd-bless-boot.service` fails with `Can't find boot counter source file`: lanzaboote has just signed the boot files again under a new name. `forge doctor` lists it among the failed units until the next reboot. It is harmless, and the next boot blesses the fresh `+3` entry.
 
 If the machine later refuses to boot with a Secure Boot violation (a firmware update restored the factory keys), reset the firmware to setup mode: systemd-boot enrolls the keys from `/boot/loader/keys/auto` again.
 
@@ -151,7 +151,7 @@ facter = ./facter.json;
 
 nixpkgs' facter module then turns on the initrd kernel modules, graphics, network, Bluetooth and virtualisation support that machine needs. Rebuild with `nh os switch` (or `nixos-rebuild switch`).
 
-**It worked when** `sudo doctor` reports no failed unit ([doctor.md](../how-to/doctor.md)).
+**It worked when** `sudo forge doctor` reports no failed unit ([doctor.md](../how-to/doctor.md)).
 
 ## What the disk looks like
 
@@ -175,7 +175,7 @@ Every boot, the initrd deletes `@root` and snapshots it again from the empty `@r
 
 - **Kept by the shipped modules**: logs, `/var/lib/nixos`, `/var/lib/systemd`, `machine-id` and the dhcpcd lease and DUID (`modules/features/base/impermanence`), NetworkManager state (`modules/features/profiles/desktop`).
 - **Fresh at every boot, on purpose**: CUPS (with `printing`), power-profiles-daemon and fwupd (with `firmware`). Printers are found again through Avahi, the power profile is the default one, firmware metadata is fetched again.
-- **Yours**: declare what your own modules need next to them, in the same option. `sudo doctor` lists what the next boot would erase ([doctor.md](../how-to/doctor.md)).
+- **Yours**: declare what your own modules need next to them, in the same option. `sudo forge doctor` lists what the next boot would erase ([doctor.md](../how-to/doctor.md)).
 
 Users are immutable (`users.mutableUsers = false`): passwords come from files under `/persist/passwords/`, never from `passwd`.
 

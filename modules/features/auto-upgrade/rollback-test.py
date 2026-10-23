@@ -76,7 +76,7 @@ with subtest("once its tries are spent, the machine starts the previous generati
     assert current_system() == previous, f"booted {current_system()}, not the previous generation {previous}"
     wait_until_assessed()
     assert boot_entries() == {1: "", 2: "+0-3"}, f"generation 2 is not marked bad: {boot_entries()}"
-    report = machine.succeed("doctor 2>&1 || true")
+    report = machine.succeed("forge doctor 2>&1 || true")
     print(report)
     assert re.search(r"\[\s*WARN\]\s+Boot\s+the last update did not start", report), "doctor misses the rollback"
 

@@ -14,49 +14,45 @@
       btrbk = config.services.btrbk.instances.snapshots or null;
       btrbkVolume = if btrbk == null then { } else btrbk.settings.volume."/" or { };
 
-      doctor = pkgs.writeShellApplication {
-        name = "doctor";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.findutils
-          pkgs.gawk
-          pkgs.gnugrep
-          pkgs.gnused
-          pkgs.util-linux
-          pkgs.git
-          pkgs.jq
-          config.systemd.package
-        ];
-        runtimeEnv = {
-          secure_boot = lib.boolToString secureBoot;
-          luks_device = lib.optionalString (
-            wipedRoot && secureBoot
-          ) config.disko.devices.disk.main.content.partitions.luks.device;
-          btrbk_calendar = if btrbk == null then "" else btrbk.onCalendar;
-          snapshot_dir = "/${btrbkVolume.snapshot_dir or ""}";
-          snapshot_subvolumes = lib.attrNames (btrbkVolume.subvolume or { });
-          update_flake = lib.optionalString (config.update.flake != null) config.update.flake;
-          auto_upgrade_state = lib.optionalString (
-            config.systemd.services ? auto-upgrade
-          ) "/var/lib/auto-upgrade";
-          deploy_signers = toString (lib.length config.update.signers);
-          wiped_root = lib.boolToString wipedRoot;
-          ephemeral_paths = config.doctor.ephemeralPaths;
-        };
-        text = builtins.readFile ./doctor.sh;
+      doctorConfig = {
+        inherit secureBoot;
+        luksDevice =
+          if wipedRoot && secureBoot then
+            config.disko.devices.disk.main.content.partitions.luks.device
+          else
+            null;
+        btrbkCalendar = if btrbk == null then null else btrbk.onCalendar;
+        snapshotDir = "/${btrbkVolume.snapshot_dir or ""}";
+        snapshotSubvolumes = lib.attrNames (btrbkVolume.subvolume or { });
+        updateFlake = config.update.flake;
+        autoUpgradeState = if config.systemd.services ? auto-upgrade then "/var/lib/auto-upgrade" else null;
+        deploySigners = lib.length config.update.signers;
+        inherit wipedRoot;
+        ephemeralPaths = config.doctor.ephemeralPaths;
       };
+
+      doctorJson = pkgs.writeText "doctor.json" (builtins.toJSON doctorConfig);
     in
     {
       options.doctor.ephemeralPaths = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
         example = [ "/root/.cache" ];
-        description = "Paths on / whose loss at boot is expected: `doctor` leaves what they hold out of the files lost at the next boot. Modules add to the list.";
+        description = "Paths on / whose loss at boot is expected: `forge doctor` leaves what they hold out of the files lost at the next boot. Modules add to the list.";
       };
 
       config = lib.mkMerge [
         {
-          environment.systemPackages = [ doctor ];
+          environment.etc."forge/doctor.json".source = doctorJson;
+
+          forge.environment.FORGE_DOCTOR_CONFIG = "${doctorJson}";
+
+          forge.runtimeInputs = [
+            pkgs.coreutils
+            pkgs.util-linux
+            pkgs.git
+            config.systemd.package
+          ];
 
           doctor.ephemeralPaths = [
             "/tmp"

@@ -2,7 +2,7 @@ import re
 
 
 def doctor_report():
-    _, output = machine.execute("doctor --all 2>&1")
+    _, output = machine.execute("forge doctor --all 2>&1")
     print(output)
     return output
 
@@ -25,7 +25,7 @@ assert "/var/lib/doctor-late" in report, "doctor misses a file written under /va
 assert "doctor-kept" not in report, "doctor lists a persisted file"
 
 machine.execute("/run/current-system/bin/switch-to-configuration test")
-summary = machine.succeed("doctor 2>&1 || true")
+summary = machine.succeed("forge doctor 2>&1 || true")
 print(summary)
 assert "3 files written to /" in summary, "a switch leaves files doctor reports as lost"
 assert re.search(r"1\s+/srv/doctor\n", summary), "the summary does not group lost files by directory"

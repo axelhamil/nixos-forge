@@ -1,0 +1,15 @@
+---
+source: forge/src/doctor/history.rs
+expression: table(&history)
+---
+TIME                       OUTCOME      FROM          TO            SOURCE
+2026-01-03T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-04T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-05T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-06T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-07T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-08T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-09T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-10T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-11T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git
+2026-01-12T04:00:00+00:00  upgraded     aaaaaaaaaaaa  -             https://example.org/fork.git

@@ -124,6 +124,19 @@ impl Answer {
     }
 
     #[must_use]
+    pub fn exit_code(&self) -> u8 {
+        let code = self
+            .code
+            .and_then(|code| u8::try_from(code).ok())
+            .filter(|&code| code != 0);
+        match code {
+            Some(code) => code,
+            None if self.success => 0,
+            None => 1,
+        }
+    }
+
+    #[must_use]
     pub fn line(&self) -> &str {
         self.stdout.trim_end_matches('\n')
     }

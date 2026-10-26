@@ -8,10 +8,8 @@ use std::process::ExitCode;
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
 use forge::doctor::{self, Config, Forks, Options, System};
-use forge::enroll::{self, fido2, tpm2};
-use forge::system::interrupt::Flag;
-use forge::system::prompt::Console;
-use forge::system::{Git, Machine};
+use forge::enroll;
+use forge::system::{Git, Machine, config};
 use forge::{check_docs, install, plugins, update};
 
 #[derive(Parser)]
@@ -117,11 +115,8 @@ fn main() -> ExitCode {
         Command::Doctor { all, history } => doctor_command(&dirs, all, history),
         Command::AutoUpgrade => auto_upgrade_command(),
         Command::Update { .. } => update_command(&update::arguments(env::args_os())),
-        Command::Enroll { method } => enroll_command(method),
-        Command::Install { .. } => install_command(&update::arguments_after(
-            install::SUBCOMMAND,
-            env::args_os(),
-        )),
+        Command::Enroll { method } => enroll_command(&method),
+        Command::Install { .. } => install_command(),
         Command::External(args) => external_command(&dirs, &args),
     }
 }
@@ -215,7 +210,7 @@ fn doctor_command(dirs: &[PathBuf], all: bool, history: bool) -> ExitCode {
 
 fn auto_upgrade_command() -> ExitCode {
     let path = env::var_os(auto_upgrade::CONFIG_VARIABLE).map(PathBuf::from);
-    let config = match auto_upgrade::Config::load(path.as_deref()) {
+    let config: auto_upgrade::Config = match config::load(path.as_deref()) {
         Ok(config) => config,
         Err(error) => {
             eprintln!("forge auto-upgrade: {error}");
@@ -274,12 +269,7 @@ fn update_command(args: &[OsString]) -> ExitCode {
             if !pulled.stderr.is_empty() {
                 eprintln!("forge update: {}", pulled.stderr);
             }
-            return ExitCode::from(
-                pulled
-                    .code
-                    .and_then(|code| u8::try_from(code).ok())
-                    .unwrap_or(1),
-            );
+            return ExitCode::from(pulled.exit_code());
         }
     }
 
@@ -288,130 +278,21 @@ fn update_command(args: &[OsString]) -> ExitCode {
     ExitCode::FAILURE
 }
 
-fn enroll_command(method: Enrollment) -> ExitCode {
+fn enroll_command(method: &Enrollment) -> ExitCode {
+    let method = match method {
+        Enrollment::Tpm2 => enroll::Method::Tpm2,
+        Enrollment::Fido2 { device } => enroll::Method::Fido2 {
+            device: device.as_deref(),
+        },
+    };
     let path = env::var_os(enroll::CONFIG_VARIABLE).map(PathBuf::from);
-    let config = match (enroll::Config::load(path.as_deref()), &method) {
-        (Ok(config), _) => config,
-        (Err(enroll::ConfigError::Unset), Enrollment::Fido2 { .. }) => enroll::Config::default(),
-        (Err(error), Enrollment::Tpm2) => {
-            eprintln!("forge enroll tpm2: {error}");
-            return ExitCode::FAILURE;
-        }
-        (Err(error), Enrollment::Fido2 { .. }) => {
-            eprintln!("forge enroll fido2: {error}");
-            return ExitCode::FAILURE;
-        }
-    };
-
-    let code = match method {
-        Enrollment::Tpm2 => tpm2_command(&config),
-        Enrollment::Fido2 { device } => fido2::run(
-            device.as_deref(),
-            config.luks_device.as_deref(),
-            &Machine,
-            &mut io::stdout().lock(),
-            &mut io::stderr().lock(),
-        ),
-    };
-    ExitCode::from(code)
+    ExitCode::from(enroll::run(method, path.as_deref()))
 }
 
-fn tpm2_command(config: &enroll::Config) -> u8 {
-    let (Some(device), Some(volume_key_description), Some(pcrs)) = (
-        config.luks_device.as_deref(),
-        config.volume_key_description.as_deref(),
-        config.pcrs.as_deref(),
-    ) else {
-        eprintln!(
-            "forge enroll tpm2: this host has nothing to enroll: it needs the disk and secure-boot features"
-        );
-        return 1;
-    };
-    let Some(runtime_dir) = env::var_os("RUNTIME_DIRECTORY").map(PathBuf::from) else {
-        eprintln!(
-            "forge enroll tpm2: RUNTIME_DIRECTORY is not set: run it through the tpm2-enroll service"
-        );
-        return 1;
-    };
-    let interrupt = match Flag::register() {
-        Ok(interrupt) => interrupt,
-        Err(error) => {
-            eprintln!("forge enroll tpm2: cannot watch for signals: {error}");
-            return 1;
-        }
-    };
-
-    let settings = tpm2::Settings {
-        device,
-        volume_key_description,
-        pcrs,
-        runtime_dir: &runtime_dir,
-    };
-    let ports = tpm2::Ports {
-        commands: &Machine,
-        files: &Machine,
-        host: &Machine,
-        interrupt: &interrupt,
-    };
-    tpm2::run(
-        &settings,
-        &ports,
-        &mut io::stdout().lock(),
-        &mut io::stderr().lock(),
-    )
-}
-
-fn install_command(args: &[OsString]) -> ExitCode {
-    if !install::runs_as_root() {
-        let error = install::reexec_as_root(args);
-        eprintln!("forge install: cannot run sudo: {error}");
-        return ExitCode::FAILURE;
-    }
-
+fn install_command() -> ExitCode {
+    let args = update::arguments_after(install::SUBCOMMAND, env::args_os());
     let path = env::var_os(install::CONFIG_VARIABLE).map(PathBuf::from);
-    let config = match install::Config::load(path.as_deref()) {
-        Ok(config) => config,
-        Err(error) => {
-            eprintln!("forge install: {error}");
-            return ExitCode::FAILURE;
-        }
-    };
-
-    let options = match install::parse(args) {
-        Ok(install::Parsed::Run(options)) => options,
-        Ok(install::Parsed::Help) => {
-            print!("{}", install::usage(&config.host_name));
-            return ExitCode::SUCCESS;
-        }
-        Err(error @ install::ParseError::Missing(_)) => {
-            eprintln!("forge install: {error}");
-            return ExitCode::from(error.exit_code());
-        }
-        Err(error) => {
-            eprint!("{}", install::usage(&config.host_name));
-            return ExitCode::from(error.exit_code());
-        }
-    };
-
-    let interrupt = match Flag::register() {
-        Ok(flag) => flag,
-        Err(error) => {
-            eprintln!("forge install: cannot watch for interrupts: {error}");
-            return ExitCode::FAILURE;
-        }
-    };
-    let machine = Machine;
-    let mut terminal = Console::stdio(Some(interrupt.clone()));
-    let mut stderr = io::stderr();
-    let mut ports = install::Ports {
-        commands: &machine,
-        files: &machine,
-        storage: &machine,
-        terminal: &mut terminal,
-        interrupt: &interrupt,
-        out: &mut stderr,
-    };
-    ExitCode::from(install::install(&config, &options, &mut ports))
+    ExitCode::from(install::run(&args, path.as_deref()))
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

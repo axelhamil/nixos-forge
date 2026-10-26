@@ -1,10 +1,8 @@
-use std::fmt::Write as _;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, Read, Write};
-use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
+use std::env;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use super::exit_code;
+use super::Config;
 use crate::system::efi::{self, SecureBoot};
 use crate::system::interrupt::Flag;
 use crate::system::luks::Header;
@@ -12,9 +10,7 @@ use crate::system::{Answer, Commands, Files, Invocation, Machine};
 
 pub const TEMPORARY_SLOT: u32 = 31;
 
-const TPM_DEVICE: &str = "/dev/tpmrm0";
 const TPM2_TOKEN: &str = "systemd-tpm2";
-const UNLOCK_KEY_BYTES: usize = 48;
 const STOPPED: u8 = 143;
 
 pub struct Settings<'a> {
@@ -22,6 +18,33 @@ pub struct Settings<'a> {
     pub volume_key_description: &'a str,
     pub pcrs: &'a str,
     pub runtime_dir: &'a Path,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum Unready {
+    #[error("this host has nothing to enroll: it needs the disk and secure-boot features")]
+    NothingToEnroll,
+    #[error("RUNTIME_DIRECTORY is not set: run it through the tpm2-enroll service")]
+    NoRuntimeDirectory,
+}
+
+impl<'a> Settings<'a> {
+    pub fn resolve(config: &'a Config, runtime_dir: Option<&'a Path>) -> Result<Self, Unready> {
+        let (Some(device), Some(volume_key_description), Some(pcrs)) = (
+            config.luks_device.as_deref(),
+            config.volume_key_description.as_deref(),
+            config.pcrs.as_deref(),
+        ) else {
+            return Err(Unready::NothingToEnroll);
+        };
+        let runtime_dir = runtime_dir.ok_or(Unready::NoRuntimeDirectory)?;
+        Ok(Self {
+            device,
+            volume_key_description,
+            pcrs,
+            runtime_dir,
+        })
+    }
 }
 
 pub trait Host {
@@ -41,6 +64,37 @@ struct Session {
     volume_key: String,
     unlock_key: PathBuf,
     temporary_key_added: bool,
+}
+
+pub fn start(config: &Config) -> u8 {
+    let runtime_dir = env::var_os("RUNTIME_DIRECTORY").map(PathBuf::from);
+    let settings = match Settings::resolve(config, runtime_dir.as_deref()) {
+        Ok(settings) => settings,
+        Err(unready) => {
+            eprintln!("forge enroll tpm2: {unready}");
+            return 1;
+        }
+    };
+    let interrupt = match Flag::register() {
+        Ok(interrupt) => interrupt,
+        Err(error) => {
+            eprintln!("forge enroll tpm2: cannot watch for signals: {error}");
+            return 1;
+        }
+    };
+
+    let ports = Ports {
+        commands: &Machine,
+        files: &Machine,
+        host: &Machine,
+        interrupt: &interrupt,
+    };
+    run(
+        &settings,
+        &ports,
+        &mut io::stdout().lock(),
+        &mut io::stderr().lock(),
+    )
 }
 
 pub fn run(settings: &Settings, ports: &Ports, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
@@ -119,7 +173,7 @@ fn failure(answer: &Answer, interrupt: &Flag) -> u8 {
     if interrupt.raised().is_some() {
         return STOPPED;
     }
-    exit_code(answer.code)
+    answer.exit_code()
 }
 
 fn enroll(
@@ -247,35 +301,6 @@ fn clean_up(
         cleaned = false;
     }
     cleaned
-}
-
-impl Host for Machine {
-    fn has_tpm(&self) -> bool {
-        fs::metadata(TPM_DEVICE).is_ok_and(|metadata| metadata.file_type().is_char_device())
-    }
-
-    fn write_unlock_key(&self, path: &Path) -> io::Result<()> {
-        let mut random = [0; UNLOCK_KEY_BYTES];
-        File::open("/dev/urandom")?.read_exact(&mut random)?;
-        let key = random.iter().fold(String::new(), |mut key, byte| {
-            let _ = write!(key, "{byte:02x}");
-            key
-        });
-        OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o600)
-            .open(path)?
-            .write_all(key.as_bytes())
-    }
-
-    fn remove_file(&self, path: &Path) -> io::Result<()> {
-        match fs::remove_file(path) {
-            Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error),
-            _ => Ok(()),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -478,6 +503,32 @@ mod tests {
 
     fn wipe() -> String {
         format!("systemd-cryptenroll --wipe-slot=31 {DEVICE}")
+    }
+
+    #[test]
+    fn a_host_without_disk_or_secure_boot_has_nothing_to_enroll_before_any_runtime_check() {
+        let config = Config {
+            luks_device: Some(DEVICE.to_owned()),
+            ..Config::default()
+        };
+
+        let unready = Settings::resolve(&config, None).err();
+
+        assert_eq!(unready, Some(Unready::NothingToEnroll));
+    }
+
+    #[test]
+    fn an_enrollable_host_outside_its_service_lacks_the_runtime_directory() {
+        let config = Config {
+            luks_device: Some(DEVICE.to_owned()),
+            volume_key_description: Some(DESCRIPTION.to_owned()),
+            pcrs: Some(PCRS.to_owned()),
+        };
+
+        let unready = Settings::resolve(&config, None).err();
+
+        assert_eq!(unready, Some(Unready::NoRuntimeDirectory));
+        assert!(Settings::resolve(&config, Some(Path::new(RUNTIME_DIR))).is_ok());
     }
 
     #[test]

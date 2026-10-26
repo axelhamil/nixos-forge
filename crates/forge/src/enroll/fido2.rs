@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use super::exit_code;
 use crate::system::{Commands, Invocation};
 
 pub const USAGE: &str =
@@ -24,7 +23,7 @@ pub fn run(
     let enrolled = commands
         .run(&Invocation::new("systemd-cryptenroll", &["--fido2-device=auto", device]).attached());
     if !enrolled.success {
-        return exit_code(enrolled.code);
+        return enrolled.exit_code();
     }
 
     let _ = writeln!(

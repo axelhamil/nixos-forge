@@ -43,16 +43,12 @@ impl<I: AsFd, O: Write> Terminal for Console<I, O> {
     }
 
     fn secret(&mut self, prompt: &str) -> io::Result<String> {
-        if !self.is_interactive() {
-            return Err(io::Error::new(
-                io::ErrorKind::Unsupported,
-                format!("cannot read {prompt}: stdin is not a terminal"),
-            ));
-        }
-
         self.ask(&format!("{prompt}: "))?;
         let answer = {
-            let _echo_off = EchoOff::new(self.input.as_fd())?;
+            let _echo_off = self
+                .is_interactive()
+                .then(|| EchoOff::new(self.input.as_fd()))
+                .transpose()?;
             self.read_line()
         };
         writeln!(self.output)?;
@@ -157,16 +153,19 @@ mod tests {
     }
 
     #[test]
-    fn a_secret_is_refused_without_a_terminal_and_nothing_is_read() {
-        let mut console = console("hunter2\n");
+    fn a_secret_off_a_terminal_is_read_like_a_line_and_ends_its_line_like_read_s() {
+        let mut console = console(" hunter2\t\nhunter2\n");
 
-        let error = console.secret("Disk passphrase").unwrap_err();
+        assert_eq!(console.secret("Disk passphrase").unwrap(), "hunter2");
+        assert_eq!(console.secret("Same again").unwrap(), "hunter2");
+        assert_eq!(console.output, b"\n\n");
+    }
 
-        assert_eq!(
-            error.to_string(),
-            "cannot read Disk passphrase: stdin is not a terminal"
-        );
-        assert_eq!(console.line("Next").unwrap(), "hunter2");
+    #[test]
+    fn a_secret_closed_before_the_newline_is_no_answer() {
+        let error = console("hunter").secret("Disk passphrase").unwrap_err();
+
+        assert_eq!(error.kind(), io::ErrorKind::UnexpectedEof);
     }
 
     #[test]

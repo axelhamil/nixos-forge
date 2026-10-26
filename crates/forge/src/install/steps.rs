@@ -133,7 +133,7 @@ fn apply(session: &mut Session, options: &Options, plan: &Plan) -> Result<bool, 
             ))
         })?;
     storage
-        .write_private(&config.passphrase_file, passphrase)
+        .install_file(&config.passphrase_file, passphrase, 0o600)
         .map_err(|error| {
             Stop::Refused(format!(
                 "cannot write {}: {error}",
@@ -443,7 +443,6 @@ mod tests {
     #[derive(Debug, Clone, PartialEq, Eq)]
     enum Change {
         Link(PathBuf, PathBuf),
-        Private(PathBuf, Vec<u8>),
         Dir(PathBuf, u32),
         File(PathBuf, Vec<u8>, u32),
         Removed(PathBuf),
@@ -520,11 +519,6 @@ mod tests {
 
         fn link(&self, target: &Path, link: &Path) -> io::Result<()> {
             self.record(Change::Link(target.to_path_buf(), link.to_path_buf()));
-            Ok(())
-        }
-
-        fn write_private(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
-            self.record(Change::Private(path.to_path_buf(), bytes.to_vec()));
             Ok(())
         }
 
@@ -688,7 +682,11 @@ mod tests {
                 PathBuf::from("/dev/vda"),
                 PathBuf::from("/run/install-host/disk"),
             ),
-            Change::Private(PathBuf::from("/tmp/secret.key"), b"disk-secret".to_vec()),
+            Change::File(
+                PathBuf::from("/tmp/secret.key"),
+                b"disk-secret".to_vec(),
+                0o600,
+            ),
             Change::Dir(PathBuf::from("/mnt/persist/passwords"), 0o700),
             Change::File(
                 PathBuf::from("/mnt/persist/passwords/alice"),
@@ -1086,27 +1084,37 @@ mod tests {
     }
 
     #[test]
-    fn a_secret_prompt_on_piped_input_is_refused_rather_than_read() {
+    fn secrets_piped_twice_each_are_read_like_the_shell_read_s() {
         let machine = Machine::new();
         let disk = with_files();
         let (reader, mut writer) = io::pipe().unwrap();
-        writer.write_all(b"disk-secret\ndisk-secret\n").unwrap();
+        writer
+            .write_all(b"disk-secret\ndisk-secret\nalice-pw\nalice-pw\nbob-pw\nbob-pw\n/dev/vda\n")
+            .unwrap();
         let mut console = Console::new(reader, Vec::new(), None);
 
         let outcome = run_with(
             &config(),
-            &["--disk", "/dev/vda"],
+            &["--disk", "/dev/vda", "--no-reboot"],
             &machine,
             &disk,
             &mut console,
             &Flag::default(),
         );
 
-        assert_eq!(outcome.code, 1);
-        assert!(outcome.printed.ends_with(
-            "forge install: cannot read Disk passphrase, asked at boot to unlock it: stdin is not a terminal\n"
+        assert_eq!(outcome.code, 0, "{}", outcome.printed);
+        assert_eq!(
+            *machine.stdin.borrow(),
+            [b"alice-pw".to_vec(), b"bob-pw".to_vec()]
+        );
+        assert!(disk.changes().contains(&Change::File(
+            PathBuf::from("/tmp/secret.key"),
+            b"disk-secret".to_vec(),
+            0o600
+        )));
+        assert!(machine.ran_command(
+            "nixos-install --system /nix/store/system --no-root-passwd --no-channel-copy"
         ));
-        assert!(disk.changes().is_empty());
     }
 
     #[test]

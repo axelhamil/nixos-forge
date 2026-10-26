@@ -10,7 +10,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-pub use config::{CONFIG_VARIABLE, Config, ConfigError, Operation};
+pub use config::{CONFIG_VARIABLE, Config, Operation};
 pub use state::{HISTORY_FILE, Outcome, Row, STATE_FILE, State, parse_history_line};
 
 use apply::Failure;

@@ -3,22 +3,16 @@ mod disks;
 mod secrets;
 mod steps;
 
-use std::env;
 use std::ffi::OsString;
-use std::fs::{self, OpenOptions, Permissions};
 use std::io::{self, Write};
-use std::os::unix::fs::{FileTypeExt, OpenOptionsExt, PermissionsExt, symlink};
-use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
-pub use config::{CONFIG_VARIABLE, Config, ConfigError};
-pub use steps::install;
+pub use config::{CONFIG_VARIABLE, Config};
 
-use crate::plugins;
 use crate::system::interrupt::Flag;
-use crate::system::prompt::Terminal;
-use crate::system::{Answer, Commands, Files, Invocation, Machine};
+use crate::system::prompt::{Console, Terminal};
+use crate::system::{Answer, Commands, Files, Invocation, Machine, config as settings, privilege};
+use steps::install;
 
 pub const SUBCOMMAND: &str = "install";
 
@@ -146,22 +140,68 @@ impl Stop {
     }
 
     fn failed(answer: &Answer) -> Self {
-        let code = answer
-            .code
-            .and_then(|code| u8::try_from(code).ok())
-            .filter(|&code| code != 0)
-            .unwrap_or(1);
-        Self::Quit(code)
+        Self::Quit(answer.exit_code())
     }
 }
 
 pub trait Storage {
     fn is_block_device(&self, path: &Path) -> bool;
     fn link(&self, target: &Path, link: &Path) -> io::Result<()>;
-    fn write_private(&self, path: &Path, bytes: &[u8]) -> io::Result<()>;
     fn install_dir(&self, path: &Path, mode: u32) -> io::Result<()>;
     fn install_file(&self, path: &Path, bytes: &[u8], mode: u32) -> io::Result<()>;
     fn remove(&self, path: &Path);
+}
+
+#[must_use]
+pub fn run(args: &[OsString], config_path: Option<&Path>) -> u8 {
+    if !privilege::runs_as_root() {
+        let error = privilege::reexec_as_root(SUBCOMMAND, args);
+        eprintln!("forge install: cannot run sudo: {error}");
+        return 1;
+    }
+
+    let config: Config = match settings::load(config_path) {
+        Ok(config) => config,
+        Err(error) => {
+            eprintln!("forge install: {error}");
+            return 1;
+        }
+    };
+
+    let options = match parse(args) {
+        Ok(Parsed::Run(options)) => options,
+        Ok(Parsed::Help) => {
+            print!("{}", usage(&config.host_name));
+            return 0;
+        }
+        Err(error @ ParseError::Missing(_)) => {
+            eprintln!("forge install: {error}");
+            return error.exit_code();
+        }
+        Err(error) => {
+            eprint!("{}", usage(&config.host_name));
+            return error.exit_code();
+        }
+    };
+
+    let interrupt = match Flag::register() {
+        Ok(flag) => flag,
+        Err(error) => {
+            eprintln!("forge install: cannot watch for interrupts: {error}");
+            return 1;
+        }
+    };
+    let mut terminal = Console::stdio(Some(interrupt.clone()));
+    let mut stderr = io::stderr();
+    let mut ports = Ports {
+        commands: &Machine,
+        files: &Machine,
+        storage: &Machine,
+        terminal: &mut terminal,
+        interrupt: &interrupt,
+        out: &mut stderr,
+    };
+    install(&config, &options, &mut ports)
 }
 
 pub struct Ports<'a> {
@@ -217,87 +257,6 @@ impl Session<'_, '_> {
             io::ErrorKind::UnexpectedEof => Stop::Quit(1),
             _ => Stop::Refused(error.to_string()),
         })
-    }
-}
-
-#[must_use]
-pub fn runs_as_root() -> bool {
-    rustix::process::geteuid().is_root()
-}
-
-#[must_use]
-pub fn reexec_as_root(args: &[OsString]) -> io::Error {
-    let program = env::args_os()
-        .next()
-        .map(|argv0| resolve(&argv0))
-        .or_else(|| env::current_exe().ok())
-        .unwrap_or_else(|| PathBuf::from("forge"));
-    Command::new("sudo")
-        .arg(program)
-        .arg(SUBCOMMAND)
-        .args(args)
-        .exec()
-}
-
-fn resolve(argv0: &OsString) -> PathBuf {
-    let program = PathBuf::from(argv0);
-    if program.components().count() > 1 {
-        return program;
-    }
-    env::var_os("PATH")
-        .and_then(|path| {
-            env::split_paths(&path)
-                .map(|dir| dir.join(&program))
-                .find(|candidate| plugins::is_executable(candidate))
-        })
-        .unwrap_or(program)
-}
-
-impl Storage for Machine {
-    fn is_block_device(&self, path: &Path) -> bool {
-        fs::metadata(path).is_ok_and(|metadata| metadata.file_type().is_block_device())
-    }
-
-    fn link(&self, target: &Path, link: &Path) -> io::Result<()> {
-        if let Some(parent) = link.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        match fs::remove_file(link) {
-            Ok(()) => {}
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-            Err(error) => return Err(error),
-        }
-        symlink(target, link)
-    }
-
-    fn write_private(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
-        OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(0o600)
-            .open(path)?
-            .write_all(bytes)
-    }
-
-    fn install_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
-        fs::create_dir_all(path)?;
-        fs::set_permissions(path, Permissions::from_mode(mode))
-    }
-
-    fn install_file(&self, path: &Path, bytes: &[u8], mode: u32) -> io::Result<()> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .mode(mode)
-            .open(path)?;
-        file.set_permissions(Permissions::from_mode(mode))?;
-        file.write_all(bytes)
-    }
-
-    fn remove(&self, path: &Path) {
-        let _ = fs::remove_file(path);
     }
 }
 

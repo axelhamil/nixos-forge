@@ -42,7 +42,7 @@ Then boot the installer ISO of the host and run:
 forge install --beside-windows
 ```
 
-`forge install` refuses `--beside-windows` for a host without `dual-boot`. It runs `install-beside-windows`, which:
+`forge install` refuses `--beside-windows` for a host without `dual-boot`. It runs `forge dual-boot install-beside-windows`, which:
 
 - finds the single ESP of the disk and checks that Windows is installed on it;
 - checks the ESP free space, and stops with how to grow it when it is too small; it never truncates anything;

@@ -8,9 +8,12 @@ mod files;
 mod git;
 pub mod interrupt;
 pub mod luks;
+pub mod mount;
+pub mod partitions;
 pub mod privilege;
 pub mod prompt;
 mod real;
+mod storage;
 
 pub use accounts::{Accounts, Directory, Group, Owner, User};
 pub use boot::{BootEntry, boot_entries, generation_went_back};
@@ -20,3 +23,4 @@ pub use config::{ConfigError, Settings};
 pub use files::Files;
 pub use git::Git;
 pub use real::Machine;
+pub use storage::Storage;

@@ -1,6 +1,7 @@
 pub mod auto_upgrade;
 pub mod check_docs;
 pub mod doctor;
+pub mod dual_boot;
 pub mod enroll;
 pub mod install;
 pub mod plugins;

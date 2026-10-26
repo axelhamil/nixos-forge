@@ -517,6 +517,10 @@ mod tests {
             self.block_devices.contains(&self.canonicalize(path))
         }
 
+        fn exists(&self, path: &Path) -> bool {
+            self.contents.contains_key(path)
+        }
+
         fn link(&self, target: &Path, link: &Path) -> io::Result<()> {
             self.record(Change::Link(target.to_path_buf(), link.to_path_buf()));
             Ok(())
@@ -532,8 +536,27 @@ mod tests {
             Ok(())
         }
 
+        fn create_dirs(&self, path: &Path) -> io::Result<()> {
+            self.record(Change::Dir(path.to_path_buf(), 0o755));
+            Ok(())
+        }
+
+        fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
+            self.record(Change::File(path.to_path_buf(), bytes.to_vec(), 0o644));
+            Ok(())
+        }
+
+        fn rename(&self, _: &Path, _: &Path) -> io::Result<()> {
+            Ok(())
+        }
+
         fn remove(&self, path: &Path) {
             self.record(Change::Removed(path.to_path_buf()));
+        }
+
+        fn remove_dir(&self, path: &Path) -> io::Result<()> {
+            self.record(Change::Removed(path.to_path_buf()));
+            Ok(())
         }
     }
 

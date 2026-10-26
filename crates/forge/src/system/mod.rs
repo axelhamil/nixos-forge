@@ -14,6 +14,7 @@ pub mod partitions;
 pub mod privilege;
 pub mod prompt;
 mod real;
+pub mod remote;
 mod sizes;
 mod storage;
 

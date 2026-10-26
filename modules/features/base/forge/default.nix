@@ -1,5 +1,8 @@
-{ withSystem, ... }:
+{ config, withSystem, ... }:
 
+let
+  inherit (config.helpers) wrapForge;
+in
 {
   base =
     {
@@ -18,37 +21,6 @@
       );
 
       forge = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
-
-      wrapperArgs =
-        lib.optionals (config.forge.commands != [ ]) [
-          "--prefix"
-          "FORGE_COMMANDS_PATH"
-          ":"
-          (lib.makeBinPath config.forge.commands)
-        ]
-        ++ lib.optionals (config.forge.runtimeInputs != [ ]) [
-          "--prefix"
-          "PATH"
-          ":"
-          (lib.makeBinPath config.forge.runtimeInputs)
-        ]
-        ++ lib.concatLists (
-          lib.mapAttrsToList (name: value: [
-            "--set-default"
-            name
-            value
-          ]) config.forge.environment
-        );
-
-      wrapped = pkgs.symlinkJoin {
-        name = "forge";
-        paths = [ forge ];
-        nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
-        postBuild = ''
-          wrapProgram $out/bin/forge ${lib.escapeShellArgs wrapperArgs}
-        '';
-        meta.mainProgram = "forge";
-      };
     in
     {
       options.forge.commands = lib.mkOption {
@@ -118,7 +90,9 @@
 
       config.forge.environment.FORGE_ENROLL_CONFIG = "${enrollConfig}";
 
-      config.forge.package = if wrapperArgs == [ ] then forge else wrapped;
+      config.forge.package = wrapForge pkgs forge {
+        inherit (config.forge) commands runtimeInputs environment;
+      };
 
       config.environment.systemPackages = [ config.forge.package ];
     };

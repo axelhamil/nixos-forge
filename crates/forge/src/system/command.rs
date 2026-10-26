@@ -21,6 +21,7 @@ pub struct Invocation {
     pub timeout: Option<Duration>,
     pub run_as: Option<Owner>,
     pub output: Output,
+    pub input: Option<Vec<u8>>,
 }
 
 impl Invocation {
@@ -48,6 +49,12 @@ impl Invocation {
     #[must_use]
     pub fn run_as(mut self, owner: Owner) -> Self {
         self.run_as = Some(owner);
+        self
+    }
+
+    #[must_use]
+    pub fn input(mut self, bytes: &[u8]) -> Self {
+        self.input = Some(bytes.to_vec());
         self
     }
 

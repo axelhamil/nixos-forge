@@ -52,20 +52,22 @@ fn answer(invocation: &Invocation) -> Answer {
             Ok(None) => Answer::failed("timed out"),
             Err(error) => cannot_run(error),
         },
-        Output::Captured | Output::Shown => match process::run_within(&mut command, timeout) {
-            Ok(Some(captured)) if captured.overflowed => Answer::failed(&format!(
-                "printed more than {} bytes",
-                process::OUTPUT_LIMIT
-            )),
-            Ok(Some(captured)) => Answer {
-                success: captured.status.success(),
-                code: captured.status.code(),
-                stdout: String::from_utf8_lossy(&captured.stdout).into_owned(),
-                stderr: String::from_utf8_lossy(&captured.stderr).into_owned(),
-            },
-            Ok(None) => Answer::failed("timed out"),
-            Err(error) => cannot_run(error),
-        },
+        Output::Captured | Output::Shown => {
+            match process::run_with_input(&mut command, invocation.input.as_deref(), timeout) {
+                Ok(Some(captured)) if captured.overflowed => Answer::failed(&format!(
+                    "printed more than {} bytes",
+                    process::OUTPUT_LIMIT
+                )),
+                Ok(Some(captured)) => Answer {
+                    success: captured.status.success(),
+                    code: captured.status.code(),
+                    stdout: String::from_utf8_lossy(&captured.stdout).into_owned(),
+                    stderr: String::from_utf8_lossy(&captured.stderr).into_owned(),
+                },
+                Ok(None) => Answer::failed("timed out"),
+                Err(error) => cannot_run(error),
+            }
+        }
     }
 }
 

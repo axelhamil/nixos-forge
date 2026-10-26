@@ -56,6 +56,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **45. `forge doctor`**: `doctor.sh` replaced by the Rust `forge doctor`, which reads the host's settings from a JSON file each system's `forge` points to; forks add checks with `forge` commands that declare `"doctor":true` and print JSON lines, run in their own process group and stopped after 30 s | `rust-tests`, `rust-clippy`, `base-doctor`, `base-forge`, the `<host>-disk` tests, `feature-rollback`, `feature-migration` |
 | **46. `forge update` and `forge auto-upgrade`**: `update.sh` and `auto-upgrade.sh` replaced by Rust built-ins sharing doctor's command port; the service runs the system's wrapped `forge` with its settings in a JSON file, trusts a checkout through file descriptors opened without following links, bounds each source at 60 s, and decides from a pure function covered by Rust tests | `rust-tests`, `rust-clippy`, `base-update`, `base-doctor`, `base-forge`, `feature-auto-upgrade`, `feature-auto-upgrade-signed`, `feature-auto-upgrade-sources`, `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit`, `app-upgrade-notify`, `example-disk` |
 | **47. `forge install` and `forge enroll`**: `install-host`, `tpm2-enroll` and `fido2-enroll` replaced by Rust built-ins; the installer's tty1 runs `forge install` with the same flags and prompts, the `tpm2-enroll` service runs `forge enroll tpm2` and `forge enroll fido2` defaults to the host's disk, both reading the host's settings from a JSON file | `rust-tests`, `rust-clippy`, `<host>-installer`, `<host>-disk`, `feature-fido2`, `feature-dual-boot-same-disk`, `base-forge` |
+| **48. `forge dual-boot`**: `dual-boot.sh` and `beside-windows.sh` replaced by `forge dual-boot sync` and `forge dual-boot install-beside-windows`; the boot loader hooks and the service run `sync`, and `forge install --beside-windows` runs the target's own `forge` with its settings in a JSON file | `rust-tests`, `rust-clippy`, `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot`, `feature-dual-boot-hook-failure` |
 
 ## Planned
 
@@ -63,7 +64,6 @@ In order, each with its guardrail. Every lot starts with a state of the art revi
 
 | Lot | Guardrail |
 |---|---|
-| **48. `forge dual-boot`** replaces `dual-boot.sh` and `beside-windows.sh` | `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot`, `feature-dual-boot-hook-failure` |
 | **49. `forge init` and `forge upstream`** | `init`, `upstream` |
 | **50. CI scripts and the report in Rust**: `ci-build`, `ci-plan`, `ci-promote`, `ci-badges`, `ci-report` with its jq, the mirror and reproducibility; snapshot tests replace the `*-test.sh` | `ci-report`, `ci-plan`, `ci-promote`, `ci-badges`, `ci-mirror`, `reproducibility` |
 | **51. `stow-dotfiles` and `upgrade-notify`** in Rust | `app-stow`, `app-upgrade-notify` |

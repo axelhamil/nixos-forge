@@ -2,8 +2,12 @@ mod accounts;
 mod boot;
 mod clock;
 mod command;
+pub mod efi;
 mod files;
 mod git;
+pub mod interrupt;
+pub mod luks;
+pub mod prompt;
 mod real;
 
 pub use accounts::{Accounts, Directory, Group, Owner, User};

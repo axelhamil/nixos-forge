@@ -7,7 +7,7 @@ Not a distro: the forge where you build your own NixOS distro. Fork it, customiz
 Upstream ships mechanisms, your fork chooses policy. Ask one question of any setting: could two forks choose it differently without either being wrong?
 
 - **Yes: it is policy.** It lives in a named profile, feature, hardware module or app that a host lists. At most, it sits behind a `mkDefault` you override without `mkForce`.
-- **No: it is a mechanism.** Every fork needs it the same way: the registry and its checks, impermanence, `forge doctor`, `update`. Only mechanisms go in `base`, which every host imports.
+- **No: it is a mechanism.** Every fork needs it the same way: the registry and its checks, impermanence, `forge doctor`, `forge update`. Only mechanisms go in `base`, which every host imports.
 
 Your fork is not bound by that rule. Once `nix run .#init` made it yours, it sets whatever policy it wants.
 

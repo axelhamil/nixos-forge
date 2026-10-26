@@ -93,7 +93,7 @@ in
 - Every field with its type: `docs/reference/options.md`. Name: 1 to 63 letters, digits, `-`, `_`.
 - Copy `modules/hosts/example` rather than writing from scratch; a fresh fork runs `nix run .#init` instead.
 - Optional: `installer.testedHosts = [ "<name>" ];` adds `<name>-installer`. Checks `<name>-toplevel`, `<name>-boots` and the disk ones are generated.
-- A variant: `specialisations.gaming = { features = [ ]; apps = [ "steam" "gamemode" "mangohud" ]; hardware = [ ]; module = { }; };` adds to the host's lists, by the same names; `update -s gaming` switches to it, `update -S` goes back ([docs/how-to/specialisations.md](../../../docs/how-to/specialisations.md)). A variant that changes the kernel or a kernel module package applies from the boot menu only.
+- A variant: `specialisations.gaming = { features = [ ]; apps = [ "steam" "gamemode" "mangohud" ]; hardware = [ ]; module = { }; };` adds to the host's lists, by the same names; `forge update -s gaming` switches to it, `forge update -S` goes back ([docs/how-to/specialisations.md](../../../docs/how-to/specialisations.md)). A variant that changes the kernel or a kernel module package applies from the boot menu only.
 
 ## Person: `modules/users/<name>/default.nix`
 

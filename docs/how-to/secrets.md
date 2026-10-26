@@ -115,7 +115,7 @@ sops updatekeys modules/hosts/laptop/secrets.yaml
 
 It shows the recipients it adds or removes and asks before writing. Removing a key from the rule and running it again stops future versions of the file from opening with that key. A key that leaked could still open the old versions in the git history. So also change the secrets themselves, and run `sops rotate -i <file>` to change the file's data key. Snapshots of `/persist` keep the old machine key and passwords for up to 4 weeks ([services.md](../reference/services.md#snapshots-btrbk)).
 
-Commit, push, and let the machine take the new version (`update`, `auto-upgrade` or `nixos-rebuild switch`): the secrets are decrypted again at each activation. A machine whose key is missing from a file boots without that file's secrets.
+Commit, push, and let the machine take the new version (`forge update`, `auto-upgrade` or `nixos-rebuild switch`): the secrets are decrypted again at each activation. A machine whose key is missing from a file boots without that file's secrets.
 
 ## Check it worked
 

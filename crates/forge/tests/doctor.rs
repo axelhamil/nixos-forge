@@ -5,10 +5,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use forge::doctor::{
-    self, Answer, Clock, Commands, Config, Files, Forks, Host, Invocation, Mount, Options, Owner,
-    Space, System, Totals,
-};
+use forge::doctor::{self, Config, Forks, Host, Mount, Options, Space, System, Totals};
+use forge::system::{Answer, Clock, Commands, Files, Invocation, Output, Owner};
 use insta::assert_snapshot;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
@@ -136,7 +134,7 @@ impl Commands for Fake {
             .run_as
             .map(|owner| format!("as {}:{} ", owner.uid, owner.gid))
             .unwrap_or_default();
-        let discarded = if invocation.discard_output {
+        let discarded = if invocation.output == Output::Discarded {
             " >/dev/null"
         } else {
             ""
@@ -154,6 +152,10 @@ impl Files for Fake {
             .get(path)
             .cloned()
             .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))
+    }
+
+    fn read_link(&self, _path: &Path) -> Option<PathBuf> {
+        None
     }
 
     fn is_dir(&self, path: &Path) -> bool {
@@ -792,7 +794,7 @@ fn updates_warn_behind_its_upstream_and_git_runs_as_the_owner() {
         line(&output, "Updates"),
         format!("[WARN] Updates        {FLAKE}: behind by 1")
     );
-    assert_eq!(hint(&output, "Updates"), "run update");
+    assert_eq!(hint(&output, "Updates"), "run forge update");
 }
 
 #[test]

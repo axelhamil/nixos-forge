@@ -25,7 +25,11 @@
         snapshotDir = "/${btrbkVolume.snapshot_dir or ""}";
         snapshotSubvolumes = lib.attrNames (btrbkVolume.subvolume or { });
         updateFlake = config.update.flake;
-        autoUpgradeState = if config.systemd.services ? auto-upgrade then "/var/lib/auto-upgrade" else null;
+        autoUpgradeState =
+          if config.systemd.services ? auto-upgrade then
+            "/var/lib/${config.autoUpgrade.stateDirectory}"
+          else
+            null;
         deploySigners = lib.length config.update.signers;
         inherit wipedRoot;
         ephemeralPaths = config.doctor.ephemeralPaths;

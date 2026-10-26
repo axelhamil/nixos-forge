@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
+use crate::auto_upgrade::{HISTORY_FILE, STATE_FILE};
+
 pub const CONFIG_FILE: &str = "/etc/forge/doctor.json";
 pub const CONFIG_VARIABLE: &str = "FORGE_DOCTOR_CONFIG";
 
@@ -45,14 +47,14 @@ impl Config {
     pub fn upgrade_state(&self) -> Option<PathBuf> {
         self.auto_upgrade_state
             .as_ref()
-            .map(|dir| dir.join("state.json"))
+            .map(|dir| dir.join(STATE_FILE))
     }
 
     #[must_use]
     pub fn upgrade_history(&self) -> Option<PathBuf> {
         self.auto_upgrade_state
             .as_ref()
-            .map(|dir| dir.join("history.tsv"))
+            .map(|dir| dir.join(HISTORY_FILE))
     }
 
     pub fn load(path: &Path) -> Result<Self, ConfigError> {

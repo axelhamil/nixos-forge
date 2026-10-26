@@ -1,0 +1,6 @@
+---
+source: forge/src/auto_upgrade/state.rs
+expression: "fs::read_to_string(dir.path().join(\"history.tsv\")).unwrap()"
+---
+2026-10-23T04:00:00+02:00	up-to-date	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	https://github.com/alice/nixos.git
+2026-10-23T04:00:00+02:00	up-to-date	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	https://github.com/alice/nixos.git

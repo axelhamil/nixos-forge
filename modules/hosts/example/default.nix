@@ -83,7 +83,7 @@
 
     # Variants of the machine (docs/how-to/specialisations.md): each one is this host plus its own
     # `features`, `apps`, `hardware` and `module`, an entry of the boot menu, and a switch
-    # without reboot by `update -s <name>` (back with `update -S`).
+    # without reboot by `forge update -s <name>` (back with `forge update -S`).
     # specialisations.gaming = {
     #   apps = [
     #     "steam" # Steam with Proton-GE and protontricks, its library kept (docs/how-to/specialisations.md)
@@ -93,7 +93,7 @@
     # };
 
     # Where the machine updates from (docs/explanation/updates.md): your checkout on the machine, which
-    # `update` pulls, or a flake reference such as "github:<you>/<fork>". auto-upgrade
+    # `forge update` pulls, or a flake reference such as "github:<you>/<fork>". auto-upgrade
     # pulls the deploy/<host> branch of that fork, which CI moves once this host passed.
     flake = "/home/alice/nixos";
     # mirrors = [ "https://codeberg.org/alice/nixos.git" ]; # other copies of your fork, tried in order when the first is unreachable

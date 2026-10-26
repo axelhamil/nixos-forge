@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 use super::Context;
+use crate::auto_upgrade::parse_history_line;
 
 const ROWS: usize = 10;
 
@@ -23,19 +24,17 @@ pub(super) fn show(context: &Context, out: &mut dyn Write) -> io::Result<()> {
 }
 
 fn table(history: &str) -> String {
-    let rows: Vec<&str> = history.lines().collect();
+    let rows: Vec<_> = history.lines().filter_map(parse_history_line).collect();
     let shown = &rows[rows.len().saturating_sub(ROWS)..];
 
     let mut lines = vec![row("TIME", "OUTCOME", "FROM", "TO", "SOURCE")];
-    for line in shown {
-        let fields: Vec<&str> = line.split('\t').collect();
-        let field = |index: usize| fields.get(index).copied().unwrap_or_default();
+    for run in shown {
         lines.push(row(
-            field(0),
-            field(1),
-            &cell(&hash(field(2))),
-            &cell(&hash(field(3))),
-            &cell(field(4)),
+            &run.time,
+            run.outcome.as_str(),
+            &cell(&hash(&run.from)),
+            &cell(&hash(&run.to)),
+            &cell(&run.source),
         ));
     }
     lines.join("\n") + "\n"

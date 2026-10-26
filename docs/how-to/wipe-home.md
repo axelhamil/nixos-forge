@@ -26,7 +26,7 @@ Declared paths live in `/persist/home/<you>` and are bind-mounted into your home
 |---|---|
 | `base` | `~/.ssh` and `~/.gnupg`, mode `0700`, in every home |
 | `gh` | `~/.config/gh`, mode `0700` |
-| `update` | the host's `flake` checkout, when it is a path in `/home/<you>/` (do not list it again) |
+| `forge update` | the host's `flake` checkout, when it is a path in `/home/<you>/` (do not list it again) |
 | `zsh` | `~/.local/state/zsh` |
 | `zoxide` | `~/.local/share/zoxide` |
 | `neovim` | `~/.local/share/nvim`, `~/.local/state/nvim` |

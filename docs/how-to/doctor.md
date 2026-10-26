@@ -11,7 +11,7 @@ It prints one line per check: `OK`, `WARN`, `FAIL`, or `SKIP` when the host lack
 [  OK] Disk space     81 % free on / (btrfs, 380G left)
 [  OK] Failed units   none
 [WARN] Updates        /home/<you>/nixos: behind by 3
-                     run update
+                     run forge update
 [  OK] Upgrades       upgraded 2026-05-12 04:21: Closure size: 2154 -> 2161 (31 paths added, 24 paths removed, delta +12.4 MiB)
 [  OK] Signed deploys auto-upgrade applies only deploy commits signed by 1 key of update.signers
 [  OK] Boot           the newest generation started, or has tries left

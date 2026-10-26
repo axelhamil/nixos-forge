@@ -80,7 +80,7 @@
     ];
 
     # Variants of the machine, each one this host plus its own lists, chosen at boot or
-    # switched to by `update -s <name>` (docs/how-to/specialisations.md).
+    # switched to by `forge update -s <name>` (docs/how-to/specialisations.md).
     # specialisations.maintenance.features = [ "nix-ld" ];
 
     # Where the machine updates from (docs/explanation/updates.md): a flake reference such as

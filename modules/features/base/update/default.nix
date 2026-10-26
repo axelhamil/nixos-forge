@@ -85,6 +85,14 @@
           internal = true;
           description = "Command `auto-upgrade` runs to build and apply a version.";
         };
+
+        stateDirectory = lib.mkOption {
+          type = lib.types.str;
+          default = "auto-upgrade";
+          internal = true;
+          readOnly = true;
+          description = "Folder under `/var/lib` where `auto-upgrade` keeps its repository, state, history and lock, and `forge doctor` reads them.";
+        };
       };
 
       config = lib.mkMerge [
@@ -102,16 +110,10 @@
 
               programs.nh.flake = flake;
 
-              environment.systemPackages = [
-                (pkgs.writeShellApplication {
-                  name = "update";
-                  runtimeInputs = [
-                    pkgs.git
-                    config.programs.nh.package
-                  ];
-                  runtimeEnv.FLAKE = flake;
-                  text = builtins.readFile ./update.sh;
-                })
+              forge.environment.FORGE_UPDATE_FLAKE = flake;
+              forge.runtimeInputs = [
+                pkgs.git
+                config.programs.nh.package
               ];
             }
 

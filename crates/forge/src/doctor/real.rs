@@ -4,7 +4,7 @@ use std::io;
 use std::path::Path;
 
 use super::{Host, Mount, Space, mountinfo};
-use crate::system::Machine;
+use crate::system::{self, Machine};
 
 impl Host for Machine {
     fn uid(&self) -> u32 {
@@ -16,11 +16,7 @@ impl Host for Machine {
     }
 
     fn space(&self, path: &Path) -> io::Result<Space> {
-        let stats = rustix::fs::statvfs(path)?;
-        Ok(Space {
-            size: stats.f_blocks.saturating_mul(stats.f_frsize),
-            avail: stats.f_bavail.saturating_mul(stats.f_frsize),
-        })
+        system::space(path)
     }
 
     fn mounts(&self) -> io::Result<Vec<Mount>> {

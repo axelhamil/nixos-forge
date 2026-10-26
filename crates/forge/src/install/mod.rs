@@ -9,10 +9,11 @@ use std::path::{Path, PathBuf};
 
 pub use config::{CONFIG_VARIABLE, Config};
 
-pub use crate::system::Storage;
 use crate::system::interrupt::Flag;
 use crate::system::prompt::{Console, Terminal};
-use crate::system::{Answer, Commands, Files, Invocation, Machine, config as settings, privilege};
+use crate::system::{
+    Answer, Commands, Files, Invocation, Machine, Storage, config as settings, privilege,
+};
 use steps::install;
 
 pub const SUBCOMMAND: &str = "install";

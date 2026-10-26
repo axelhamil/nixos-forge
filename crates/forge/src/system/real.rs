@@ -12,7 +12,7 @@ use jiff::tz::TimeZone;
 
 use super::{
     Accounts, Answer, Clock, Commands, Directory, Files, Invocation, Output, Owner, Sizes, Storage,
-    Streamed, Streams,
+    Streamed, Streams, space,
 };
 use crate::enroll::tpm2::Host;
 use crate::{plugins, process};
@@ -250,8 +250,7 @@ impl Storage for Machine {
 
 impl Sizes for Machine {
     fn available(&self, path: &Path) -> io::Result<u64> {
-        let stats = rustix::fs::statvfs(path)?;
-        Ok(stats.f_bavail.saturating_mul(stats.f_frsize))
+        space(path).map(|space| space.avail)
     }
 
     fn file_size(&self, path: &Path) -> io::Result<u64> {

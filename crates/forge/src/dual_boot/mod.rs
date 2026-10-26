@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 pub use config::{BESIDE_WINDOWS_VARIABLE, BesideWindowsSettings, SYNC_VARIABLE, SyncSettings};
 
+use crate::system::interrupt::Flag;
 use crate::system::mount::TempMounts;
 use crate::system::{Machine, config as settings};
 
@@ -37,8 +38,19 @@ pub fn run(args: &[OsString], config_paths: ConfigPaths) -> u8 {
         .as_slice()
     {
         ["sync"] => sync_command(config_paths(SYNC_VARIABLE).as_deref()),
-        ["install-beside-windows", rest @ ..] => {
-            beside_windows_command(rest, config_paths(BESIDE_WINDOWS_VARIABLE).as_deref())
+        ["install-beside-windows", disk, system] => beside_windows_command(
+            disk,
+            system,
+            config_paths(BESIDE_WINDOWS_VARIABLE).as_deref(),
+        ),
+        ["install-beside-windows", ..] => {
+            let esp_label = settings::load::<BesideWindowsSettings>(
+                config_paths(BESIDE_WINDOWS_VARIABLE).as_deref(),
+            )
+            .ok()
+            .map(|settings| beside_windows::Labels::of(&settings).esp);
+            eprint!("{}", beside_windows::usage(esp_label.as_deref()));
+            USAGE_ERROR
         }
         ["-h" | "--help"] => {
             print!("{USAGE}");
@@ -72,7 +84,7 @@ fn sync_command(config_path: Option<&Path>) -> u8 {
     0
 }
 
-fn beside_windows_command(args: &[&str], config_path: Option<&Path>) -> u8 {
+fn beside_windows_command(disk: &str, system: &str, config_path: Option<&Path>) -> u8 {
     let settings: BesideWindowsSettings = match settings::load(config_path) {
         Ok(settings) => settings,
         Err(error) => {
@@ -80,7 +92,13 @@ fn beside_windows_command(args: &[&str], config_path: Option<&Path>) -> u8 {
             return 1;
         }
     };
-    let args: Vec<String> = args.iter().map(|&arg| arg.to_owned()).collect();
+    let interrupt = match Flag::register() {
+        Ok(flag) => flag,
+        Err(error) => {
+            eprintln!("forge dual-boot: cannot watch for interrupts: {error}");
+            return 1;
+        }
+    };
     let mounts = TempMounts::new(&Machine);
     let mut stderr = io::stderr();
     let mut ports = beside_windows::Ports {
@@ -89,9 +107,10 @@ fn beside_windows_command(args: &[&str], config_path: Option<&Path>) -> u8 {
         storage: &Machine,
         mounts: &mounts,
         sizes: &Machine,
+        interrupt: &interrupt,
         out: &mut stderr,
     };
-    beside_windows::install(&settings, &args, &mut ports)
+    beside_windows::install(&settings, disk, system, &mut ports)
 }
 
 #[cfg(test)]
@@ -117,9 +136,23 @@ mod tests {
     }
 
     #[test]
+    fn install_beside_windows_without_its_two_arguments_is_a_usage_error() {
+        assert_eq!(ran(&["install-beside-windows", "/dev/vdb"]), 2);
+        assert_eq!(
+            ran(&[
+                "install-beside-windows",
+                "/dev/vdb",
+                "/nix/store/system",
+                "x"
+            ]),
+            2
+        );
+    }
+
+    #[test]
     fn install_beside_windows_reads_its_own_variable() {
         let asked = std::cell::RefCell::new(Vec::new());
-        let args: Vec<OsString> = ["install-beside-windows", "/dev/vdb"]
+        let args: Vec<OsString> = ["install-beside-windows", "/dev/vdb", "/nix/store/system"]
             .iter()
             .map(OsString::from)
             .collect();

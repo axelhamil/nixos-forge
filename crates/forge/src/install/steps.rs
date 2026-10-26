@@ -1,6 +1,7 @@
 use std::time::Duration;
 
-use super::{Config, Options, Ports, Session, Stop, Storage, disks, secrets};
+use super::{Config, Options, Ports, Session, Stop, disks, secrets};
+use crate::system::Storage;
 use crate::system::{Commands, Invocation};
 
 const UNMOUNT_TIMEOUT: Duration = Duration::from_secs(600);
@@ -368,8 +369,8 @@ mod tests {
     ]}"#;
 
     const NO_LAYOUT: &str = r#"{"blockdevices": [
-        {"name": "/dev/vda", "pkname": null, "partlabel": null},
-        {"name": "/dev/vdb", "pkname": null, "partlabel": null}
+        {"name": "/dev/vda", "type": "disk", "pkname": null, "partlabel": null},
+        {"name": "/dev/vdb", "type": "disk", "pkname": null, "partlabel": null}
     ]}"#;
 
     struct Machine {
@@ -390,7 +391,7 @@ mod tests {
             machine.answer("findmnt -no SOURCE /iso", Answer::exited(1));
             machine.answer("lsblk -J -d -p -b -o NAME,TYPE,SIZE,RO", Answer::ok(LSBLK));
             machine.answer(
-                "lsblk -J -l -p -o NAME,PKNAME,PARTLABEL",
+                "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL",
                 Answer::ok(NO_LAYOUT),
             );
             machine.answer("lsblk -dno SIZE /dev/vda", Answer::ok("  16G\n"));
@@ -884,11 +885,11 @@ mod tests {
     fn another_disk_carrying_the_layout_labels_is_refused_by_name() {
         let mut machine = Machine::new();
         machine.answer(
-            "lsblk -J -l -p -o NAME,PKNAME,PARTLABEL",
+            "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL",
             Answer::ok(
                 r#"{"blockdevices": [
-                {"name": "/dev/vdb1", "pkname": "/dev/vdb", "partlabel": "disk-main-ESP"},
-                {"name": "/dev/vdb2", "pkname": "/dev/vdb", "partlabel": "disk-main-luks"}
+                {"name": "/dev/vdb1", "type": "part", "pkname": "/dev/vdb", "partlabel": "disk-main-ESP"},
+                {"name": "/dev/vdb2", "type": "part", "pkname": "/dev/vdb", "partlabel": "disk-main-luks"}
             ]}"#,
             ),
         );

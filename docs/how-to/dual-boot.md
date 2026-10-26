@@ -44,10 +44,12 @@ forge install --beside-windows
 
 `forge install` refuses `--beside-windows` for a host without `dual-boot`. It runs `forge dual-boot install-beside-windows`, which:
 
+- refuses a partition given as the disk;
 - finds the single ESP of the disk and checks that Windows is installed on it;
 - checks the ESP free space, and stops with how to grow it when it is too small; it never truncates anything;
 - creates the NixOS partition (LUKS, then the usual btrfs subvolumes, [install.md](../tutorials/install.md)) in the largest free block, or reuses the one of a previous install;
 - names the ESP `disk-main-ESP` in the partition table, so the installed system mounts it on `/boot` by its label like any host. That GPT name is the only change to a Windows partition entry, and Windows does not read it;
+- refuses to format when `disk-main-luks` or `disk-main-ESP` points to a partition of another disk, which an old install left there;
 - formats and mounts only the NixOS partition, and mounts the ESP without formatting it.
 
 The MSR, `C:` and the recovery partition stay byte for byte as they were, which `feature-dual-boot-same-disk` checks. The shared ESP does change:

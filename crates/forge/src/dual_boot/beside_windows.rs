@@ -1,7 +1,9 @@
 use std::io::Write;
 use std::path::Path;
+use std::time::Duration;
 
 use super::config::BesideWindowsSettings;
+use crate::system::interrupt::Flag;
 use crate::system::mount::Mounts;
 use crate::system::partitions::{self, Partition};
 use crate::system::{Answer, Commands, Files, Invocation, Sizes, Storage};
@@ -13,8 +15,11 @@ const STORE_MARGIN: u64 = 1024 * MIB;
 const BOOT_MANAGER: &str = "EFI/Microsoft/Boot/bootmgfw.efi";
 const REUSED_ON_THE_ESP: [&str; 3] = ["EFI/nixos", "EFI/Linux", "loader"];
 const LUKS_TYPE_CODE: &str = "8309";
-const USAGE_ERROR: u8 = 2;
+const SETTLE_TIMEOUT: Duration = Duration::from_secs(150);
 const REFUSED: u8 = 1;
+const SIGINT: i32 = 2;
+const INTERRUPTED: u8 = 130;
+const TERMINATED: u8 = 143;
 
 pub struct Ports<'a> {
     pub commands: &'a dyn Commands,
@@ -22,6 +27,7 @@ pub struct Ports<'a> {
     pub storage: &'a dyn Storage,
     pub mounts: &'a dyn Mounts,
     pub sizes: &'a dyn Sizes,
+    pub interrupt: &'a Flag,
     pub out: &'a mut dyn Write,
 }
 
@@ -29,17 +35,27 @@ impl Ports<'_> {
     fn say(&mut self, text: &str) {
         let _ = writeln!(self.out, "{text}");
     }
+
+    fn checkpoint(&self) -> Result<(), Stop> {
+        match self.interrupt.raised() {
+            Some(signal) => Err(Stop::Interrupted(signal)),
+            None => Ok(()),
+        }
+    }
 }
 
-struct Refusal(String);
+enum Stop {
+    Refused(String),
+    Interrupted(i32),
+}
 
-struct Labels {
-    esp: String,
+pub struct Labels {
+    pub esp: String,
     luks: String,
 }
 
 impl Labels {
-    fn of(settings: &BesideWindowsSettings) -> Self {
+    pub fn of(settings: &BesideWindowsSettings) -> Self {
         let last = |path: &Path| {
             path.file_name()
                 .map(|name| name.to_string_lossy().into_owned())
@@ -52,29 +68,34 @@ impl Labels {
     }
 }
 
-pub fn install(settings: &BesideWindowsSettings, args: &[String], ports: &mut Ports) -> u8 {
+pub fn install(
+    settings: &BesideWindowsSettings,
+    disk: &str,
+    system: &str,
+    ports: &mut Ports,
+) -> u8 {
     let labels = Labels::of(settings);
-    let [disk, system] = args else {
-        let _ = write!(ports.out, "{}", usage(&labels.esp));
-        return USAGE_ERROR;
-    };
     match steps(settings, &labels, disk, system, ports) {
         Ok(code) => code,
-        Err(Refusal(message)) => {
+        Err(Stop::Refused(message)) => {
             let _ = writeln!(ports.out, "\nforge dual-boot: {message}");
             REFUSED
         }
+        Err(Stop::Interrupted(SIGINT)) => INTERRUPTED,
+        Err(Stop::Interrupted(_)) => TERMINATED,
     }
 }
 
-fn usage(esp_label: &str) -> String {
+#[must_use]
+pub fn usage(esp_label: Option<&str>) -> String {
+    let renamed = esp_label.map_or_else(String::new, |label| format!("to {label}, "));
     format!(
         "Usage: forge dual-boot install-beside-windows DISK SYSTEM
 
 Creates the encrypted NixOS partition in the free space of DISK, which holds
 Windows, and mounts it on /mnt with the Windows ESP on /mnt/boot. The Windows
 partitions and their content are kept; only the GPT name of the ESP changes,
-to {esp_label}, so the installed system finds it.
+{renamed}so the installed system finds it.
 SYSTEM is the system to install: it sets the room needed on the ESP and the disk.
 "
     )
@@ -86,23 +107,30 @@ fn steps(
     disk_arg: &str,
     system: &str,
     ports: &mut Ports,
-) -> Result<u8, Refusal> {
+) -> Result<u8, Stop> {
     let disk = ports
         .files
         .canonicalize(Path::new(disk_arg))
         .display()
         .to_string();
     if !ports.storage.is_block_device(Path::new(&disk)) {
-        return Err(Refusal(format!("{disk_arg} is not a block device.")));
+        return Err(Stop::Refused(format!("{disk_arg} is not a block device.")));
     }
     let kernel = Path::new(system).join("kernel");
     let initrd = Path::new(system).join("initrd");
     if !ports.storage.exists(&kernel) || !ports.storage.exists(&initrd) {
-        return Err(Refusal(format!("{system} is not a NixOS system.")));
+        return Err(Stop::Refused(format!("{system} is not a NixOS system.")));
     }
 
-    let partitions = partitions::list(ports.commands, Some(&disk))
-        .map_err(|error| Refusal(format!("cannot list the partitions of {disk}: {error}")))?;
+    let partitions = list_partitions(ports, &disk)?;
+    if let Some(parent) = partitions
+        .iter()
+        .find_map(|partition| partition.disk.as_deref().filter(|parent| *parent != disk))
+    {
+        return Err(Stop::Refused(format!(
+            "{disk} is a partition of {parent}: name the whole disk that holds Windows."
+        )));
+    }
     let esp = only_esp(&disk, &partitions)?;
     let generation_size = size_of(ports, &kernel)? + size_of(ports, &initrd)?;
     check_esp_room(ports, &disk, &esp.name, generation_size)?;
@@ -119,9 +147,9 @@ fn steps(
     }
 
     if esp.label.as_deref() != Some(labels.esp.as_str()) {
-        let number = esp
-            .number
-            .ok_or_else(|| Refusal(format!("cannot read the partition number of {}.", esp.name)))?;
+        let number = esp.number.ok_or_else(|| {
+            Stop::Refused(format!("cannot read the partition number of {}.", esp.name))
+        })?;
         succeed(
             ports,
             &Invocation::new(
@@ -136,11 +164,18 @@ fn steps(
     }
 
     succeed(ports, &Invocation::new("partprobe", &[&disk]))?;
-    succeed(ports, &Invocation::new("udevadm", &["settle"]))?;
+    succeed(
+        ports,
+        &Invocation::new("udevadm", &["settle"]).timeout(SETTLE_TIMEOUT),
+    )?;
     if !ports.storage.exists(&settings.luks_device) || !ports.storage.exists(&settings.esp_device) {
-        return Err(Refusal(
+        return Err(Stop::Refused(
             "the kernel does not show the new partition labels yet: reboot the installer and run again.".to_owned(),
         ));
+    }
+    let relisted = list_partitions(ports, &disk)?;
+    for link in [&settings.luks_device, &settings.esp_device] {
+        on_disk(ports, link, &disk, &relisted)?;
     }
     let luks_device = settings.luks_device.display().to_string();
     succeed(ports, &Invocation::new("wipefs", &["-a", &luks_device]))?;
@@ -148,20 +183,41 @@ fn steps(
     let formatted = ports
         .commands
         .run(&Invocation::new(&settings.format_mount, &[]).attached());
+    ports.checkpoint()?;
     Ok(formatted.exit_code())
 }
 
-fn only_esp<'p>(disk: &str, partitions: &'p [Partition]) -> Result<&'p Partition, Refusal> {
+fn list_partitions(ports: &Ports, disk: &str) -> Result<Vec<Partition>, Stop> {
+    let listed = partitions::list(ports.commands, Some(disk));
+    ports.checkpoint()?;
+    listed.map_err(|error| Stop::Refused(format!("cannot list the partitions of {disk}: {error}")))
+}
+
+fn on_disk(ports: &Ports, link: &Path, disk: &str, partitions: &[Partition]) -> Result<(), Stop> {
+    let device = ports.files.canonicalize(link).display().to_string();
+    if partitions
+        .iter()
+        .any(|partition| partition.name == device && partition.disk.as_deref() == Some(disk))
+    {
+        return Ok(());
+    }
+    Err(Stop::Refused(format!(
+        "{} points to {device}, not a partition of {disk}: remove the old forge labels on the other disk, then run again.",
+        link.display()
+    )))
+}
+
+fn only_esp<'p>(disk: &str, partitions: &'p [Partition]) -> Result<&'p Partition, Stop> {
     let esps: Vec<&Partition> = partitions
         .iter()
         .filter(|partition| partition.is_esp())
         .collect();
     match esps.as_slice() {
         [esp] => Ok(esp),
-        [] => Err(Refusal(format!(
+        [] => Err(Stop::Refused(format!(
             "{disk} has no EFI system partition, so no Windows to install beside. Install on a whole disk instead, or check the disk name."
         ))),
-        _ => Err(Refusal(format!(
+        _ => Err(Stop::Refused(format!(
             "{disk} has {} EFI system partitions ({}): keep one, then run again.",
             esps.len(),
             esps.iter()
@@ -172,32 +228,26 @@ fn only_esp<'p>(disk: &str, partitions: &'p [Partition]) -> Result<&'p Partition
     }
 }
 
-fn size_of(ports: &Ports, path: &Path) -> Result<u64, Refusal> {
+fn size_of(ports: &Ports, path: &Path) -> Result<u64, Stop> {
     ports.sizes.file_size(path).map_err(|error| {
-        Refusal(format!(
+        Stop::Refused(format!(
             "cannot read the size of {}: {error}",
             path.display()
         ))
     })
 }
 
-fn check_esp_room(
-    ports: &Ports,
-    disk: &str,
-    esp: &str,
-    generation_size: u64,
-) -> Result<(), Refusal> {
-    let mounted = ports
-        .mounts
-        .mount_read_only(esp, "ro")
-        .map_err(|_| Refusal(format!("cannot mount the ESP {esp}.")))?;
+fn check_esp_room(ports: &Ports, disk: &str, esp: &str, generation_size: u64) -> Result<(), Stop> {
+    let mounted = ports.mounts.mount_read_only(esp, "ro");
+    ports.checkpoint()?;
+    let mounted = mounted.map_err(|_| Stop::Refused(format!("cannot mount the ESP {esp}.")))?;
     if !ports.storage.exists(&mounted.path().join(BOOT_MANAGER)) {
-        return Err(Refusal(format!(
+        return Err(Stop::Refused(format!(
             "the ESP {esp} holds no {BOOT_MANAGER}: Windows is not installed on {disk}."
         )));
     }
     let available = ports.sizes.available(mounted.path()).map_err(|error| {
-        Refusal(format!(
+        Stop::Refused(format!(
             "cannot read the free space of the ESP {esp}: {error}"
         ))
     })?;
@@ -205,6 +255,7 @@ fn check_esp_room(
         .iter()
         .map(|dir| ports.sizes.tree_size(&mounted.path().join(dir)))
         .sum();
+    ports.checkpoint()?;
     drop(mounted);
 
     let needed = GENERATIONS * generation_size + MARGIN;
@@ -212,7 +263,7 @@ fn check_esp_room(
     if free >= needed {
         return Ok(());
     }
-    Err(Refusal(format!(
+    Err(Stop::Refused(format!(
         "the ESP {esp} has {} MiB free, and this system needs {} MiB to keep {GENERATIONS} generations ({} MiB each).
 Grow the ESP to 1 GiB first: shrink the Windows partition in Windows Disk Management, then move it and grow the ESP with GParted from a live USB.
 Otherwise install NixOS on its own disk, which gets its own ESP.",
@@ -227,7 +278,7 @@ fn create_partition(
     disk: &str,
     system: &str,
     luks_label: &str,
-) -> Result<(), Refusal> {
+) -> Result<(), Stop> {
     let needed_space = closure_size(ports, system)? + STORE_MARGIN;
     let start = last_number(
         ports,
@@ -244,7 +295,7 @@ fn create_partition(
         0
     };
     if start >= end || largest < needed_space {
-        return Err(Refusal(format!(
+        return Err(Stop::Refused(format!(
             "{disk} has {} MiB of free space in one block, and NixOS needs at least {} MiB.
 Shrink the Windows partition in Windows Disk Management (Shrink Volume), then run again.",
             largest / MIB,
@@ -279,7 +330,7 @@ Shrink the Windows partition in Windows Disk Management (Shrink Volume), then ru
     Ok(())
 }
 
-fn closure_size(ports: &Ports, system: &str) -> Result<u64, Refusal> {
+fn closure_size(ports: &Ports, system: &str) -> Result<u64, Stop> {
     let requisites = succeed(
         ports,
         &Invocation::new("nix-store", &["--query", "--requisites", system]),
@@ -294,7 +345,7 @@ fn closure_size(ports: &Ports, system: &str) -> Result<u64, Refusal> {
         .sum())
 }
 
-fn last_number(ports: &Ports, invocation: &Invocation) -> Result<u64, Refusal> {
+fn last_number(ports: &Ports, invocation: &Invocation) -> Result<u64, Stop> {
     let answer = succeed(ports, invocation)?;
     answer
         .stdout
@@ -303,7 +354,7 @@ fn last_number(ports: &Ports, invocation: &Invocation) -> Result<u64, Refusal> {
         .find(|line| !line.trim().is_empty())
         .and_then(|line| line.trim().parse().ok())
         .ok_or_else(|| {
-            Refusal(format!(
+            Stop::Refused(format!(
                 "cannot read a number from {}: {}",
                 invocation.command_line(),
                 answer.stdout.trim()
@@ -311,12 +362,13 @@ fn last_number(ports: &Ports, invocation: &Invocation) -> Result<u64, Refusal> {
         })
 }
 
-fn succeed(ports: &Ports, invocation: &Invocation) -> Result<Answer, Refusal> {
+fn succeed(ports: &Ports, invocation: &Invocation) -> Result<Answer, Stop> {
     let answer = ports.commands.run(invocation);
+    ports.checkpoint()?;
     if answer.success {
         return Ok(answer);
     }
-    Err(Refusal(format!(
+    Err(Stop::Refused(format!(
         "{} failed: {}",
         invocation.command_line(),
         answer.stderr.trim()
@@ -326,21 +378,27 @@ fn succeed(ports: &Ports, invocation: &Invocation) -> Result<Answer, Refusal> {
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashMap, HashSet, VecDeque};
     use std::io;
     use std::path::{Path, PathBuf};
 
+    use std::time::Duration;
+
     use super::*;
+    use crate::system::interrupt::Flag;
     use crate::system::mount::ReadOnlyMount;
     use crate::system::{Answer, Output, Owner};
 
     const MIB: u64 = 1024 * 1024;
     const LSBLK: &str = "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL /dev/vdb";
     const ESP_TYPE: &str = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B";
+    const LUKS_TYPE: &str = "ca7d7ccb-63ed-4c53-861c-1742536059cc";
     const BASIC_DATA: &str = "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7";
     const BOOT_MANAGER: &str = "/run/esp/EFI/Microsoft/Boot/bootmgfw.efi";
     const LUKS: &str = "/dev/disk/by-partlabel/disk-main-luks";
     const ESP: &str = "/dev/disk/by-partlabel/disk-main-ESP";
+    const SIGINT: i32 = 2;
+    const SIGTERM: i32 = 15;
     const CREATE: &str =
         "sgdisk --new=4:1050624:25163742 --change-name=4:disk-main-luks --typecode=4:8309 /dev/vdb";
 
@@ -372,11 +430,14 @@ mod tests {
     }
 
     struct Windows {
-        answers: RefCell<HashMap<String, Answer>>,
+        answers: RefCell<HashMap<String, VecDeque<Answer>>>,
         log: RefCell<Vec<String>>,
         paths: RefCell<HashSet<PathBuf>>,
+        links: RefCell<HashMap<PathBuf, PathBuf>>,
         sizes: HashMap<PathBuf, u64>,
         available: u64,
+        interrupt: Flag,
+        raise_on: RefCell<Option<(String, i32)>>,
     }
 
     impl Windows {
@@ -385,11 +446,21 @@ mod tests {
                 answers: RefCell::new(HashMap::new()),
                 log: RefCell::new(Vec::new()),
                 paths: RefCell::new(HashSet::new()),
+                links: RefCell::new(HashMap::from([
+                    (
+                        PathBuf::from("/dev/disk/by-id/windows"),
+                        PathBuf::from("/dev/vdb"),
+                    ),
+                    (PathBuf::from(LUKS), PathBuf::from("/dev/vdb4")),
+                    (PathBuf::from(ESP), PathBuf::from("/dev/vdb1")),
+                ])),
                 sizes: HashMap::from([
                     (PathBuf::from("/nix/store/system/kernel"), 20 * MIB),
                     (PathBuf::from("/nix/store/system/initrd"), 30 * MIB),
                 ]),
                 available: 400 * MIB,
+                interrupt: Flag::default(),
+                raise_on: RefCell::new(None),
             };
             for path in [
                 "/dev/vdb",
@@ -402,6 +473,9 @@ mod tests {
                 windows.paths.borrow_mut().insert(PathBuf::from(path));
             }
             windows.answer(LSBLK, Answer::ok(&lsblk(&windows_rows())));
+            let mut created = windows_rows();
+            created.push(row(4, LUKS_TYPE, "disk-main-luks"));
+            windows.then(LSBLK, Answer::ok(&lsblk(&created)));
             windows.answer(
                 "nix-store --query --requisites /nix/store/system",
                 Answer::ok("/nix/store/a\n/nix/store/b\n"),
@@ -426,7 +500,36 @@ mod tests {
         }
 
         fn answer(&self, command: &str, answer: Answer) {
-            self.answers.borrow_mut().insert(command.to_owned(), answer);
+            self.answers
+                .borrow_mut()
+                .insert(command.to_owned(), VecDeque::from([answer]));
+        }
+
+        fn then(&self, command: &str, answer: Answer) {
+            self.answers
+                .borrow_mut()
+                .entry(command.to_owned())
+                .or_default()
+                .push_back(answer);
+        }
+
+        fn link(&self, link: &str, device: &str) {
+            self.links
+                .borrow_mut()
+                .insert(PathBuf::from(link), PathBuf::from(device));
+        }
+
+        fn raise_on(&self, line: &str, signal: i32) {
+            *self.raise_on.borrow_mut() = Some((line.to_owned(), signal));
+        }
+
+        fn logged(&self, line: String) {
+            if let Some((watched, signal)) = self.raise_on.borrow().as_ref()
+                && *watched == line
+            {
+                self.interrupt.raise(*signal);
+            }
+            self.log.borrow_mut().push(line);
         }
 
         fn without(&self, path: &str) {
@@ -453,12 +556,18 @@ mod tests {
             if invocation.program == "/nix/store/disko" {
                 assert_eq!(invocation.output, Output::Attached);
             }
-            self.log.borrow_mut().push(line.clone());
-            self.answers
-                .borrow()
-                .get(&line)
-                .cloned()
-                .unwrap_or_else(|| Answer::ok(""))
+            if invocation.program == "udevadm" {
+                assert_eq!(invocation.timeout, Some(Duration::from_secs(150)));
+            }
+            self.logged(line.clone());
+            let mut answers = self.answers.borrow_mut();
+            let Some(queue) = answers.get_mut(&line) else {
+                return Answer::ok("");
+            };
+            if queue.len() > 1 {
+                return queue.pop_front().unwrap_or_default();
+            }
+            queue.front().cloned().unwrap_or_default()
         }
     }
 
@@ -480,10 +589,11 @@ mod tests {
         }
 
         fn canonicalize(&self, path: &Path) -> PathBuf {
-            if path == Path::new("/dev/disk/by-id/windows") {
-                return PathBuf::from("/dev/vdb");
-            }
-            path.to_path_buf()
+            self.links
+                .borrow()
+                .get(path)
+                .cloned()
+                .unwrap_or_else(|| path.to_path_buf())
         }
 
         fn owner(&self, _: &Path) -> Option<Owner> {
@@ -493,7 +603,7 @@ mod tests {
 
     impl Storage for Windows {
         fn is_block_device(&self, path: &Path) -> bool {
-            path == Path::new("/dev/vdb")
+            path == Path::new("/dev/vdb") || path == Path::new("/dev/vdb1")
         }
 
         fn exists(&self, path: &Path) -> bool {
@@ -533,9 +643,7 @@ mod tests {
 
     impl Mounts for Windows {
         fn mount_read_only(&self, device: &str, options: &str) -> io::Result<ReadOnlyMount<'_>> {
-            self.log
-                .borrow_mut()
-                .push(format!("mount -o {options} {device}"));
+            self.logged(format!("mount -o {options} {device}"));
             Ok(ReadOnlyMount::new(PathBuf::from("/run/esp"), |_| {
                 self.log.borrow_mut().push("umount /run/esp".to_owned());
             }))
@@ -568,8 +676,7 @@ mod tests {
         }
     }
 
-    fn installed(windows: &Windows, args: &[&str]) -> (u8, String) {
-        let args: Vec<String> = args.iter().map(|&arg| arg.to_owned()).collect();
+    fn installed(windows: &Windows, disk: &str) -> (u8, String) {
         let mut out = Vec::new();
         let mut ports = Ports {
             commands: windows,
@@ -577,35 +684,107 @@ mod tests {
             storage: windows,
             mounts: windows,
             sizes: windows,
+            interrupt: &windows.interrupt,
             out: &mut out,
         };
-        let code = install(&settings(), &args, &mut ports);
+        let code = install(&settings(), disk, "/nix/store/system", &mut ports);
         (code, String::from_utf8(out).unwrap())
     }
 
     fn refused(windows: &Windows) -> String {
-        let (code, out) = installed(windows, &["/dev/vdb", "/nix/store/system"]);
+        let (code, out) = installed(windows, "/dev/vdb");
         assert_eq!(code, 1, "{out}");
         assert!(!windows.wrote(), "{:?}", windows.ran());
         out
     }
 
     #[test]
-    fn a_missing_argument_is_a_usage_error() {
+    fn the_usage_names_the_esp_label_only_when_it_is_known() {
+        assert!(
+            usage(Some("disk-main-ESP"))
+                .starts_with("Usage: forge dual-boot install-beside-windows DISK SYSTEM\n")
+        );
+        assert!(
+            usage(Some("disk-main-ESP"))
+                .contains("only the GPT name of the ESP changes,\nto disk-main-ESP, so")
+        );
+        assert!(usage(None).contains("only the GPT name of the ESP changes,\nso the installed"));
+    }
+
+    #[test]
+    fn a_partition_given_as_the_disk_is_refused() {
         let windows = Windows::new();
+        windows.answer(
+            "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL /dev/vdb1",
+            Answer::ok(&format!(
+                r#"{{"blockdevices": [{}]}}"#,
+                row(1, ESP_TYPE, "EFI system partition")
+            )),
+        );
 
-        let (code, out) = installed(&windows, &["/dev/vdb"]);
+        let (code, out) = installed(&windows, "/dev/vdb1");
 
-        assert_eq!(code, 2);
-        assert!(out.starts_with("Usage: forge dual-boot install-beside-windows DISK SYSTEM\n"));
-        assert!(out.contains("only the GPT name of the ESP changes,\nto disk-main-ESP, so"));
-        assert!(windows.ran().is_empty());
+        assert_eq!(code, 1);
+        assert_eq!(
+            out,
+            "\nforge dual-boot: /dev/vdb1 is a partition of /dev/vdb: name the whole disk that holds Windows.\n"
+        );
+        assert!(!windows.wrote(), "{:?}", windows.ran());
+        assert!(!windows.ran().iter().any(|line| line.starts_with("mount")));
+    }
+
+    #[test]
+    fn a_label_that_points_to_another_disk_stops_before_the_wipe() {
+        let windows = Windows::new();
+        windows.link(ESP, "/dev/vdc1");
+
+        let (code, out) = installed(&windows, "/dev/vdb");
+
+        assert_eq!(code, 1);
+        assert!(
+            out.ends_with("\nforge dual-boot: /dev/disk/by-partlabel/disk-main-ESP points to /dev/vdc1, not a partition of /dev/vdb: remove the old forge labels on the other disk, then run again.\n"),
+            "{out}"
+        );
+        assert!(
+            !windows
+                .ran()
+                .iter()
+                .any(|line| line.starts_with("wipefs") || line == "/nix/store/disko")
+        );
+    }
+
+    #[test]
+    fn an_interrupt_during_the_esp_inspection_unmounts_it_and_exits_130() {
+        let windows = Windows::new();
+        windows.raise_on("mount -o ro /dev/vdb1", SIGINT);
+
+        let (code, _) = installed(&windows, "/dev/vdb");
+
+        assert_eq!(code, 130);
+        assert_eq!(
+            windows.ran(),
+            [LSBLK, "mount -o ro /dev/vdb1", "umount /run/esp"]
+        );
+    }
+
+    #[test]
+    fn a_stop_request_before_the_wipe_exits_143_without_wiping() {
+        let windows = Windows::new();
+        windows.raise_on("partprobe /dev/vdb", SIGTERM);
+
+        let (code, _) = installed(&windows, "/dev/vdb");
+
+        assert_eq!(code, 143);
+        assert_eq!(
+            windows.ran().last().map(String::as_str),
+            Some("partprobe /dev/vdb")
+        );
     }
 
     #[test]
     fn a_disk_that_is_not_a_block_device_or_a_system_that_is_not_nixos_is_refused() {
         let windows = Windows::new();
-        let (code, out) = installed(&windows, &["/dev/vdz", "/nix/store/system"]);
+        let (code, out) = installed(&windows, "/dev/vdz");
         assert_eq!(code, 1);
         assert_eq!(out, "\nforge dual-boot: /dev/vdz is not a block device.\n");
 
@@ -693,14 +872,10 @@ Shrink the Windows partition in Windows Disk Management (Shrink Volume), then ru
             .insert(PathBuf::from("/run/esp/EFI/nixos"), 40 * MIB);
         let mut rows = windows_rows();
         rows[0] = row(1, ESP_TYPE, "disk-main-ESP");
-        rows.push(row(
-            4,
-            "ca7d7ccb-63ed-4c53-861c-1742536059cc",
-            "disk-main-luks",
-        ));
+        rows.push(row(4, LUKS_TYPE, "disk-main-luks"));
         windows.answer(LSBLK, Answer::ok(&lsblk(&rows)));
 
-        let (code, out) = installed(&windows, &["/dev/vdb", "/nix/store/system"]);
+        let (code, out) = installed(&windows, "/dev/vdb");
 
         assert_eq!(code, 0, "{out}");
         assert_eq!(
@@ -715,6 +890,7 @@ Shrink the Windows partition in Windows Disk Management (Shrink Volume), then ru
                 "umount /run/esp",
                 "partprobe /dev/vdb",
                 "udevadm settle",
+                LSBLK,
                 "wipefs -a /dev/disk/by-partlabel/disk-main-luks",
                 "/nix/store/disko",
             ]
@@ -725,7 +901,7 @@ Shrink the Windows partition in Windows Disk Management (Shrink Volume), then ru
     fn creates_a_partition_in_the_largest_free_block_and_names_the_esp() {
         let windows = Windows::new();
 
-        let (code, out) = installed(&windows, &["/dev/disk/by-id/windows", "/nix/store/system"]);
+        let (code, out) = installed(&windows, "/dev/disk/by-id/windows");
 
         assert_eq!(code, 0, "{out}");
         assert_eq!(
@@ -746,7 +922,7 @@ Shrink the Windows partition in Windows Disk Management (Shrink Volume), then ru
         let windows = Windows::new();
         windows.without(LUKS);
 
-        let (code, out) = installed(&windows, &["/dev/vdb", "/nix/store/system"]);
+        let (code, out) = installed(&windows, "/dev/vdb");
 
         assert_eq!(code, 1);
         assert!(out.ends_with("\nforge dual-boot: the kernel does not show the new partition labels yet: reboot the installer and run again.\n"));
@@ -758,7 +934,7 @@ Shrink the Windows partition in Windows Disk Management (Shrink Volume), then ru
         let windows = Windows::new();
         windows.answer("/nix/store/disko", Answer::exited(3));
 
-        let (code, _) = installed(&windows, &["/dev/vdb", "/nix/store/system"]);
+        let (code, _) = installed(&windows, "/dev/vdb");
 
         assert_eq!(code, 3);
     }

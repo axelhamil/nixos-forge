@@ -14,8 +14,13 @@ pub enum SecureBoot {
 }
 
 #[must_use]
+pub fn is_uefi(files: &dyn Files) -> bool {
+    files.is_dir(Path::new(EFI))
+}
+
+#[must_use]
 pub fn secure_boot(files: &dyn Files) -> SecureBoot {
-    if !files.is_dir(Path::new(EFI)) {
+    if !is_uefi(files) {
         return SecureBoot::NoUefi;
     }
 

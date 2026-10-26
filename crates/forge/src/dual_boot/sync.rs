@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use super::config::SyncSettings;
 use crate::system::mount::Mounts;
 use crate::system::partitions::{self, Partition};
-use crate::system::{Commands, Files, Invocation, Storage};
+use crate::system::{Commands, Files, Invocation, Storage, efi, firmware};
 
 const BOOT_MANAGER: &str = "EFI/Microsoft/Boot/bootmgfw.efi";
 const COPY_MARK: &str = "EFI/Microsoft/Boot/copied-by-nixos";
@@ -12,7 +12,6 @@ const LINUX_LABEL: &str = "Linux Boot Manager";
 const LINUX_LOADER: &str = "\\EFI\\systemd\\systemd-bootx64.efi";
 const WINDOWS_LABEL: &str = "Windows Boot Manager";
 const WINDOWS_LOADER: &str = "\\EFI\\Microsoft\\Boot\\bootmgfw.efi";
-const EFIVARS: &str = "/sys/firmware/efi/efivars";
 const MOUNT_OPTIONS: &str = "ro,nodev,nosuid,noexec";
 
 pub struct Ports<'a> {
@@ -65,7 +64,7 @@ pub fn sync(settings: &SyncSettings, ports: &mut Ports) {
     let Some(windows_esp) = windows_esp else {
         return;
     };
-    if !ports.files.is_dir(Path::new(EFIVARS)) {
+    if !efi::is_uefi(ports.files) {
         return;
     }
     if order_entries(ports, &partitions, &our_esp, &windows_esp).is_none() {
@@ -92,29 +91,41 @@ fn mounted_esp(ports: &Ports, mount: &Path) -> Option<String> {
     )
 }
 
+enum Probe {
+    Holds,
+    Lacks,
+    Unreadable,
+}
+
 fn scan(ports: &mut Ports, esp: &Esp, partitions: &[Partition], our_esp: &str) -> Option<String> {
-    let found = partitions
+    let mut all_read = true;
+    for partition in partitions
         .iter()
         .filter(|partition| partition.is_esp() && partition.name != our_esp)
-        .find(|partition| copy_boot_manager(ports, esp, &partition.name))
-        .map(|partition| partition.name.clone());
-    if found.is_none() && ports.storage.exists(&esp.mark) {
+    {
+        match copy_boot_manager(ports, esp, &partition.name) {
+            Probe::Holds => return Some(partition.name.clone()),
+            Probe::Lacks => {}
+            Probe::Unreadable => all_read = false,
+        }
+    }
+    if all_read && ports.storage.exists(&esp.mark) {
         remove_copy(ports, esp);
         ports.say("no other disk holds Windows any more: removed the copy of its boot manager.");
     }
-    found
+    None
 }
 
-fn copy_boot_manager(ports: &mut Ports, esp: &Esp, device: &str) -> bool {
+fn copy_boot_manager(ports: &mut Ports, esp: &Esp, device: &str) -> Probe {
     let Ok(mounted) = ports.mounts.mount_read_only(device, MOUNT_OPTIONS) else {
-        return false;
+        return Probe::Unreadable;
     };
     let source = mounted.path().join(BOOT_MANAGER);
     if !ports.storage.exists(&source) {
-        return false;
+        return Probe::Lacks;
     }
     let message = match copy_if_changed(ports, &source, esp) {
-        Ok(false) => return true,
+        Ok(false) => return Probe::Holds,
         Ok(true) => format!(
             "copied the Windows boot manager of {device} to {}, so the menu shows Windows.",
             esp.copy.display()
@@ -126,7 +137,7 @@ fn copy_boot_manager(ports: &mut Ports, esp: &Esp, device: &str) -> bool {
     };
     drop(mounted);
     ports.say(&message);
-    true
+    Probe::Holds
 }
 
 fn copy_if_changed(ports: &Ports, source: &Path, esp: &Esp) -> io::Result<bool> {
@@ -156,28 +167,6 @@ fn remove_copy(ports: &Ports, esp: &Esp) {
     }
 }
 
-fn entry_number(commands: &dyn Commands, label: &str) -> Option<String> {
-    let listing = commands.run(&Invocation::new("efibootmgr", &[]));
-    listing
-        .stdout
-        .lines()
-        .filter_map(boot_entry)
-        .find(|(_, name)| *name == label)
-        .map(|(number, _)| number.to_owned())
-}
-
-fn boot_entry(line: &str) -> Option<(&str, &str)> {
-    let head = line.split('\t').next()?;
-    let rest = head.strip_prefix("Boot")?;
-    let number = rest.get(..4)?;
-    if !number.chars().all(|c| c.is_ascii_hexdigit()) {
-        return None;
-    }
-    let rest = &rest[4..];
-    let label = rest.strip_prefix('*').unwrap_or(rest).strip_prefix(' ')?;
-    Some((number, label))
-}
-
 fn ensure_entry(
     ports: &mut Ports,
     partitions: &[Partition],
@@ -185,7 +174,7 @@ fn ensure_entry(
     loader: &str,
     esp: &str,
 ) -> Option<String> {
-    if let Some(number) = entry_number(ports.commands, label) {
+    if let Some(number) = firmware::entry_number(ports.commands, label) {
         return Some(number);
     }
     let partition = partitions.iter().find(|partition| partition.name == esp)?;
@@ -209,7 +198,7 @@ fn ensure_entry(
         return None;
     }
     ports.say(&format!("created the firmware entry {label}."));
-    entry_number(ports.commands, label)
+    firmware::entry_number(ports.commands, label)
 }
 
 fn order_entries(
@@ -226,24 +215,20 @@ fn order_entries(
         WINDOWS_LOADER,
         windows_esp,
     )?;
-    let listing = ports.commands.run(&Invocation::new("efibootmgr", &[]));
-    let current = listing
-        .stdout
-        .lines()
-        .find_map(|line| line.strip_prefix("BootOrder: "))
-        .unwrap_or_default();
+    let current = firmware::boot_order(ports.commands);
     let wanted = [linux.as_str(), windows.as_str()]
         .into_iter()
         .chain(
             current
-                .split(',')
-                .filter(|entry| !entry.is_empty() && *entry != linux && *entry != windows),
+                .iter()
+                .map(String::as_str)
+                .filter(|entry| *entry != linux && *entry != windows),
         )
-        .collect::<Vec<_>>()
-        .join(",");
+        .collect::<Vec<_>>();
     if wanted == current {
         return Some(());
     }
+    let wanted = wanted.join(",");
     let ordered = ports
         .commands
         .run(&Invocation::new("efibootmgr", &["--bootorder", &wanted]));
@@ -272,7 +257,7 @@ mod tests {
     const ESP: &str = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b";
     const COPY: &str = "/boot/EFI/Microsoft/Boot/bootmgfw.efi";
     const MARK: &str = "/boot/EFI/Microsoft/Boot/copied-by-nixos";
-    const EFIVARS: &str = "/sys/firmware/efi/efivars";
+    const EFI: &str = "/sys/firmware/efi";
     const CREATE_WINDOWS: &str = "efibootmgr --create-only --disk /dev/vdb --part 1 --label Windows Boot Manager --loader \\EFI\\Microsoft\\Boot\\bootmgfw.efi";
 
     fn partition(name: &str, disk: &str, number: u32, part_type: &str) -> String {
@@ -418,7 +403,7 @@ mod tests {
         }
 
         fn is_dir(&self, path: &Path) -> bool {
-            if path == Path::new(EFIVARS) {
+            if path == Path::new(EFI) {
                 return self.efivars;
             }
             self.dirs.borrow().contains(path)
@@ -692,6 +677,20 @@ mod tests {
     }
 
     #[test]
+    fn an_esp_that_fails_to_mount_keeps_the_copy() {
+        let machine = Machine::new(&["/dev/vdb1"]);
+        let disk = Disk::new();
+        disk.file(COPY, b"windows");
+        disk.file(MARK, b"");
+
+        let out = synced(&machine, &disk, &Esps::default());
+
+        assert_eq!(out, "");
+        assert_eq!(disk.content(COPY).as_deref(), Some(&b"windows"[..]));
+        assert!(disk.content(MARK).is_some());
+    }
+
+    #[test]
     fn sync_never_touches_windows_on_its_own_esp() {
         let machine = Machine::new(&["/dev/vdb1"]);
         let disk = Disk::new();
@@ -872,6 +871,27 @@ mod tests {
                 "efibootmgr --create-only --disk /dev/vda --part 1 --label Windows Boot Manager --loader \\EFI\\Microsoft\\Boot\\bootmgfw.efi"
             ]
         );
+    }
+
+    #[test]
+    fn an_inactive_windows_entry_is_reused_not_duplicated() {
+        let machine = Machine::new(&["/dev/vdb1"]);
+        machine.answer(
+            "efibootmgr",
+            Answer::ok(
+                "BootCurrent: 0001\nBootOrder: 0001,0003\nBoot0001* Linux Boot Manager\tHD(1,GPT,abc)/File(\\EFI\\x.efi)\nBoot0003  Windows Boot Manager\tHD(1,GPT,def)/File(\\EFI\\y.efi)\n",
+            ),
+        );
+        let disk = with_efivars();
+
+        let out = synced(
+            &machine,
+            &disk,
+            &Esps::default().holding("/dev/vdb1", "/mnt/vdb1"),
+        );
+
+        assert_eq!(out, "");
+        assert_eq!(machine.ran_starting("efibootmgr "), Vec::<String>::new());
     }
 
     #[test]

@@ -33,7 +33,7 @@ To change the policy, set the `security.pam.u2f` options in the host's `module`:
 Enroll the key on the LUKS volume of `disk`, with the key plugged in:
 
 ```sh
-sudo fido2-enroll
+sudo forge enroll fido2
 ```
 
 It runs `systemd-cryptenroll --fido2-device=auto` on `/dev/disk/by-partlabel/disk-main-luks` (or the device given as argument), asks for the passphrase, and asks to touch the key. Repeat with each spare key. Then tell the initrd to use it, and switch:
@@ -61,7 +61,7 @@ Importing `fido2` without `unlockLuks` changes nothing in the initrd, so TPM2 un
 
 ## Recovery
 
-The passphrase stays in its keyslot: `fido2-enroll` adds a key, it never removes one. A lost key is wiped from the disk with `sudo systemd-cryptenroll --wipe-slot=fido2 /dev/disk/by-partlabel/disk-main-luks` (this removes every enrolled key, enroll the others again), and from PAM by deleting its line in `u2fKeys`.
+The passphrase stays in its keyslot: `forge enroll fido2` adds a key, it never removes one. A lost key is wiped from the disk with `sudo systemd-cryptenroll --wipe-slot=fido2 /dev/disk/by-partlabel/disk-main-luks` (this removes every enrolled key, enroll the others again), and from PAM by deleting its line in `u2fKeys`.
 
 ## Check it worked
 

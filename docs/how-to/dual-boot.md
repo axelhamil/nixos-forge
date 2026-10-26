@@ -39,10 +39,10 @@ NixOS goes in the free space of the disk and shares the Windows ESP. Before the 
 Then boot the installer ISO of the host and run:
 
 ```bash
-install-host --beside-windows
+forge install --beside-windows
 ```
 
-`install-host` refuses `--beside-windows` for a host without `dual-boot`. It runs `install-beside-windows`, which:
+`forge install` refuses `--beside-windows` for a host without `dual-boot`. It runs `install-beside-windows`, which:
 
 - finds the single ESP of the disk and checks that Windows is installed on it;
 - checks the ESP free space, and stops with how to grow it when it is too small; it never truncates anything;

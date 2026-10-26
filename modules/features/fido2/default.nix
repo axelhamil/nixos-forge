@@ -32,7 +32,7 @@
         unlockLuks = mkOption {
           type = types.bool;
           default = false;
-          description = "Unlock every LUKS volume of `boot.initrd.luks.devices` with a security key enrolled by `fido2-enroll`. Set it only once every such volume has a key enrolled: systemd-cryptsetup stops the boot on a volume without one.";
+          description = "Unlock every LUKS volume of `boot.initrd.luks.devices` with a security key enrolled by `forge enroll fido2`. Set it only once every such volume has a key enrolled: systemd-cryptsetup stops the boot on a volume without one.";
         };
       };
 

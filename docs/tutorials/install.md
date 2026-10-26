@@ -81,12 +81,12 @@ Boot the stick in UEFI mode. An assistant starts on the first console:
 
 **It worked when** the machine reboots from its disk, asks for the passphrase, and you log in as your user.
 
-If you quit the assistant, `install-host` starts it again. To keep Windows on the disk, a host with `dual-boot` takes `install-host --beside-windows`: NixOS goes in the free space and shares the Windows ESP ([dual-boot.md](../how-to/dual-boot.md#windows-on-the-same-disk)).
+If you quit the assistant, `forge install` starts it again. To keep Windows on the disk, a host with `dual-boot` takes `forge install --beside-windows`: NixOS goes in the free space and shares the Windows ESP ([dual-boot.md](../how-to/dual-boot.md#windows-on-the-same-disk)).
 
-For scripts and the CI test, `install-host` asks nothing with `--yes`:
+For scripts and the CI test, `forge install` asks nothing with `--yes`:
 
 ```sh
-install-host --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file <you>=./password --yes --no-reboot
+forge install --disk /dev/nvme0n1 --passphrase-file ./passphrase --password-file <you>=./password --yes --no-reboot
 ```
 
 `--yes` skips the confirmation, fails before erasing anything when a disk, passphrase or password is missing or empty, and reboots at the end unless `--no-reboot` is set. Without `--yes`, a value left out is asked for.
@@ -115,7 +115,7 @@ If the machine later refuses to boot with a Secure Boot violation (a firmware up
 
 ## Step 6: check the TPM2 unlocks the disk
 
-On a host with `secure-boot`, the `tpm2-enroll` service enrolls the TPM2 at the first boot where Secure Boot is enforced (the boot after the keys are enrolled). You type the passphrase once more, and the next boots open the disk without it. The passphrase stays as a fallback.
+On a host with `secure-boot`, the `tpm2-enroll` service runs `forge enroll tpm2`, which enrolls the TPM2 at the first boot where Secure Boot is enforced (the boot after the keys are enrolled). You type the passphrase once more, and the next boots open the disk without it. The passphrase stays as a fallback.
 
 ```sh
 journalctl -b -u tpm2-enroll

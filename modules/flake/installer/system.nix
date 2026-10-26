@@ -2,11 +2,12 @@
   lib,
   inputs,
   config,
+  withSystem,
   ...
 }:
 
 let
-  inherit (config.helpers) hasDisk hostsOn;
+  inherit (config.helpers) hasDisk hostsOn wrapForge;
 
   targetLink = "/run/install-host/disk";
 
@@ -22,37 +23,39 @@ let
       name = target.config.networking.hostName;
       chosenDisk = target.extendModules { modules = [ { disk.device = targetLink; } ]; };
 
-      installHost = pkgs.writeShellApplication {
-        name = "install-host";
+      installConfig = pkgs.writeText "forge-install.json" (
+        builtins.toJSON {
+          hostName = name;
+          system = "${target.config.system.build.toplevel}";
+          disko = lib.getExe chosenDisk.config.system.build.destroyFormatMount;
+          besideWindows = lib.getExe target.config.system.build.installBesideWindows;
+          dualBoot = target.options ? dualBoot;
+          inherit targetLink users;
+          passphraseFile = target.config.disk.passphraseFile;
+          luksName = target.config.disko.devices.disk.main.content.partitions.luks.content.name;
+        }
+      );
+
+      unwrapped = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
+
+      forge = wrapForge pkgs unwrapped {
         runtimeInputs = [
           pkgs.coreutils
           pkgs.util-linux
           pkgs.cryptsetup
-          pkgs.jq
           pkgs.mkpasswd
           pkgs.nixos-facter
           config.system.build.nixos-install
         ];
-        runtimeEnv = {
-          HOST_NAME = name;
-          SYSTEM = target.config.system.build.toplevel;
-          DISKO = lib.getExe chosenDisk.config.system.build.destroyFormatMount;
-          BESIDE_WINDOWS = lib.getExe target.config.system.build.installBesideWindows;
-          DUAL_BOOT = lib.boolToString (target.options ? dualBoot);
-          TARGET_LINK = targetLink;
-          PASSPHRASE_FILE = target.config.disk.passphraseFile;
-          LUKS_NAME = target.config.disko.devices.disk.main.content.partitions.luks.content.name;
-          USERS = users;
-        };
-        text = builtins.readFile ./install-host.sh;
+        environment.FORGE_INSTALL_CONFIG = "${installConfig}";
       };
     in
     {
-      environment.systemPackages = [ installHost ];
+      environment.systemPackages = [ forge ];
 
       programs.bash.loginShellInit = ''
         if [ "$(tty)" = /dev/tty1 ] && [ "$(id -u)" -ne 0 ]; then
-          install-host || echo "Run install-host to start again."
+          forge install || echo "Run forge install to start again."
         fi
       '';
 

@@ -22,7 +22,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **11. Raspberry Pi**: `raspberry-pi-4` and `raspberry-pi-5` on nixos-raspberrypi, `pi` profile, SD image | `<host>-sd-image`, `profile-pi` |
 | **12. One file per machine**: registry fields in plain values, `apps/` layer, generated `docs/reference/options.md` | `app-firefox`, `options-doc` |
 | **13. Fast CI**: only checks missing from the binary cache are built, no kernel built in a PR | `ci-plan` |
-| **14. Installer ISO**: `nix build .#installer-<host>` for every host with `disk`, `install-host` assistant on tty1 | `example-server-installer` |
+| **14. Installer ISO**: `nix build .#installer-<host>` for every host with `disk`, `forge install` assistant on tty1 | `example-server-installer` |
 | **15. Updates**: host `flake` field, `update` command, opt-in `auto-upgrade` | `base-update` |
 | **16. Hardware report**: host `facter` field reading the installer's nixos-facter report | `facter` |
 | **17. Printing**: CUPS with driverless network printers | `feature-printing` |
@@ -55,6 +55,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **44. Rust workspace and `forge` CLI**: a Cargo workspace in `crates/`, built with crane and the nixpkgs toolchain; clippy pedantic, rustfmt, cargo-deny, cargo-audit and nextest as flake checks; one `forge` binary with subcommands, on every host. Forks add their own `forge-<name>` commands by listing packages in `forge.commands`, called with a versioned JSON contract, without a recompile. First port: `check-docs`, lychee replaced by an offline Rust link and anchor check | `rust-clippy`, `rust-fmt`, `rust-deny`, `rust-audit`, `rust-tests`, `docs`, `init`, `base-forge` |
 | **45. `forge doctor`**: `doctor.sh` replaced by the Rust `forge doctor`, which reads the host's settings from a JSON file each system's `forge` points to; forks add checks with `forge` commands that declare `"doctor":true` and print JSON lines, run in their own process group and stopped after 30 s | `rust-tests`, `rust-clippy`, `base-doctor`, `base-forge`, the `<host>-disk` tests, `feature-rollback`, `feature-migration` |
 | **46. `forge update` and `forge auto-upgrade`**: `update.sh` and `auto-upgrade.sh` replaced by Rust built-ins sharing doctor's command port; the service runs the system's wrapped `forge` with its settings in a JSON file, trusts a checkout through file descriptors opened without following links, bounds each source at 60 s, and decides from a pure function covered by Rust tests | `rust-tests`, `rust-clippy`, `base-update`, `base-doctor`, `base-forge`, `feature-auto-upgrade`, `feature-auto-upgrade-signed`, `feature-auto-upgrade-sources`, `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit`, `app-upgrade-notify`, `example-disk` |
+| **47. `forge install` and `forge enroll`**: `install-host`, `tpm2-enroll` and `fido2-enroll` replaced by Rust built-ins; the installer's tty1 runs `forge install` with the same flags and prompts, the `tpm2-enroll` service runs `forge enroll tpm2` and `forge enroll fido2` defaults to the host's disk, both reading the host's settings from a JSON file | `rust-tests`, `rust-clippy`, `<host>-installer`, `<host>-disk`, `feature-fido2`, `feature-dual-boot-same-disk`, `base-forge` |
 
 ## Planned
 
@@ -62,7 +63,6 @@ In order, each with its guardrail. Every lot starts with a state of the art revi
 
 | Lot | Guardrail |
 |---|---|
-| **47. `forge install`** replaces `install-host`, `tpm2-enroll` and `fido2-enroll` | `<host>-installer`, `<host>-disk`, `feature-fido2` |
 | **48. `forge dual-boot`** replaces `dual-boot.sh` and `beside-windows.sh` | `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot`, `feature-dual-boot-hook-failure` |
 | **49. `forge init` and `forge upstream`** | `init`, `upstream` |
 | **50. CI scripts and the report in Rust**: `ci-build`, `ci-plan`, `ci-promote`, `ci-badges`, `ci-report` with its jq, the mirror and reproducibility; snapshot tests replace the `*-test.sh` | `ci-report`, `ci-plan`, `ci-promote`, `ci-badges`, `ci-mirror`, `reproducibility` |

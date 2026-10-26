@@ -1,7 +1,8 @@
 use std::env;
-use std::fs::{self, File};
+use std::fmt::Write as _;
+use std::fs::{self, File, OpenOptions, Permissions};
 use std::io::{self, Read, Write};
-use std::os::unix::fs::MetadataExt;
+use std::os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -13,11 +14,15 @@ use super::{
     Accounts, Answer, Clock, Commands, Directory, Files, Invocation, Output, Owner, Streamed,
     Streams,
 };
+use crate::enroll::tpm2::Host;
+use crate::install::Storage;
 use crate::{plugins, process};
 
 pub struct Machine;
 
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(60);
+const TPM_DEVICE: &str = "/dev/tpmrm0";
+const UNLOCK_KEY_BYTES: usize = 48;
 
 impl Commands for Machine {
     fn run(&self, invocation: &Invocation) -> Answer {
@@ -52,20 +57,22 @@ fn answer(invocation: &Invocation) -> Answer {
             Ok(None) => Answer::failed("timed out"),
             Err(error) => cannot_run(error),
         },
-        Output::Captured | Output::Shown => match process::run_within(&mut command, timeout) {
-            Ok(Some(captured)) if captured.overflowed => Answer::failed(&format!(
-                "printed more than {} bytes",
-                process::OUTPUT_LIMIT
-            )),
-            Ok(Some(captured)) => Answer {
-                success: captured.status.success(),
-                code: captured.status.code(),
-                stdout: String::from_utf8_lossy(&captured.stdout).into_owned(),
-                stderr: String::from_utf8_lossy(&captured.stderr).into_owned(),
-            },
-            Ok(None) => Answer::failed("timed out"),
-            Err(error) => cannot_run(error),
-        },
+        Output::Captured | Output::Shown => {
+            match process::run_with_input(&mut command, invocation.input.as_deref(), timeout) {
+                Ok(Some(captured)) if captured.overflowed => Answer::failed(&format!(
+                    "printed more than {} bytes",
+                    process::OUTPUT_LIMIT
+                )),
+                Ok(Some(captured)) => Answer {
+                    success: captured.status.success(),
+                    code: captured.status.code(),
+                    stdout: String::from_utf8_lossy(&captured.stdout).into_owned(),
+                    stderr: String::from_utf8_lossy(&captured.stderr).into_owned(),
+                },
+                Ok(None) => Answer::failed("timed out"),
+                Err(error) => cannot_run(error),
+            }
+        }
     }
 }
 
@@ -192,6 +199,71 @@ impl Files for Machine {
             .primary_group(uid)
             .unwrap_or(metadata.gid());
         Some(Owner { uid, gid })
+    }
+}
+
+impl Storage for Machine {
+    fn is_block_device(&self, path: &Path) -> bool {
+        fs::metadata(path).is_ok_and(|metadata| metadata.file_type().is_block_device())
+    }
+
+    fn link(&self, target: &Path, link: &Path) -> io::Result<()> {
+        if let Some(parent) = link.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        remove_if_exists(link)?;
+        symlink(target, link)
+    }
+
+    fn install_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
+        fs::create_dir_all(path)?;
+        fs::set_permissions(path, Permissions::from_mode(mode))
+    }
+
+    fn install_file(&self, path: &Path, bytes: &[u8], mode: u32) -> io::Result<()> {
+        write_with_mode(path, bytes, mode)
+    }
+
+    fn remove(&self, path: &Path) {
+        let _ = remove_if_exists(path);
+    }
+}
+
+impl Host for Machine {
+    fn has_tpm(&self) -> bool {
+        fs::metadata(TPM_DEVICE).is_ok_and(|metadata| metadata.file_type().is_char_device())
+    }
+
+    fn write_unlock_key(&self, path: &Path) -> io::Result<()> {
+        let mut random = [0; UNLOCK_KEY_BYTES];
+        File::open("/dev/urandom")?.read_exact(&mut random)?;
+        let key = random.iter().fold(String::new(), |mut key, byte| {
+            let _ = write!(key, "{byte:02x}");
+            key
+        });
+        write_with_mode(path, key.as_bytes(), 0o600)
+    }
+
+    fn remove_file(&self, path: &Path) -> io::Result<()> {
+        remove_if_exists(path)
+    }
+}
+
+fn write_with_mode(path: &Path, bytes: &[u8], mode: u32) -> io::Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(mode)
+        .open(path)?;
+    file.set_permissions(Permissions::from_mode(mode))?;
+    file.write_all(bytes)
+}
+
+fn remove_if_exists(path: &Path) -> io::Result<()> {
+    match fs::remove_file(path) {
+        Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error),
+        _ => Ok(()),
     }
 }
 

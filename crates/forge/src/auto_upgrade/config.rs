@@ -1,28 +1,10 @@
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde::Deserialize;
 
-pub const CONFIG_VARIABLE: &str = "FORGE_AUTO_UPGRADE_CONFIG";
+use crate::system::Settings;
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConfigError {
-    #[error("{CONFIG_VARIABLE} is not set: this host does not import the auto-upgrade feature")]
-    Unset,
-    #[error("cannot read {}: {source}", path.display())]
-    Read {
-        path: PathBuf,
-        #[source]
-        source: io::Error,
-    },
-    #[error("invalid {}: {source}", path.display())]
-    Invalid {
-        path: PathBuf,
-        #[source]
-        source: serde_json::Error,
-    },
-}
+pub const CONFIG_VARIABLE: &str = "FORGE_AUTO_UPGRADE_CONFIG";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -54,19 +36,12 @@ pub struct Config {
     pub allowed_signers: Option<PathBuf>,
 }
 
-impl Config {
-    pub fn load(path: Option<&Path>) -> Result<Self, ConfigError> {
-        let path = path.ok_or(ConfigError::Unset)?;
-        let text = fs::read(path).map_err(|source| ConfigError::Read {
-            path: path.to_path_buf(),
-            source,
-        })?;
-        serde_json::from_slice(&text).map_err(|source| ConfigError::Invalid {
-            path: path.to_path_buf(),
-            source,
-        })
-    }
+impl Settings for Config {
+    const VARIABLE: &'static str = CONFIG_VARIABLE;
+    const UNSET_HINT: &'static str = "this host does not import the auto-upgrade feature";
+}
 
+impl Config {
     #[must_use]
     pub fn branch(&self) -> String {
         format!("deploy/{}", self.host)

@@ -17,13 +17,6 @@
           user: keys: lib.concatStringsSep ":" ([ user ] ++ map (lib.removePrefix ":") keys)
         ) (lib.filterAttrs (_: keys: keys != [ ]) cfg.u2fKeys)
       );
-
-      fido2Enroll = pkgs.writeShellApplication {
-        name = "fido2-enroll";
-        runtimeInputs = [ config.systemd.package ];
-        runtimeEnv.default_device = config.disko.devices.disk.main.content.partitions.luks.device or "";
-        text = builtins.readFile ./fido2-enroll.sh;
-      };
     in
     {
       options.fido2 = {
@@ -39,7 +32,7 @@
         unlockLuks = mkOption {
           type = types.bool;
           default = false;
-          description = "Unlock every LUKS volume of `boot.initrd.luks.devices` with a security key enrolled by `fido2-enroll`. Set it only once every such volume has a key enrolled: systemd-cryptsetup stops the boot on a volume without one.";
+          description = "Unlock every LUKS volume of `boot.initrd.luks.devices` with a security key enrolled by `forge enroll fido2`. Set it only once every such volume has a key enrolled: systemd-cryptsetup stops the boot on a volume without one.";
         };
       };
 
@@ -65,10 +58,9 @@
 
         environment.etc."u2f-mappings".text = mappings;
 
-        environment.systemPackages = [
-          pkgs.pam_u2f
-          fido2Enroll
-        ];
+        environment.systemPackages = [ pkgs.pam_u2f ];
+
+        forge.runtimeInputs = [ config.systemd.package ];
       };
     };
 }

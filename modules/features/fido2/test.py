@@ -15,7 +15,7 @@ machine.succeed("echo -n secretsecret | cryptsetup luksFormat -q --iter-time=1 /
 machine.succeed("echo -n secretsecret | cryptsetup luksOpen -q /dev/vdb cryptroot")
 machine.succeed("mkfs.ext4 -q /dev/mapper/cryptroot")
 machine.succeed("cryptsetup close cryptroot")
-machine.succeed("PASSWORD=secretsecret fido2-enroll /dev/vdb")
+machine.succeed("PASSWORD=secretsecret forge enroll fido2 /dev/vdb")
 machine.succeed(f"{encrypted}/bin/switch-to-configuration boot")
 machine.succeed("sync")
 machine.crash()

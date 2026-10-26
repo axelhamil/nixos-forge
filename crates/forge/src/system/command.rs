@@ -21,6 +21,7 @@ pub struct Invocation {
     pub timeout: Option<Duration>,
     pub run_as: Option<Owner>,
     pub output: Output,
+    pub input: Option<Vec<u8>>,
 }
 
 impl Invocation {
@@ -48,6 +49,12 @@ impl Invocation {
     #[must_use]
     pub fn run_as(mut self, owner: Owner) -> Self {
         self.run_as = Some(owner);
+        self
+    }
+
+    #[must_use]
+    pub fn input(mut self, bytes: &[u8]) -> Self {
+        self.input = Some(bytes.to_vec());
         self
     }
 
@@ -113,6 +120,19 @@ impl Answer {
             success: code == 0,
             code: Some(code),
             ..Self::default()
+        }
+    }
+
+    #[must_use]
+    pub fn exit_code(&self) -> u8 {
+        let code = self
+            .code
+            .and_then(|code| u8::try_from(code).ok())
+            .filter(|&code| code != 0);
+        match code {
+            Some(code) => code,
+            None if self.success => 0,
+            None => 1,
         }
     }
 

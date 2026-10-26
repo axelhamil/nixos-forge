@@ -13,11 +13,6 @@
       volumeKeyDescription = "tpm2-enroll-${luks.content.name}";
       cryptsetupUnit = "systemd-cryptsetup@${utils.escapeSystemdPath luks.content.name}.service";
 
-      volumeKeyEnv = {
-        inherit (luks) device;
-        volume_key_description = volumeKeyDescription;
-      };
-
       limitVolumeKeyInputs = [
         pkgs.keyutils
         pkgs.cryptsetup
@@ -27,30 +22,28 @@
       limitVolumeKey = pkgs.writeShellApplication {
         name = "limit-volume-key";
         runtimeInputs = limitVolumeKeyInputs;
-        runtimeEnv = volumeKeyEnv // {
+        runtimeEnv = {
+          device = config.forge.luksDevice;
+          volume_key_description = volumeKeyDescription;
           timeout = 300;
         };
         text = builtins.readFile ./limit-volume-key.sh;
-      };
-
-      tpm2Enroll = pkgs.writeShellApplication {
-        name = "tpm2-enroll";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.keyutils
-          pkgs.cryptsetup
-          pkgs.jq
-          config.systemd.package
-        ];
-        runtimeEnv = volumeKeyEnv // {
-          pcrs = "7+15:sha256=${lib.strings.replicate 64 "0"}";
-        };
-        text = builtins.readFile ./tpm2-enroll.sh;
       };
     in
     {
       config = lib.optionalAttrs (options ? disko) (
         lib.mkIf config.disko.enableConfig {
+          forge.enroll = {
+            inherit volumeKeyDescription;
+            pcrs = "7+15:sha256=${lib.strings.replicate 64 "0"}";
+          };
+
+          forge.runtimeInputs = [
+            pkgs.keyutils
+            pkgs.cryptsetup
+            config.systemd.package
+          ];
+
           boot.initrd.luks.devices.${luks.content.name}.crypttabExtraOpts = [
             "link-volume-key=@u::%user:${volumeKeyDescription}"
           ];
@@ -74,7 +67,7 @@
           };
 
           systemd.services.tpm2-enroll = {
-            description = "Enroll the TPM2 to unlock ${luks.device} once Secure Boot is enforced";
+            description = "Enroll the TPM2 to unlock ${config.forge.luksDevice} once Secure Boot is enforced";
             wantedBy = [ "sysinit.target" ];
             before = [
               "sysinit.target"
@@ -90,7 +83,7 @@
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
-              ExecStart = lib.getExe tpm2Enroll;
+              ExecStart = "${lib.getExe config.forge.package} enroll tpm2";
               KeyringMode = "shared";
               RuntimeDirectory = "tpm2-enroll";
               RuntimeDirectoryMode = "0700";

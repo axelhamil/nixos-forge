@@ -8,8 +8,9 @@ use std::process::ExitCode;
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
 use forge::doctor::{self, Config, Forks, Options, System};
-use forge::system::{Git, Machine};
-use forge::{check_docs, plugins, update};
+use forge::enroll;
+use forge::system::{Git, Machine, config};
+use forge::{check_docs, install, plugins, update};
 
 #[derive(Parser)]
 #[command(
@@ -63,8 +64,38 @@ enum Command {
         )]
         args: Vec<OsString>,
     },
+    #[command(about = "Enroll a TPM2 or a security key to unlock the LUKS disk of this host")]
+    Enroll {
+        #[command(subcommand)]
+        method: Enrollment,
+    },
+    #[command(
+        about = "Install this installer's host on a whole disk, or beside Windows, asking for every value not given",
+        disable_help_flag = true
+    )]
+    Install {
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            help = "--disk DEVICE, --beside-windows, --passphrase-file FILE, --password-file USER=FILE, --yes, --no-reboot"
+        )]
+        args: Vec<OsString>,
+    },
     #[command(external_subcommand)]
     External(Vec<OsString>),
+}
+
+#[derive(Subcommand)]
+enum Enrollment {
+    #[command(
+        about = "Enroll the TPM2 bound to Secure Boot, as the tpm2-enroll service does at boot"
+    )]
+    Tpm2,
+    #[command(about = "Enroll a FIDO2 security key, the passphrase stays as a fallback")]
+    Fido2 {
+        #[arg(help = "LUKS device, the disk of this host by default")]
+        device: Option<String>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -84,6 +115,8 @@ fn main() -> ExitCode {
         Command::Doctor { all, history } => doctor_command(&dirs, all, history),
         Command::AutoUpgrade => auto_upgrade_command(),
         Command::Update { .. } => update_command(&update::arguments(env::args_os())),
+        Command::Enroll { method } => enroll_command(&method),
+        Command::Install { .. } => install_command(),
         Command::External(args) => external_command(&dirs, &args),
     }
 }
@@ -177,7 +210,7 @@ fn doctor_command(dirs: &[PathBuf], all: bool, history: bool) -> ExitCode {
 
 fn auto_upgrade_command() -> ExitCode {
     let path = env::var_os(auto_upgrade::CONFIG_VARIABLE).map(PathBuf::from);
-    let config = match auto_upgrade::Config::load(path.as_deref()) {
+    let config: auto_upgrade::Config = match config::load(path.as_deref()) {
         Ok(config) => config,
         Err(error) => {
             eprintln!("forge auto-upgrade: {error}");
@@ -236,18 +269,30 @@ fn update_command(args: &[OsString]) -> ExitCode {
             if !pulled.stderr.is_empty() {
                 eprintln!("forge update: {}", pulled.stderr);
             }
-            return ExitCode::from(
-                pulled
-                    .code
-                    .and_then(|code| u8::try_from(code).ok())
-                    .unwrap_or(1),
-            );
+            return ExitCode::from(pulled.exit_code());
         }
     }
 
     let error = update::switch(&plan).exec();
     eprintln!("forge update: cannot run nh: {error}");
     ExitCode::FAILURE
+}
+
+fn enroll_command(method: &Enrollment) -> ExitCode {
+    let method = match method {
+        Enrollment::Tpm2 => enroll::Method::Tpm2,
+        Enrollment::Fido2 { device } => enroll::Method::Fido2 {
+            device: device.as_deref(),
+        },
+    };
+    let path = env::var_os(enroll::CONFIG_VARIABLE).map(PathBuf::from);
+    ExitCode::from(enroll::run(method, path.as_deref()))
+}
+
+fn install_command() -> ExitCode {
+    let args = update::arguments_after(install::SUBCOMMAND, env::args_os());
+    let path = env::var_os(install::CONFIG_VARIABLE).map(PathBuf::from);
+    ExitCode::from(install::run(&args, path.as_deref()))
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

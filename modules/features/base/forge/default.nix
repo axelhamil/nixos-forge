@@ -1,46 +1,26 @@
-{ withSystem, ... }:
+{ config, withSystem, ... }:
 
+let
+  inherit (config.helpers) wrapForge;
+in
 {
   base =
     {
       lib,
       pkgs,
       config,
+      options,
       ...
     }:
     let
+      enrollConfig = pkgs.writeText "enroll.json" (
+        builtins.toJSON {
+          inherit (config.forge) luksDevice;
+          inherit (config.forge.enroll) volumeKeyDescription pcrs;
+        }
+      );
+
       forge = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
-
-      wrapperArgs =
-        lib.optionals (config.forge.commands != [ ]) [
-          "--prefix"
-          "FORGE_COMMANDS_PATH"
-          ":"
-          (lib.makeBinPath config.forge.commands)
-        ]
-        ++ lib.optionals (config.forge.runtimeInputs != [ ]) [
-          "--prefix"
-          "PATH"
-          ":"
-          (lib.makeBinPath config.forge.runtimeInputs)
-        ]
-        ++ lib.concatLists (
-          lib.mapAttrsToList (name: value: [
-            "--set-default"
-            name
-            value
-          ]) config.forge.environment
-        );
-
-      wrapped = pkgs.symlinkJoin {
-        name = "forge";
-        paths = [ forge ];
-        nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
-        postBuild = ''
-          wrapProgram $out/bin/forge ${lib.escapeShellArgs wrapperArgs}
-        '';
-        meta.mainProgram = "forge";
-      };
     in
     {
       options.forge.commands = lib.mkOption {
@@ -71,7 +51,48 @@
         description = "The `forge` this system installs, wrapped with its commands, runtime inputs and environment; services run it so they read the same configuration as the command line.";
       };
 
-      config.forge.package = if wrapperArgs == [ ] then forge else wrapped;
+      options.forge.luksDevice = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default =
+          if options ? disko then
+            lib.attrByPath [
+              "disko"
+              "devices"
+              "disk"
+              "main"
+              "content"
+              "partitions"
+              "luks"
+              "device"
+            ] null config
+          else
+            null;
+        readOnly = true;
+        internal = true;
+        description = "LUKS partition of the `disk` feature, null without it. `forge doctor`, `forge enroll` and the `tpm2-enroll` service read it.";
+      };
+
+      options.forge.enroll = {
+        volumeKeyDescription = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          internal = true;
+          description = "Description of the volume key the initrd links in the user keyring for `forge enroll tpm2`, null when the host does not enroll a TPM2.";
+        };
+
+        pcrs = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          internal = true;
+          description = "PCRs `forge enroll tpm2` binds the TPM2 token to, in the syntax of `systemd-cryptenroll --tpm2-pcrs`.";
+        };
+      };
+
+      config.forge.environment.FORGE_ENROLL_CONFIG = "${enrollConfig}";
+
+      config.forge.package = wrapForge pkgs forge {
+        inherit (config.forge) commands runtimeInputs environment;
+      };
 
       config.environment.systemPackages = [ config.forge.package ];
     };

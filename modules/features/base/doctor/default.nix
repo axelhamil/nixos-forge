@@ -16,11 +16,7 @@
 
       doctorConfig = {
         inherit secureBoot;
-        luksDevice =
-          if wipedRoot && secureBoot then
-            config.disko.devices.disk.main.content.partitions.luks.device
-          else
-            null;
+        luksDevice = if wipedRoot && secureBoot then config.forge.luksDevice else null;
         btrbkCalendar = if btrbk == null then null else btrbk.onCalendar;
         snapshotDir = "/${btrbkVolume.snapshot_dir or ""}";
         snapshotSubvolumes = lib.attrNames (btrbkVolume.subvolume or { });

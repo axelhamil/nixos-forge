@@ -13,6 +13,7 @@ pub mod partitions;
 pub mod privilege;
 pub mod prompt;
 mod real;
+mod sizes;
 mod storage;
 
 pub use accounts::{Accounts, Directory, Group, Owner, User};
@@ -23,4 +24,5 @@ pub use config::{ConfigError, Settings};
 pub use files::Files;
 pub use git::Git;
 pub use real::Machine;
+pub use sizes::Sizes;
 pub use storage::Storage;

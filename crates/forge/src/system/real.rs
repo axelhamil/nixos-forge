@@ -11,7 +11,7 @@ use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
 use super::{
-    Accounts, Answer, Clock, Commands, Directory, Files, Invocation, Output, Owner, Storage,
+    Accounts, Answer, Clock, Commands, Directory, Files, Invocation, Output, Owner, Sizes, Storage,
     Streamed, Streams,
 };
 use crate::enroll::tpm2::Host;
@@ -245,6 +245,26 @@ impl Storage for Machine {
 
     fn remove_dir(&self, path: &Path) -> io::Result<()> {
         fs::remove_dir(path)
+    }
+}
+
+impl Sizes for Machine {
+    fn available(&self, path: &Path) -> io::Result<u64> {
+        let stats = rustix::fs::statvfs(path)?;
+        Ok(stats.f_bavail.saturating_mul(stats.f_frsize))
+    }
+
+    fn file_size(&self, path: &Path) -> io::Result<u64> {
+        fs::metadata(path).map(|metadata| metadata.len())
+    }
+
+    fn tree_size(&self, path: &Path) -> u64 {
+        walkdir::WalkDir::new(path)
+            .into_iter()
+            .flatten()
+            .filter_map(|entry| entry.metadata().ok())
+            .map(|metadata| metadata.len())
+            .sum()
     }
 }
 

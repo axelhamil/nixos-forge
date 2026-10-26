@@ -5,6 +5,7 @@ use serde::Deserialize;
 use crate::system::Settings;
 
 pub const SYNC_VARIABLE: &str = "FORGE_DUAL_BOOT_CONFIG";
+pub const BESIDE_WINDOWS_VARIABLE: &str = "FORGE_BESIDE_WINDOWS_CONFIG";
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -15,6 +16,19 @@ pub struct SyncSettings {
 impl Settings for SyncSettings {
     const VARIABLE: &'static str = SYNC_VARIABLE;
     const UNSET_HINT: &'static str = "run the forge of a system with the dual-boot feature";
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BesideWindowsSettings {
+    pub format_mount: String,
+    pub esp_device: PathBuf,
+    pub luks_device: PathBuf,
+}
+
+impl Settings for BesideWindowsSettings {
+    const VARIABLE: &'static str = BESIDE_WINDOWS_VARIABLE;
+    const UNSET_HINT: &'static str = "run the forge of system.build.installBesideWindows";
 }
 
 #[cfg(test)]
@@ -40,5 +54,24 @@ mod tests {
             config::load::<SyncSettings>(Some(&bad)),
             Err(ConfigError::Invalid { .. })
         ));
+    }
+
+    #[test]
+    fn the_beside_windows_settings_are_read_in_camel_case() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("beside.json");
+        fs::write(
+            &path,
+            r#"{"formatMount": "/nix/store/disko", "espDevice": "/dev/disk/by-partlabel/disk-main-ESP", "luksDevice": "/dev/disk/by-partlabel/disk-main-luks"}"#,
+        )
+        .unwrap();
+
+        let settings = config::load::<BesideWindowsSettings>(Some(&path)).unwrap();
+
+        assert_eq!(settings.format_mount, "/nix/store/disko");
+        assert_eq!(
+            settings.luks_device,
+            Path::new("/dev/disk/by-partlabel/disk-main-luks")
+        );
     }
 }

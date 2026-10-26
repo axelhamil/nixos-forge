@@ -145,7 +145,15 @@ fn apply(session: &mut Session, options: &Options, plan: &Plan) -> Result<bool, 
         session.say(&format!(
             "Creating the encrypted layout beside Windows on {disk}"
         ));
-        Invocation::new(&config.beside_windows, &[target, &config.system])
+        Invocation::new(
+            &config.beside_windows,
+            &[
+                "dual-boot",
+                "install-beside-windows",
+                target,
+                &config.system,
+            ],
+        )
     } else {
         session.say(&format!("Erasing {disk} and creating the encrypted layout"));
         Invocation::new(&config.disko, &["--yes-wipe-all-disks"])
@@ -783,7 +791,9 @@ mod tests {
 
         assert_eq!(outcome.code, 0, "{}", outcome.printed);
         assert!(
-            machine.ran_command("/nix/store/install-beside-windows /dev/vda /nix/store/system")
+            machine.ran_command(
+                "/nix/store/install-beside-windows dual-boot install-beside-windows /dev/vda /nix/store/system"
+            )
         );
         assert!(!machine.ran_command("/nix/store/disko --yes-wipe-all-disks"));
         assert!(

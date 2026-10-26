@@ -311,8 +311,8 @@ fn install_command() -> ExitCode {
 
 fn dual_boot_command() -> ExitCode {
     let args = update::arguments_after(dual_boot::SUBCOMMAND, env::args_os());
-    let path = env::var_os(dual_boot::SYNC_VARIABLE).map(PathBuf::from);
-    ExitCode::from(dual_boot::run(&args, path.as_deref()))
+    let config_path = |variable: &str| env::var_os(variable).map(PathBuf::from);
+    ExitCode::from(dual_boot::run(&args, &config_path))
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

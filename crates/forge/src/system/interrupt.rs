@@ -34,6 +34,12 @@ impl Flag {
             signal: Arc::new(AtomicUsize::new(number)),
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn raise(&self, signal: i32) {
+        let number = usize::try_from(signal).unwrap_or_default();
+        self.signal.store(number, Ordering::SeqCst);
+    }
 }
 
 #[cfg(test)]

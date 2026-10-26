@@ -8,6 +8,8 @@ use std::process::ExitCode;
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
 use forge::doctor::{self, Config, Forks, Options, System};
+use forge::enroll::{self, fido2, tpm2};
+use forge::system::interrupt::Flag;
 use forge::system::{Git, Machine};
 use forge::{check_docs, plugins, update};
 
@@ -63,8 +65,26 @@ enum Command {
         )]
         args: Vec<OsString>,
     },
+    #[command(about = "Enroll a TPM2 or a security key to unlock the LUKS disk of this host")]
+    Enroll {
+        #[command(subcommand)]
+        method: Enrollment,
+    },
     #[command(external_subcommand)]
     External(Vec<OsString>),
+}
+
+#[derive(Subcommand)]
+enum Enrollment {
+    #[command(
+        about = "Enroll the TPM2 bound to Secure Boot, as the tpm2-enroll service does at boot"
+    )]
+    Tpm2,
+    #[command(about = "Enroll a FIDO2 security key, the passphrase stays as a fallback")]
+    Fido2 {
+        #[arg(help = "LUKS device, the disk of this host by default")]
+        device: Option<String>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -84,6 +104,7 @@ fn main() -> ExitCode {
         Command::Doctor { all, history } => doctor_command(&dirs, all, history),
         Command::AutoUpgrade => auto_upgrade_command(),
         Command::Update { .. } => update_command(&update::arguments(env::args_os())),
+        Command::Enroll { method } => enroll_command(method),
         Command::External(args) => external_command(&dirs, &args),
     }
 }
@@ -248,6 +269,79 @@ fn update_command(args: &[OsString]) -> ExitCode {
     let error = update::switch(&plan).exec();
     eprintln!("forge update: cannot run nh: {error}");
     ExitCode::FAILURE
+}
+
+fn enroll_command(method: Enrollment) -> ExitCode {
+    let path = env::var_os(enroll::CONFIG_VARIABLE).map(PathBuf::from);
+    let config = match (enroll::Config::load(path.as_deref()), &method) {
+        (Ok(config), _) => config,
+        (Err(enroll::ConfigError::Unset), Enrollment::Fido2 { .. }) => enroll::Config::default(),
+        (Err(error), Enrollment::Tpm2) => {
+            eprintln!("forge enroll tpm2: {error}");
+            return ExitCode::FAILURE;
+        }
+        (Err(error), Enrollment::Fido2 { .. }) => {
+            eprintln!("forge enroll fido2: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let code = match method {
+        Enrollment::Tpm2 => tpm2_command(&config),
+        Enrollment::Fido2 { device } => fido2::run(
+            device.as_deref(),
+            config.luks_device.as_deref(),
+            &Machine,
+            &mut io::stdout().lock(),
+            &mut io::stderr().lock(),
+        ),
+    };
+    ExitCode::from(code)
+}
+
+fn tpm2_command(config: &enroll::Config) -> u8 {
+    let (Some(device), Some(volume_key_description), Some(pcrs)) = (
+        config.luks_device.as_deref(),
+        config.volume_key_description.as_deref(),
+        config.pcrs.as_deref(),
+    ) else {
+        eprintln!(
+            "forge enroll tpm2: this host has nothing to enroll: it needs the disk and secure-boot features"
+        );
+        return 1;
+    };
+    let Some(runtime_dir) = env::var_os("RUNTIME_DIRECTORY").map(PathBuf::from) else {
+        eprintln!(
+            "forge enroll tpm2: RUNTIME_DIRECTORY is not set: run it through the tpm2-enroll service"
+        );
+        return 1;
+    };
+    let interrupt = match Flag::register() {
+        Ok(interrupt) => interrupt,
+        Err(error) => {
+            eprintln!("forge enroll tpm2: cannot watch for signals: {error}");
+            return 1;
+        }
+    };
+
+    let settings = tpm2::Settings {
+        device,
+        volume_key_description,
+        pcrs,
+        runtime_dir: &runtime_dir,
+    };
+    let ports = tpm2::Ports {
+        commands: &Machine,
+        files: &Machine,
+        host: &Machine,
+        interrupt: &interrupt,
+    };
+    tpm2::run(
+        &settings,
+        &ports,
+        &mut io::stdout().lock(),
+        &mut io::stderr().lock(),
+    )
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

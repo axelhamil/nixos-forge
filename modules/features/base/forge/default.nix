@@ -6,9 +6,17 @@
       lib,
       pkgs,
       config,
+      options,
       ...
     }:
     let
+      enrollConfig = pkgs.writeText "enroll.json" (
+        builtins.toJSON {
+          inherit (config.forge) luksDevice;
+          inherit (config.forge.enroll) volumeKeyDescription pcrs;
+        }
+      );
+
       forge = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
 
       wrapperArgs =
@@ -70,6 +78,45 @@
         internal = true;
         description = "The `forge` this system installs, wrapped with its commands, runtime inputs and environment; services run it so they read the same configuration as the command line.";
       };
+
+      options.forge.luksDevice = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default =
+          if options ? disko then
+            lib.attrByPath [
+              "disko"
+              "devices"
+              "disk"
+              "main"
+              "content"
+              "partitions"
+              "luks"
+              "device"
+            ] null config
+          else
+            null;
+        readOnly = true;
+        internal = true;
+        description = "LUKS partition of the `disk` feature, null without it. `forge doctor`, `forge enroll` and the `tpm2-enroll` service read it.";
+      };
+
+      options.forge.enroll = {
+        volumeKeyDescription = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          internal = true;
+          description = "Description of the volume key the initrd links in the user keyring for `forge enroll tpm2`, null when the host does not enroll a TPM2.";
+        };
+
+        pcrs = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          internal = true;
+          description = "PCRs `forge enroll tpm2` binds the TPM2 token to, in the syntax of `systemd-cryptenroll --tpm2-pcrs`.";
+        };
+      };
+
+      config.forge.environment.FORGE_ENROLL_CONFIG = "${enrollConfig}";
 
       config.forge.package = if wrapperArgs == [ ] then forge else wrapped;
 

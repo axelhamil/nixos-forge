@@ -25,11 +25,11 @@ installer.wait_for_unit("multi-user.target")
 with subtest("the assistant starts on tty1 and lists the blank disk, not the ISO"):
     installer.wait_until_tty_matches("1", f"Install {host_name}")
     installer.wait_until_tty_matches("1", r"1\) /dev/vda .*\n\s*Disk to install on, 1 to 1:")
-    installer.fail("install-host --disk /dev/sr0 --yes")
+    installer.fail("forge install --disk /dev/sr0 --yes")
 
 with subtest("without a question, a missing password stops the install before erasing"):
     installer.succeed(f"printf %s {test_passphrase} > /tmp/passphrase")
-    installer.fail("install-host --disk /dev/vda --passphrase-file /tmp/passphrase --yes --no-reboot")
+    installer.fail("forge install --disk /dev/vda --passphrase-file /tmp/passphrase --yes --no-reboot")
     installer.fail("lsblk -nro PARTLABEL /dev/vda | grep -q .")
 
 with subtest("the assistant installs without a question"):
@@ -37,7 +37,7 @@ with subtest("the assistant installs without a question"):
         installer.succeed(f"printf %s {password_of(user)} > /tmp/{user}-password")
     password_files = " ".join(f"--password-file {user}=/tmp/{user}-password" for user in users)
     installer.succeed(
-        f"install-host --disk /dev/vda --passphrase-file /tmp/passphrase {password_files} --yes --no-reboot >&2",
+        f"forge install --disk /dev/vda --passphrase-file /tmp/passphrase {password_files} --yes --no-reboot >&2",
         timeout=timedelta(minutes=15),
     )
     installer.fail(f"test -e {passphrase_file}")

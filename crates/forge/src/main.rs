@@ -8,8 +8,10 @@ use std::process::ExitCode;
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
 use forge::doctor::{self, Config, Forks, Options, System};
+use forge::system::interrupt::Flag;
+use forge::system::prompt::Console;
 use forge::system::{Git, Machine};
-use forge::{check_docs, plugins, update};
+use forge::{check_docs, install, plugins, update};
 
 #[derive(Parser)]
 #[command(
@@ -63,6 +65,18 @@ enum Command {
         )]
         args: Vec<OsString>,
     },
+    #[command(
+        about = "Install this installer's host on a whole disk, or beside Windows, asking for every value not given",
+        disable_help_flag = true
+    )]
+    Install {
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            help = "--disk DEVICE, --beside-windows, --passphrase-file FILE, --password-file USER=FILE, --yes, --no-reboot"
+        )]
+        args: Vec<OsString>,
+    },
     #[command(external_subcommand)]
     External(Vec<OsString>),
 }
@@ -84,6 +98,10 @@ fn main() -> ExitCode {
         Command::Doctor { all, history } => doctor_command(&dirs, all, history),
         Command::AutoUpgrade => auto_upgrade_command(),
         Command::Update { .. } => update_command(&update::arguments(env::args_os())),
+        Command::Install { .. } => install_command(&update::arguments_after(
+            install::SUBCOMMAND,
+            env::args_os(),
+        )),
         Command::External(args) => external_command(&dirs, &args),
     }
 }
@@ -248,6 +266,59 @@ fn update_command(args: &[OsString]) -> ExitCode {
     let error = update::switch(&plan).exec();
     eprintln!("forge update: cannot run nh: {error}");
     ExitCode::FAILURE
+}
+
+fn install_command(args: &[OsString]) -> ExitCode {
+    if !install::runs_as_root() {
+        let error = install::reexec_as_root(args);
+        eprintln!("forge install: cannot run sudo: {error}");
+        return ExitCode::FAILURE;
+    }
+
+    let path = env::var_os(install::CONFIG_VARIABLE).map(PathBuf::from);
+    let config = match install::Config::load(path.as_deref()) {
+        Ok(config) => config,
+        Err(error) => {
+            eprintln!("forge install: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let options = match install::parse(args) {
+        Ok(install::Parsed::Run(options)) => options,
+        Ok(install::Parsed::Help) => {
+            print!("{}", install::usage(&config.host_name));
+            return ExitCode::SUCCESS;
+        }
+        Err(error @ install::ParseError::Missing(_)) => {
+            eprintln!("forge install: {error}");
+            return ExitCode::from(error.exit_code());
+        }
+        Err(error) => {
+            eprint!("{}", install::usage(&config.host_name));
+            return ExitCode::from(error.exit_code());
+        }
+    };
+
+    let interrupt = match Flag::register() {
+        Ok(flag) => flag,
+        Err(error) => {
+            eprintln!("forge install: cannot watch for interrupts: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let machine = Machine;
+    let mut terminal = Console::stdio(Some(interrupt.clone()));
+    let mut stderr = io::stderr();
+    let mut ports = install::Ports {
+        commands: &machine,
+        files: &machine,
+        storage: &machine,
+        terminal: &mut terminal,
+        interrupt: &interrupt,
+        out: &mut stderr,
+    };
+    ExitCode::from(install::install(&config, &options, &mut ports))
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

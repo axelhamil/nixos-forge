@@ -31,9 +31,14 @@ pub fn plan(flake: &OsStr, is_dir: impl Fn(&Path) -> bool, args: &[OsString]) ->
 
 #[must_use]
 pub fn arguments(raw: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
+    arguments_after(SUBCOMMAND, raw)
+}
+
+#[must_use]
+pub fn arguments_after(subcommand: &str, raw: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
     raw.into_iter()
         .skip(1)
-        .skip_while(|arg| arg != SUBCOMMAND)
+        .skip_while(|arg| arg != subcommand)
         .skip(1)
         .collect()
 }

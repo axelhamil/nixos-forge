@@ -1,6 +1,6 @@
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::os::unix::process::CommandExt;
-use std::process::{Child, ChildStderr, ChildStdout, Command, ExitStatus, Stdio};
+use std::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, ExitStatus, Stdio};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -28,13 +28,27 @@ struct Output {
 type Reader = Receiver<io::Result<Output>>;
 
 pub fn run_within(command: &mut Command, timeout: Duration) -> io::Result<Option<Captured>> {
+    run_with_input(command, None, timeout)
+}
+
+pub fn run_with_input(
+    command: &mut Command,
+    input: Option<&[u8]>,
+    timeout: Duration,
+) -> io::Result<Option<Captured>> {
     let deadline = Instant::now() + timeout;
+    let stdin = if input.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    };
     let mut child = command
         .process_group(0)
-        .stdin(Stdio::null())
+        .stdin(stdin)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
+    write_input(child.stdin.take(), input);
 
     let stdout = read_capped(child.stdout.take());
     let stderr = read_capped(child.stderr.take());
@@ -76,6 +90,16 @@ fn finish(child: &mut Child, deadline: Instant) -> io::Result<Option<ExitStatus>
     signal_group(group, Signal::KILL)?;
     let status = child.wait()?;
     Ok(exited.then_some(status))
+}
+
+fn write_input(stdin: Option<ChildStdin>, input: Option<&[u8]>) {
+    let (Some(mut stdin), Some(input)) = (stdin, input) else {
+        return;
+    };
+    let input = input.to_vec();
+    thread::spawn(move || {
+        let _ = stdin.write_all(&input);
+    });
 }
 
 trait Pipe: Read + Send + 'static {}
@@ -195,6 +219,19 @@ mod tests {
 
         assert!(captured.is_some());
         assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn the_input_reaches_the_child_on_its_stdin() {
+        let captured = run_with_input(
+            Command::new("sh").args(["-c", "read -r line; echo \"got $line\""]),
+            Some(b"secret\n"),
+            Duration::from_secs(5),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(captured.stdout, b"got secret\n");
     }
 
     #[test]

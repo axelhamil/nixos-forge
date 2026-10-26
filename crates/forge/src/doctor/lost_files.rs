@@ -1,9 +1,8 @@
 use std::collections::HashSet;
-use std::fs;
+use std::fs::{self, DirEntry, ReadDir};
+use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
-
-use walkdir::WalkDir;
 
 const STORE_TARGETS: [&str; 2] = ["/etc/static/", "/nix/store/"];
 
@@ -16,25 +15,43 @@ pub(super) struct Walk<'a> {
 
 impl Walk<'_> {
     pub(super) fn lost_files(&self) -> Vec<PathBuf> {
+        self.lost_files_reading(|dir| fs::read_dir(dir))
+    }
+
+    fn lost_files_reading(
+        &self,
+        mut read_dir: impl FnMut(&Path) -> io::Result<ReadDir>,
+    ) -> Vec<PathBuf> {
         let since = i128::from(self.since_micros) * 1000;
-        let mut lost: Vec<PathBuf> = WalkDir::new(self.root)
-            .follow_links(false)
-            .into_iter()
-            .filter_entry(|entry| {
-                entry.depth() == 0 || !self.pruned.contains(&self.shown(entry.path()))
-            })
-            .filter_map(Result::ok)
-            .filter(|entry| !entry.file_type().is_dir())
-            .filter(|entry| {
-                entry.metadata().is_ok_and(|metadata| {
-                    nanos(metadata.mtime(), metadata.mtime_nsec()) > since
-                        || nanos(metadata.ctime(), metadata.ctime_nsec()) > since
-                })
-            })
-            .filter(|entry| !entry.path_is_symlink() || !points_into_store(entry.path()))
-            .map(|entry| self.shown(entry.path()))
-            .filter(|path| !self.owned.contains(path))
-            .collect();
+        let mut lost = Vec::new();
+        let mut pending = vec![self.root.to_path_buf()];
+
+        while let Some(dir) = pending.pop() {
+            let Ok(entries) = read_dir(&dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let shown = self.shown(&path);
+                if self.pruned.contains(&shown) {
+                    continue;
+                }
+                let Ok(file_type) = entry.file_type() else {
+                    continue;
+                };
+                if file_type.is_dir() {
+                    pending.push(path);
+                    continue;
+                }
+                if changed_since(&entry, since)
+                    && !(file_type.is_symlink() && points_into_store(&path))
+                    && !self.owned.contains(&shown)
+                {
+                    lost.push(shown);
+                }
+            }
+        }
+
         lost.sort();
         lost
     }
@@ -43,6 +60,13 @@ impl Walk<'_> {
         let relative = path.strip_prefix(self.root).unwrap_or(path);
         Path::new("/").join(relative)
     }
+}
+
+fn changed_since(entry: &DirEntry, since: i128) -> bool {
+    entry.metadata().is_ok_and(|metadata| {
+        nanos(metadata.mtime(), metadata.mtime_nsec()) > since
+            || nanos(metadata.ctime(), metadata.ctime_nsec()) > since
+    })
 }
 
 fn nanos(seconds: i64, nanoseconds: i64) -> i128 {
@@ -56,4 +80,37 @@ fn points_into_store(link: &Path) -> bool {
             .iter()
             .any(|prefix| target.starts_with(prefix))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_pruned_directory_is_never_opened() {
+        let disk = tempfile::TempDir::new().unwrap();
+        let root = disk.path();
+        fs::create_dir_all(root.join("mnt/windows")).unwrap();
+        fs::create_dir_all(root.join("srv")).unwrap();
+        fs::write(root.join("mnt/windows/pagefile.sys"), b"").unwrap();
+        fs::write(root.join("srv/state"), b"").unwrap();
+        let pruned = HashSet::from([PathBuf::from("/mnt/windows")]);
+        let owned = HashSet::new();
+        let walk = Walk {
+            root,
+            pruned: &pruned,
+            owned: &owned,
+            since_micros: 0,
+        };
+        let mut opened = Vec::new();
+
+        let lost = walk.lost_files_reading(|dir| {
+            opened.push(walk.shown(dir));
+            fs::read_dir(dir)
+        });
+
+        opened.sort();
+        assert_eq!(opened, ["/", "/mnt", "/srv"].map(PathBuf::from));
+        assert_eq!(lost, [PathBuf::from("/srv/state")]);
+    }
 }

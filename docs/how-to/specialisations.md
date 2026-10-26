@@ -21,16 +21,16 @@ A variant is a NixOS [specialisation](https://wiki.nixos.org/wiki/Specialisation
 
 | To | Run |
 |---|---|
-| go to a variant now | `update -s gaming` |
-| go back to the host now | `update -S` |
+| go to a variant now | `forge update -s gaming` |
+| go back to the host now | `forge update -S` |
 | start a variant at boot | pick its entry, named after it, in the boot menu |
 
 The running variant's name is in `/etc/specialisation` (no file on the host itself).
 
-- `update` keeps it: on `gaming`, a plain `update` pulls, builds and stays on `gaming`.
+- `forge update` keeps it: on `gaming`, a plain `forge update` pulls, builds and stays on `gaming`.
 - `auto-upgrade` keeps it too when its `operation` is `switch`. With the default `boot`, the next boot starts the host unless you pick the variant again.
 - A switch lasts until the next reboot, which starts the default entry, the host.
-- When the running variant no longer exists in your config, `update` stops and says so; run `update -S` to switch to the host. `auto-upgrade` switches to the host on its own.
+- When the running variant no longer exists in your config, `forge update` stops and says so; run `forge update -S` to switch to the host. `auto-upgrade` switches to the host on its own.
 
 A switch does not reload the kernel. A variant that changes the kernel or its modules (another NVIDIA driver, another kernel) takes effect only when it is started from the boot menu.
 

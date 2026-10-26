@@ -2,8 +2,9 @@ use std::io;
 use std::path::Path;
 use std::time::Duration;
 
+use super::Context;
 use super::report::{Report, Status};
-use super::{Answer, Context, Invocation};
+use crate::system::Git;
 
 const CHECK: &str = "Updates";
 const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
@@ -23,19 +24,14 @@ pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
     };
     let shown = flake.display().to_string();
 
-    let fetch = git(context, flake, &["fetch", "--quiet"])
+    let git = git(context, flake, &shown);
+    let fetch = git
+        .invocation(&["fetch", "--quiet"])
         .timeout(FETCH_TIMEOUT)
         .discard_output();
-    let fetched = run(context, &fetch).success;
+    let fetched = git.run(&fetch).success;
 
-    let counts = run(
-        context,
-        &git(
-            context,
-            flake,
-            &["rev-list", "--left-right", "--count", "@{upstream}...HEAD"],
-        ),
-    );
+    let counts = git.quiet(&["rev-list", "--left-right", "--count", "@{upstream}...HEAD"]);
     let Some((behind, ahead)) = counts
         .success
         .then(|| parse_counts(&counts.stdout))
@@ -56,7 +52,8 @@ pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
     if ahead > 0 {
         state.push(format!("ahead by {ahead}"));
     }
-    if !run(context, &git(context, flake, &["status", "--porcelain"]))
+    if !git
+        .quiet(&["status", "--porcelain"])
         .stdout
         .trim()
         .is_empty()
@@ -69,7 +66,7 @@ pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
 
     let summary = format!("{shown}: {}", state.join(", "));
     if behind > 0 {
-        return report.hinted(Status::Warn, CHECK, &summary, "run update");
+        return report.hinted(Status::Warn, CHECK, &summary, "run forge update");
     }
     if !state.is_empty() {
         return report.hinted(
@@ -91,20 +88,10 @@ fn parse_counts(stdout: &str) -> Option<(u64, u64)> {
     Some((counts.next()?.ok()?, counts.next()?.ok()?))
 }
 
-fn git(context: &Context, flake: &Path, args: &[&str]) -> Invocation {
-    let flake_arg = flake.display().to_string();
-    let args: Vec<&str> = ["-C", flake_arg.as_str()]
-        .into_iter()
-        .chain(args.iter().copied())
-        .collect();
-    let invocation = Invocation::new("git", &args);
-
+fn git<'a>(context: &Context<'a>, flake: &Path, shown: &str) -> Git<'a> {
+    let git = Git::new(context.system.commands, shown);
     match context.system.files.owner(flake) {
-        Some(owner) if context.root && owner.uid != 0 => invocation.run_as(owner),
-        _ => invocation,
+        Some(owner) if context.root && owner.uid != 0 => git.run_as(owner),
+        _ => git,
     }
-}
-
-fn run(context: &Context, invocation: &Invocation) -> Answer {
-    context.system.commands.run(invocation)
 }

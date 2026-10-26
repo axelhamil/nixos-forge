@@ -10,6 +10,8 @@
       inherit (config.update) flake mirrors signers;
       inherit (config) autoUpgrade;
 
+      stateDir = "/var/lib/${autoUpgrade.stateDirectory}";
+
       checkout = flake != null && lib.hasPrefix "/" flake;
       query = flake != null && !checkout && lib.hasInfix "?" flake;
       github = if flake == null then null else lib.match "github:([^/?]+)/([^/?]+).*" flake;
@@ -44,29 +46,16 @@
         lib.concatMapStrings (key: "deploy namespaces=\"git\" ${key}\n") signers
       );
 
-      auto-upgrade = pkgs.writeShellApplication {
-        name = "auto-upgrade";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.gnugrep
-          pkgs.git
-          pkgs.jq
-          pkgs.nvd
-          pkgs.openssh
-          config.nix.package
-          config.systemd.package
-        ];
-        runtimeEnv = {
-          HOST = config.networking.hostName;
-          CHECKOUT = if checkout then flake else "";
-          SOURCES = lib.concatLines (primary ++ mirrors);
-          OPERATION = autoUpgrade.operation;
-          REBUILD = autoUpgrade.rebuildCommand;
-          ALLOW_LOCAL_BUILD = lib.boolToString autoUpgrade.allowLocalBuild;
-          ALLOWED_SIGNERS = if signers == [ ] then "" else "${allowedSigners}";
-        };
-        text = builtins.readFile ./auto-upgrade.sh;
-      };
+      settings = pkgs.writeText "auto-upgrade.json" (
+        builtins.toJSON {
+          host = config.networking.hostName;
+          inherit stateDir;
+          checkout = if checkout then flake else null;
+          sources = primary ++ mirrors;
+          inherit (autoUpgrade) operation rebuildCommand allowLocalBuild;
+          allowedSigners = if signers == [ ] then null else "${allowedSigners}";
+        }
+      );
     in
     {
       warnings =
@@ -90,9 +79,18 @@
         }
       ];
 
-      environment.persistence."/persist".directories = [ "/var/lib/auto-upgrade" ];
+      environment.persistence."/persist".directories = [ stateDir ];
 
       environment.systemPackages = [ pkgs.nvd ];
+
+      forge.environment.FORGE_AUTO_UPGRADE_CONFIG = "${settings}";
+      forge.runtimeInputs = [
+        pkgs.git
+        pkgs.nvd
+        pkgs.openssh
+        config.nix.package
+        config.systemd.package
+      ];
 
       systemd.additionalUpstreamSystemUnits = [ "systemd-boot-check-no-failures.service" ];
       systemd.targets.boot-complete.requires = [ "systemd-boot-check-no-failures.service" ];
@@ -112,8 +110,8 @@
           // config.networking.proxy.envVars;
         serviceConfig = {
           Type = "oneshot";
-          StateDirectory = "auto-upgrade";
-          ExecStart = lib.getExe auto-upgrade;
+          StateDirectory = autoUpgrade.stateDirectory;
+          ExecStart = "${lib.getExe config.forge.package} auto-upgrade";
         };
       };
 

@@ -99,7 +99,7 @@ list of string
 
 
 
-Where the machine updates from: a git checkout on the machine, which the ` update ` command pulls then switches to, or a flake reference such as ` github:<owner>/<repo> `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\.
+Where the machine updates from: a git checkout on the machine, which ` forge update ` pulls then switches to, or a flake reference such as ` github:<owner>/<repo> `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\.
 
 
 
@@ -330,7 +330,7 @@ list of string
 
 
 
-Variants of the machine, by name, each one the whole host plus its own ` features `, ` apps `, ` hardware ` and ` module `\. Each variant is an entry of the boot menu, and ` update -s <name> ` switches to it without a reboot (` update -S ` goes back); a kernel or kernel module it changes takes effect only when it is started from the boot menu\. The running variant’s name is in ` /etc/specialisation `, and ` update ` and ` auto-upgrade ` keep it\.
+Variants of the machine, by name, each one the whole host plus its own ` features `, ` apps `, ` hardware ` and ` module `\. Each variant is an entry of the boot menu, and ` forge update -s <name> ` switches to it without a reboot (` forge update -S ` goes back); a kernel or kernel module it changes takes effect only when it is started from the boot menu\. The running variant’s name is in ` /etc/specialisation `, and ` forge update ` and ` auto-upgrade ` keep it\.
 
 
 

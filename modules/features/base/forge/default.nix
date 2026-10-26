@@ -64,8 +64,15 @@
         description = "Variables the built-in commands of `forge` read, set unless the caller already sets them. They belong to the system `forge` comes from, so a specialisation's `forge` reads its own.";
       };
 
-      config.environment.systemPackages = [
-        (if wrapperArgs == [ ] then forge else wrapped)
-      ];
+      options.forge.package = lib.mkOption {
+        type = lib.types.package;
+        readOnly = true;
+        internal = true;
+        description = "The `forge` this system installs, wrapped with its commands, runtime inputs and environment; services run it so they read the same configuration as the command line.";
+      };
+
+      config.forge.package = if wrapperArgs == [ ] then forge else wrapped;
+
+      config.environment.systemPackages = [ config.forge.package ];
     };
 }

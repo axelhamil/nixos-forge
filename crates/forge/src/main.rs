@@ -1,12 +1,15 @@
 use std::env;
 use std::ffi::OsString;
 use std::io::{self, IsTerminal};
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
+use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
 use forge::doctor::{self, Config, Forks, Options, System};
-use forge::{check_docs, plugins};
+use forge::system::{Git, Machine};
+use forge::{check_docs, plugins, update};
 
 #[derive(Parser)]
 #[command(
@@ -43,6 +46,23 @@ enum Command {
         #[arg(long, help = "List the last 10 runs of auto-upgrade")]
         history: bool,
     },
+    #[command(
+        about = "Pull the version CI validated for this machine and apply it, as the auto-upgrade service does",
+        name = "auto-upgrade"
+    )]
+    AutoUpgrade,
+    #[command(
+        about = "Pull the host's flake checkout, then run nh os switch with the given arguments",
+        disable_help_flag = true
+    )]
+    Update {
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            help = "Arguments for nh os switch"
+        )]
+        args: Vec<OsString>,
+    },
     #[command(external_subcommand)]
     External(Vec<OsString>),
 }
@@ -62,6 +82,8 @@ fn main() -> ExitCode {
     match cli.command {
         Command::CheckDocs { root } => check_docs_command(&root),
         Command::Doctor { all, history } => doctor_command(&dirs, all, history),
+        Command::AutoUpgrade => auto_upgrade_command(),
+        Command::Update { .. } => update_command(&update::arguments(env::args_os())),
         Command::External(args) => external_command(&dirs, &args),
     }
 }
@@ -114,7 +136,7 @@ fn doctor_command(dirs: &[PathBuf], all: bool, history: bool) -> ExitCode {
         }
     };
 
-    let machine = doctor::real::Machine;
+    let machine = Machine;
     let system = System {
         commands: &machine,
         files: &machine,
@@ -151,6 +173,81 @@ fn doctor_command(dirs: &[PathBuf], all: bool, history: bool) -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn auto_upgrade_command() -> ExitCode {
+    let path = env::var_os(auto_upgrade::CONFIG_VARIABLE).map(PathBuf::from);
+    let config = match auto_upgrade::Config::load(path.as_deref()) {
+        Ok(config) => config,
+        Err(error) => {
+            eprintln!("forge auto-upgrade: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let machine = Machine;
+    let ports = Ports {
+        commands: &machine,
+        streams: &machine,
+        clock: &machine,
+        accounts: &machine,
+        files: &machine,
+    };
+    match auto_upgrade::run(
+        &config,
+        &ports,
+        &Paths::default(),
+        &overrides_from_env(),
+        &mut io::stdout().lock(),
+    ) {
+        Ok(Some(Outcome::Failed)) => ExitCode::FAILURE,
+        Ok(_) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("forge auto-upgrade: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn overrides_from_env() -> Overrides {
+    let variable = |name| env::var(name).ok().filter(|value| !value.is_empty());
+    Overrides {
+        current_rev: variable("CURRENT_REV"),
+        next_rev: variable("NEXT_REV"),
+        next_did_not_start: variable("NEXT_DID_NOT_START"),
+    }
+}
+
+fn update_command(args: &[OsString]) -> ExitCode {
+    let Some(flake) = env::var_os(update::FLAKE_VARIABLE) else {
+        eprintln!(
+            "forge update: {} is not set: give this host a `flake` field to update from",
+            update::FLAKE_VARIABLE
+        );
+        return ExitCode::FAILURE;
+    };
+    let plan = update::plan(&flake, Path::is_dir, args);
+
+    if let Some(checkout) = &plan.pull {
+        let machine = Machine;
+        let pulled =
+            Git::new(&machine, &checkout.display().to_string()).attached(&["pull", "--ff-only"]);
+        if !pulled.success {
+            if !pulled.stderr.is_empty() {
+                eprintln!("forge update: {}", pulled.stderr);
+            }
+            return ExitCode::from(
+                pulled
+                    .code
+                    .and_then(|code| u8::try_from(code).ok())
+                    .unwrap_or(1),
+            );
+        }
+    }
+
+    let error = update::switch(&plan).exec();
+    eprintln!("forge update: cannot run nh: {error}");
+    ExitCode::FAILURE
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

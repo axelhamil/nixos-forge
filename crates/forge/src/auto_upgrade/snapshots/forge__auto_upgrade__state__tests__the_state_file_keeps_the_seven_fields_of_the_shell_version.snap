@@ -1,0 +1,13 @@
+---
+source: forge/src/auto_upgrade/state.rs
+expression: state().json()
+---
+{
+  "time": "2026-10-23T04:00:00+02:00",
+  "outcome": "up-to-date",
+  "from": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "to": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "source": "https://github.com/alice/nixos.git",
+  "message": "deploy/machine is the running commit",
+  "changes": ""
+}

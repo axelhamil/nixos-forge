@@ -8,7 +8,7 @@ mod impermanence;
 mod lost_files;
 mod luks;
 mod mountinfo;
-pub mod real;
+mod real;
 mod report;
 mod secure_boot;
 mod signers;
@@ -27,9 +27,9 @@ use jiff::tz::TimeZone;
 pub use config::{CONFIG_FILE, CONFIG_VARIABLE, Config, ConfigError};
 pub use fork::{DOCTOR_FLAG, FORK_TIMEOUT, ROOT_VARIABLE};
 pub use report::{Status, Totals};
-pub use system::{
-    Answer, Clock, Commands, Files, Forks, Host, Invocation, Mount, Owner, Space, System,
-};
+pub use system::{Forks, Host, Mount, Space, System};
+
+use crate::system::Invocation;
 
 pub const ROOT_HINT: &str = "run sudo forge doctor";
 

@@ -14,12 +14,12 @@ desktop.succeed(
     "git -C /tmp/elsewhere push origin main",
 )
 assert desktop.succeed("bash -lc 'echo $NH_FLAKE'").strip() == "/srv/nixos"
-desktop.fail("update")
+desktop.fail("forge update")
 assert desktop.succeed("git -C /srv/nixos log -1 --format=%s").strip() == "second", "update did not pull"
 
 desktop.succeed("git -C /srv/nixos commit --allow-empty -m local")
 desktop.succeed("git -C /tmp/elsewhere commit --allow-empty -m third && git -C /tmp/elsewhere push origin main")
-desktop.fail("update")
+desktop.fail("forge update")
 assert desktop.succeed("git -C /srv/nixos log -1 --format=%s").strip() == "local", "update merged a diverged checkout"
 
 assert desktop.succeed("nixos-version --configuration-revision").strip() != "", "the system does not record the commit it was built from"
@@ -33,6 +33,6 @@ desktop.succeed(
     "git -C /tmp/elsewhere push -q origin main",
     "echo gaming > /etc/specialisation",
 )
-desktop.succeed("NH_BYPASS_ROOT_CHECK=true NH_NO_VALIDATE=true update --no-nom")
+desktop.succeed("NH_BYPASS_ROOT_CHECK=true NH_NO_VALIDATE=true forge update --no-nom")
 activations = desktop.succeed("cat /var/log/update-activations").splitlines()
 assert activations and all(line.startswith("gaming ") for line in activations), f"update left the running specialisation: {activations}"

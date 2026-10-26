@@ -10,6 +10,7 @@ use rustix::process::{Pid, Signal, WaitId, WaitIdOptions, kill_process_group, wa
 
 pub const OUTPUT_LIMIT: u64 = 1024 * 1024;
 const POLL_INTERVAL: Duration = Duration::from_millis(10);
+const GRACE: Duration = Duration::from_secs(5);
 
 #[derive(Debug)]
 pub struct Captured {
@@ -68,7 +69,11 @@ pub fn status_within(command: &mut Command, timeout: Duration) -> io::Result<Opt
 fn finish(child: &mut Child, deadline: Instant) -> io::Result<Option<ExitStatus>> {
     let group = Pid::from_child(child);
     let exited = exits_before(group, deadline)?;
-    stop_group(group)?;
+    if !exited {
+        signal_group(group, Signal::TERM)?;
+        exits_before(group, Instant::now() + GRACE)?;
+    }
+    signal_group(group, Signal::KILL)?;
     let status = child.wait()?;
     Ok(exited.then_some(status))
 }
@@ -122,8 +127,8 @@ fn exits_before(child: Pid, deadline: Instant) -> io::Result<bool> {
     }
 }
 
-fn stop_group(group: Pid) -> io::Result<()> {
-    match kill_process_group(group, Signal::KILL) {
+fn signal_group(group: Pid, signal: Signal) -> io::Result<()> {
+    match kill_process_group(group, signal) {
         Ok(()) | Err(Errno::SRCH) => Ok(()),
         Err(error) => Err(error.into()),
     }
@@ -155,6 +160,31 @@ mod tests {
 
         assert!(captured.is_none());
         assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn a_timeout_lets_the_group_clean_up_before_it_stops() {
+        let dir = tempfile::tempdir().unwrap();
+        let cleaned = dir.path().join("cleaned");
+        let script = format!(
+            "trap 'echo cleaned > {}; exit 1' TERM; sleep 30 & wait",
+            cleaned.display()
+        );
+
+        let captured = run(&script, Duration::from_millis(300));
+
+        assert!(captured.is_none());
+        assert!(cleaned.exists());
+    }
+
+    #[test]
+    fn a_group_that_ignores_the_stop_request_is_killed_after_the_grace() {
+        let started = Instant::now();
+
+        let captured = run("trap '' TERM; sleep 30", Duration::from_millis(200));
+
+        assert!(captured.is_none());
+        assert!(started.elapsed() < GRACE + Duration::from_secs(3));
     }
 
     #[test]

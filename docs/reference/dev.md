@@ -4,7 +4,7 @@ The Nix housekeeping every host gets for free, then the opt-in modules that turn
 
 ## Every host
 
-**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`: `nh clean all` runs weekly and keeps every generation younger than 14 days plus the last 5; set `programs.nh.clean.extraArgs` in your host to keep other ones. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. The host's `flake` field points it at your fork and gives the `update` command ([updates.md](../explanation/updates.md)).
+**nh** ([nix-community/nh](https://github.com/nix-community/nh)) replaces `nix.gc`: `nh clean all` runs weekly and keeps every generation younger than 14 days plus the last 5; set `programs.nh.clean.extraArgs` in your host to keep other ones. `nh os switch` builds, shows the package diff and switches; `nixos-rebuild` still works. The host's `flake` field points it at your fork and gives the `forge update` command ([updates.md](../explanation/updates.md)).
 
 `forge` is on every host: its built-in commands, and the `forge-<name>` commands you list in `forge.commands` ([forge.md](forge.md)).
 

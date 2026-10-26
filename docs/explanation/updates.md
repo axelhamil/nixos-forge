@@ -6,7 +6,7 @@ In short:
 
 1. Every Monday your fork gets a PR with new inputs, and you merge upstream's releases when you choose.
 2. CI proves every change on every host.
-3. Each machine then pulls your fork: by hand with `update`, or on its own with `auto-upgrade`.
+3. Each machine then pulls your fork: by hand with `forge update`, or on its own with `auto-upgrade`.
 
 A **generation** is one built version of the system; the boot menu lists the recent ones, so you can always boot the previous one.
 
@@ -85,11 +85,11 @@ How a change of yours reaches the machine you sit at, then the others:
 1. **Edit** your checkout (the host's `flake`, such as `~/nixos`). Tracked files are read as they are on disk, committed or not. A new file must be `git add`ed first, or the flake does not see it.
 2. **Try** it with `nh os test`. It builds and switches the running system, but the boot menu keeps its default, so a reboot comes back to what you had.
 3. **Switch** with `nh os switch`. The change is live with no reboot, and the boot menu now starts it by default. Reboot only for a new kernel, initrd, disk encryption or boot loader.
-4. **Commit and push**, so your other machines follow with `update` or `auto-upgrade`, and CI proves the change on every host.
+4. **Commit and push**, so your other machines follow with `forge update` or `auto-upgrade`, and CI proves the change on every host.
 
-`update` pulls your fork first (`git pull --ff-only`). It stops when an incoming commit touches a file you edited, so use it once your edits are committed.
+`forge update` pulls your fork first (`git pull --ff-only`). It stops when an incoming commit touches a file you edited, so use it once your edits are committed.
 
-Every `nh os switch` or `update` leaves a generation in the boot menu: pick the previous one at boot to undo a change that breaks the machine. `nh os test` leaves none: a reboot returns to the current default.
+Every `nh os switch` or `forge update` leaves a generation in the boot menu: pick the previous one at boot to undo a change that breaks the machine. `nh os test` leaves none: a reboot returns to the current default.
 
 ## A machine follows your fork
 
@@ -99,7 +99,7 @@ Tell the host where it updates from, in its registry entry:
 configurations.nixos.my-laptop.flake = "/home/<you>/nixos";
 ```
 
-**A checkout on the machine** (desktops, laptops): run `update`. It pulls your fork with `git pull --ff-only`, refusing a checkout that has diverged. Then it runs `nh os switch`, which builds, shows the package diff and switches. Extra arguments go to nh (`update --ask`). `nh os switch` alone works too, since `flake` is also its default.
+**A checkout on the machine** (desktops, laptops): run `forge update`. It pulls your fork with `git pull --ff-only`, refusing a checkout that has diverged. Then it runs `nh os switch`, which builds, shows the package diff and switches. Extra arguments go to nh (`forge update --ask`). `nh os switch` alone works too, since `flake` is also its default.
 
 The checkout survives a reboot on its own:
 
@@ -113,7 +113,7 @@ Do not list it again in your own `home.persistence` or `environment.persistence`
 - is written without `.`, `..` or a trailing `/`;
 - is not `/`, `/home`, `/nix`, `/persist` or your home itself.
 
-**A flake reference** (servers, Raspberry Pi): set `flake = "github:<owner>/<repo>"` and run `update`. It builds your fork's `main` with no checkout to pull.
+**A flake reference** (servers, Raspberry Pi): set `flake = "github:<owner>/<repo>"` and run `forge update`. It builds your fork's `main` with no checkout to pull.
 
 ## A machine upgrades on its own
 
@@ -122,7 +122,7 @@ Add the `auto-upgrade` feature to a host to have it follow the version CI valida
 ### The flow
 
 1. **CI picks the version.** Once every check of a host passes on `main`, CI moves the `deploy/<host>` branch of your fork to that commit, with the token of the bot App ([ci.md](../how-to/ci.md#validated-versions-per-machine)). Without the App, no `deploy/<host>` branch ever exists and the machine stays `waiting`.
-2. **The machine fetches it daily.** Every day from 04:00, randomized over 45 minutes, `auto-upgrade.service` fetches that branch and builds it. A machine that was off catches up at its next start.
+2. **The machine fetches it daily.** Every day from 04:00, randomized over 45 minutes, `auto-upgrade.service` runs `forge auto-upgrade`, which fetches that branch and builds it; run it by hand as root to try it now ([forge.md](../reference/forge.md)). A machine that was off catches up at its next start, and a run started while another one is still going stops without changing anything.
 3. **It installs it for the next boot.** It applies the new version with `nixos-rebuild boot`: the machine keeps running what it runs, and starts the new version at the next reboot. Set `autoUpgrade.operation = "switch"` in the host's `module` to start it right away.
 4. **A bad version rolls back.** On a host with `disk`, a new version that does not start is abandoned on its own after 3 tries ([install.md](../tutorials/install.md#going-back-to-the-previous-generation)).
 
@@ -135,7 +135,7 @@ The host's `flake` is the first source:
 - **A flake reference**: a plain `github:<owner>/<repo>` or `git+https://...`, without a query such as `?dir=`.
 - **A checkout**, through its `origin` remote; an SSH remote is turned into its https URL. A checkout with no `.git` yet goes straight to the mirrors.
 
-A checkout must belong to an admin. `auto-upgrade` trusts its remote only when root or an admin (`wheel`) owns the checkout, its `.git` folder and `.git/config`, and no one outside root and `wheel` can write to them. Otherwise any user could point it at a repository of their own. `.git` must be a folder, not a file or a link as in a worktree.
+A checkout must belong to an admin. `auto-upgrade` trusts its remote only when root or an admin (`wheel`) owns the checkout, its `.git` folder and `.git/config`, and no one outside root and `wheel` can write to them. Otherwise any user could point it at a repository of their own. `.git` must be a folder, not a file or a link as in a worktree. The owner must be a local account: `auto-upgrade` reads its name from `/etc/passwd` and the members of `wheel` from `/etc/group`, so an owner known only through LDAP or another NSS source counts as an outsider and the checkout is not trusted.
 
 When that source is down, it tries the host's `mirrors` in order:
 

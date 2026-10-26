@@ -1,21 +1,14 @@
 use std::io;
 
 use jiff::Timestamp;
-use serde_json::Value;
 
 use super::Context;
 use super::format::duration;
 use super::report::{Report, Status};
+use crate::auto_upgrade::{Outcome, State, parse_history_line};
 
 const CHECK: &str = "Upgrades";
 const STALE_AFTER: i64 = 14 * 86400;
-
-struct State {
-    time: Timestamp,
-    outcome: String,
-    message: String,
-    changes: String,
-}
 
 pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
     let Some(state_file) = context.config.upgrade_state() else {
@@ -26,7 +19,10 @@ pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
         return report.line(Status::Skip, CHECK, "never ran yet");
     };
 
-    let Some(state) = parse_state(&bytes) else {
+    let Some((state, time)) = State::load(&bytes).and_then(|state| {
+        let time = state.time.parse::<Timestamp>().ok()?;
+        Some((state, time))
+    }) else {
         return report.hinted(
             Status::Warn,
             CHECK,
@@ -35,17 +31,17 @@ pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
         );
     };
 
-    let when = context.short_date(state.time);
-    if !matches!(state.outcome.as_str(), "upgraded" | "up-to-date") {
+    let when = context.short_date(time);
+    if !matches!(state.outcome, Outcome::Upgraded | Outcome::UpToDate) {
         return report.hinted(
             Status::Warn,
             CHECK,
-            &format!("{} on {when}", state.outcome),
+            &format!("{} on {when}", state.outcome.as_str()),
             &state.message,
         );
     }
 
-    let age = context.now.as_second() - state.time.as_second();
+    let age = context.now.as_second() - time.as_second();
     if age > STALE_AFTER {
         return report.hinted(
             Status::Warn,
@@ -55,7 +51,7 @@ pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
         );
     }
 
-    if state.outcome == "upgraded" {
+    if state.outcome == Outcome::Upgraded {
         let changes = if state.changes.is_empty() {
             &state.message
         } else {
@@ -70,26 +66,6 @@ pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
     report.line(Status::Ok, CHECK, &format!("up to date since {since}"))
 }
 
-fn parse_state(bytes: &[u8]) -> Option<State> {
-    let value: Value = serde_json::from_slice(bytes).ok()?;
-    let time = value.get("time")?.as_str()?.parse().ok()?;
-    let outcome = value.get("outcome")?.as_str()?.to_owned();
-    Some(State {
-        time,
-        outcome,
-        message: optional_text(value.get("message")),
-        changes: optional_text(value.get("changes")),
-    })
-}
-
-fn optional_text(value: Option<&Value>) -> String {
-    match value {
-        None | Some(Value::Null | Value::Bool(false)) => String::new(),
-        Some(Value::String(text)) => text.clone(),
-        Some(other) => other.to_string(),
-    }
-}
-
 fn up_to_date_since(context: &Context) -> Option<String> {
     let bytes = context
         .system
@@ -98,16 +74,16 @@ fn up_to_date_since(context: &Context) -> Option<String> {
         .ok()?;
     let text = String::from_utf8_lossy(&bytes);
 
-    let mut since: Option<&str> = None;
-    for row in text.lines() {
-        let mut fields = row.split('\t');
-        let time = fields.next().unwrap_or_default();
-        match fields.next().unwrap_or_default() {
-            "upgraded" => since = Some(time),
-            "up-to-date" if since.is_none_or(str::is_empty) => since = Some(time),
-            "rolled-back" => since = None,
+    let mut since: Option<String> = None;
+    for row in text.lines().filter_map(parse_history_line) {
+        match row.outcome {
+            Outcome::Upgraded => since = Some(row.time),
+            Outcome::UpToDate if since.as_deref().is_none_or(str::is_empty) => {
+                since = Some(row.time);
+            }
+            Outcome::RolledBack => since = None,
             _ => {}
         }
     }
-    since.filter(|since| !since.is_empty()).map(str::to_owned)
+    since.filter(|since| !since.is_empty())
 }

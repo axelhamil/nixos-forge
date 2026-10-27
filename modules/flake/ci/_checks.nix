@@ -42,12 +42,6 @@ let
     options-doc = "docs/reference/options.md matches the host options";
     docs = "every link and anchor of the docs resolves, every page is in the docs index, and no new page names an example of the starter or leaves a module without a section";
     init = "`nix run .#init` writes a first host and person whose system evaluates";
-    ci-plan = "CI builds every check the binary cache lacks, skips host kernels in a pull request only, and never skips a check that compares with the base";
-    ci-report = "the CI report reads every result correctly";
-    ci-badges = "the live badges count the checks, VM tests, hosts, boot time and reproducibility of a run, and a publish keeps the badges it does not write";
-    reproducibility = "`nix run .#reproducibility` reports an identical rebuild, and a differing one with its diffoscope summary";
-    ci-flaky = "the nightly flaky job measures only the VM checks whose derivation changed or failed, counts every run, rebuilds a check only once it is realised, and reports each one that did not pass all of its runs";
-    ci-promote = "a machine's deploy branch moves only once every check of that machine passed, signed when CI holds the key, never on a tip the key did not sign";
     feature-auto-upgrade-signed = "a machine with signers applies only a deploy commit they signed for it, never an older one";
     feature-auto-upgrade-sources = "a mirror over http:// or git:// stops the build, and one over ssh warns that it needs a root key and known host";
     ci-pin-kernels = "every host kernel the binary cache holds is pinned there so it is never evicted, a kernel it lacks is reported, and a failed pin fails the job after the others are tried";

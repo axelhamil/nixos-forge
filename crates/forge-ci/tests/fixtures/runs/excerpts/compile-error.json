@@ -1,0 +1,12 @@
+[
+  "gcc -O2 -c main.c -o main.o",
+  "main.c: In function 'main':",
+  "main.c:3:1: error: expected ';' before '}' token",
+  "      | ^",
+  "make: *** [Makefile:2: main.o] Error 1",
+  "error: builder for '/nix/store/0n2l6x8kq0m3bq4h0vw3hjv5yk8nq1ac-hello-1.0.drv' failed with exit code 2;",
+  "       last 4 log lines:",
+  "       For full logs, run:",
+  "         nix log /nix/store/0n2l6x8kq0m3bq4h0vw3hjv5yk8nq1ac-hello-1.0.drv",
+  "error: Cannot build '/nix/store/5xq2m1b9v4g8hz0p7d6a3c1kq0w9s8r2-nixos-system-example-25.11.drv'."
+]

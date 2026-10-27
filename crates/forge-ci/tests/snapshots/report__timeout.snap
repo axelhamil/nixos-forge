@@ -1,0 +1,64 @@
+---
+source: forge-ci/tests/report.rs
+expression: "scenario.report(&[])"
+---
+**1 check failed: example would not get this change.**
+
+Fix what is listed below and push again: CI runs on every push.
+
+### example
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-toplevel` | the system builds | passed |
+| `example-boots` | it starts and every user can log in | failed |
+| `example-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-wipe-home` | with wipe-home added, it installs and starts each boot with an empty /home | passed |
+
+### example-pi
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-pi-sd-image` | the SD card image builds | passed |
+
+### example-server
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-server-toplevel` | the system builds | passed |
+| `example-server-boots` | it starts and every user can log in | passed |
+| `example-server-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-server-installer` | the USB installer installs it | passed |
+
+<details>
+<summary>Module checks: 3 passed</summary>
+
+| Check | What it proves | Result |
+|---|---|---|
+| `feature-ssh` | ssh works in a VM | passed |
+| `init` | `nix run .#init` writes a first host and person whose system evaluates | passed |
+| `treefmt` | the code is formatted | passed |
+
+</details>
+
+### What went wrong
+
+#### `example-boots` (x86_64-linux)
+
+This check proves that it starts and every user can log in.
+
+- Cause: a VM test hit its time limit.
+- What to do: read the wait the log names before the timeout: the unit, file or text it waited for never came; reproduce with `nix build -L .#checks.x86_64-linux.example-boots`.
+
+```
+machine # [   15.893195] uwsm_hyprland-uwsm.desktop[1000]: >                   Using 0, ignoring 0
+machine # [   15.893669] uwsm_hyprland-uwsm.desktop[1000]: Errors from xkbcomp are not fatal to the X server
+Traceback (most recent call last):
+    machine.wait_until_succeeds("pgrep -u alice -x Hyprland", timeout=120)
+RequestedAssertionFailed: action timed out after 120.73 seconds (timeout=120.0)
+machine # [2026-10-16T08:48:14Z INFO  virtiofsd] Client disconnected, shutting down
+(finished: cleanup, in 0.08 seconds)
+error: Cannot build '/nix/store/6v7dr7zp125qnmc4v0hmcax9sygqq4-vm-test-run-desktop-hyprland.drv'.
+```
+
+[Open the full log](https://github.com/owner/repo/actions/runs/42)

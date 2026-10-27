@@ -1,0 +1,9 @@
+[
+  "booted_machine # qemu-system-x86_64: terminating on signal 15 from pid 39 (/nix/store/lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7/bin/python3.14)",
+  "(finished: cleanup, in 0.02 seconds)",
+  "Traceback (most recent call last):",
+  "    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+  "  File \"<string>\", line 150, in <module>",
+  "AssertionError: doctor misses a file written to /",
+  "error: Cannot build '/nix/store/a8mc6k1b06kh5k6k5w4y5qa7jqp2gd-vm-test-run-disko-example-server-disko.drv'."
+]

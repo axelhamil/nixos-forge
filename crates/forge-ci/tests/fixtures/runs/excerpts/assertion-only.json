@@ -1,0 +1,4 @@
+[
+  "machine # [   12.0] systemd[1]: Started backup.service.",
+  "RequestedAssertionFailed: command `test -e /persist/state` failed (exit code 1)"
+]

@@ -1,12 +1,15 @@
 use std::io::{self, Read, Write};
 use std::os::unix::process::CommandExt;
 use std::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, ExitStatus, Stdio};
+use std::sync::OnceLock;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use rustix::io::Errno;
 use rustix::process::{Pid, Signal, WaitId, WaitIdOptions, kill_process_group, waitid};
+
+use crate::system::interrupt::{self, Flag};
 
 pub const OUTPUT_LIMIT: u64 = 1024 * 1024;
 const POLL_INTERVAL: Duration = Duration::from_millis(10);
@@ -27,6 +30,34 @@ struct Output {
 
 type Reader = Receiver<io::Result<Output>>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stderr {
+    Kept,
+    Shown,
+}
+
+static STOPPING: OnceLock<Flag> = OnceLock::new();
+
+pub fn stop_children_on_signals() -> io::Result<()> {
+    if STOPPING.get().is_some() {
+        return Ok(());
+    }
+    let _ = STOPPING.set(Flag::register()?);
+    Ok(())
+}
+
+fn stopping() -> Option<i32> {
+    STOPPING.get().and_then(Flag::raised)
+}
+
+pub fn die_if_stopping() {
+    let Some(signal) = stopping() else {
+        return;
+    };
+    let _ = signal_hook::low_level::emulate_default_handler(signal);
+    std::process::exit(i32::from(interrupt::exit_code(signal)));
+}
+
 pub fn run_within(command: &mut Command, timeout: Duration) -> io::Result<Option<Captured>> {
     run_with_input(command, None, timeout)
 }
@@ -35,6 +66,16 @@ pub fn run_with_input(
     command: &mut Command,
     input: Option<&[u8]>,
     timeout: Duration,
+) -> io::Result<Option<Captured>> {
+    run_capped(command, input, timeout, OUTPUT_LIMIT, Stderr::Kept)
+}
+
+pub fn run_capped(
+    command: &mut Command,
+    input: Option<&[u8]>,
+    timeout: Duration,
+    limit: u64,
+    stderr: Stderr,
 ) -> io::Result<Option<Captured>> {
     let deadline = Instant::now() + timeout;
     let stdin = if input.is_some() {
@@ -50,8 +91,8 @@ pub fn run_with_input(
         .spawn()?;
     write_input(child.stdin.take(), input);
 
-    let stdout = read_capped(child.stdout.take());
-    let stderr = read_capped(child.stderr.take());
+    let stdout = read_capped(child.stdout.take(), limit, Stderr::Kept);
+    let stderr = read_capped(child.stderr.take(), limit, stderr);
 
     let Some(status) = finish(&mut child, deadline)? else {
         return Ok(None);
@@ -82,13 +123,14 @@ pub fn status_within(command: &mut Command, timeout: Duration) -> io::Result<Opt
 
 fn finish(child: &mut Child, deadline: Instant) -> io::Result<Option<ExitStatus>> {
     let group = Pid::from_child(child);
-    let exited = exits_before(group, deadline)?;
+    let exited = exits_before(group, deadline, Wait::UntilStopping)?;
     if !exited {
         signal_group(group, Signal::TERM)?;
-        exits_before(group, Instant::now() + GRACE)?;
+        exits_before(group, Instant::now() + GRACE, Wait::Through)?;
     }
     signal_group(group, Signal::KILL)?;
     let status = child.wait()?;
+    die_if_stopping();
     Ok(exited.then_some(status))
 }
 
@@ -106,15 +148,19 @@ trait Pipe: Read + Send + 'static {}
 impl Pipe for ChildStdout {}
 impl Pipe for ChildStderr {}
 
-fn read_capped(pipe: Option<impl Pipe>) -> Reader {
+fn read_capped(pipe: Option<impl Pipe>, limit: u64, shown: Stderr) -> Reader {
     let (sender, receiver) = mpsc::channel();
     thread::spawn(move || {
-        let _ = sender.send(read_up_to_limit(pipe));
+        let output = match shown {
+            Stderr::Kept => read_up_to_limit(pipe, limit),
+            Stderr::Shown => show_up_to_limit(pipe, limit),
+        };
+        let _ = sender.send(output);
     });
     receiver
 }
 
-fn read_up_to_limit(pipe: Option<impl Pipe>) -> io::Result<Output> {
+fn read_up_to_limit(pipe: Option<impl Pipe>, limit: u64) -> io::Result<Output> {
     let mut bytes = Vec::new();
     let Some(mut pipe) = pipe else {
         return Ok(Output {
@@ -122,9 +168,37 @@ fn read_up_to_limit(pipe: Option<impl Pipe>) -> io::Result<Output> {
             overflowed: false,
         });
     };
-    pipe.by_ref().take(OUTPUT_LIMIT).read_to_end(&mut bytes)?;
+    pipe.by_ref().take(limit).read_to_end(&mut bytes)?;
     let overflowed = pipe.read(&mut [0; 1])? > 0;
     Ok(Output { bytes, overflowed })
+}
+
+fn show_up_to_limit(pipe: Option<impl Pipe>, limit: u64) -> io::Result<Output> {
+    let mut output = Output {
+        bytes: Vec::new(),
+        overflowed: false,
+    };
+    let Some(mut pipe) = pipe else {
+        return Ok(output);
+    };
+    let limit = usize::try_from(limit).unwrap_or(usize::MAX);
+    let mut shown = io::stderr();
+    let mut buffer = [0; 8192];
+    loop {
+        let read = match pipe.read(&mut buffer) {
+            Ok(0) => return Ok(output),
+            Ok(read) => read,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        };
+        let chunk = &buffer[..read];
+        let _ = shown.write_all(chunk);
+        let room = limit.saturating_sub(output.bytes.len());
+        output.overflowed |= chunk.len() > room;
+        output
+            .bytes
+            .extend_from_slice(&chunk[..chunk.len().min(room)]);
+    }
 }
 
 fn receive(reader: &Reader, deadline: Instant) -> io::Result<Option<Output>> {
@@ -138,13 +212,19 @@ fn receive(reader: &Reader, deadline: Instant) -> io::Result<Option<Output>> {
     }
 }
 
-fn exits_before(child: Pid, deadline: Instant) -> io::Result<bool> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Wait {
+    UntilStopping,
+    Through,
+}
+
+fn exits_before(child: Pid, deadline: Instant, wait: Wait) -> io::Result<bool> {
     let options = WaitIdOptions::EXITED | WaitIdOptions::NOWAIT | WaitIdOptions::NOHANG;
     loop {
         if waitid(WaitId::Pid(child), options)?.is_some() {
             return Ok(true);
         }
-        if Instant::now() >= deadline {
+        if Instant::now() >= deadline || (wait == Wait::UntilStopping && stopping().is_some()) {
             return Ok(false);
         }
         thread::sleep(POLL_INTERVAL);
@@ -232,6 +312,22 @@ mod tests {
         .unwrap();
 
         assert_eq!(captured.stdout, b"got secret\n");
+    }
+
+    #[test]
+    fn an_endless_output_is_cut_at_the_limit_it_is_given() {
+        let captured = run_capped(
+            &mut Command::new("yes"),
+            None,
+            Duration::from_secs(10),
+            3 * 1024 * 1024,
+            Stderr::Kept,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(captured.overflowed);
+        assert_eq!(captured.stdout.len(), 3 * 1024 * 1024);
     }
 
     #[test]

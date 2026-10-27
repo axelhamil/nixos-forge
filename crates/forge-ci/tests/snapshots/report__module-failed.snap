@@ -1,0 +1,66 @@
+---
+source: forge-ci/tests/report.rs
+expression: "scenario.report(&[])"
+---
+**2 checks failed: no machine is affected, but CI stays red until it is fixed.**
+
+Fix what is listed below and push again: CI runs on every push.
+
+### example
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-toplevel` | the system builds | passed |
+| `example-boots` | it starts and every user can log in | passed |
+| `example-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-wipe-home` | with wipe-home added, it installs and starts each boot with an empty /home | passed |
+
+### example-pi
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-pi-sd-image` | the SD card image builds | passed |
+
+### example-server
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-server-toplevel` | the system builds | passed |
+| `example-server-boots` | it starts and every user can log in | passed |
+| `example-server-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-server-installer` | the USB installer installs it | passed |
+
+<details open>
+<summary>Module checks: 1 passed, 2 failed</summary>
+
+| Check | What it proves | Result |
+|---|---|---|
+| `feature-ssh` | ssh works in a VM | failed |
+| `init` | `nix run .#init` writes a first host and person whose system evaluates | passed |
+| `treefmt` | the code is formatted | failed |
+
+</details>
+
+### What went wrong
+
+#### `feature-ssh` (x86_64-linux)
+
+This check proves that ssh works in a VM.
+
+- Cause: the configuration does not evaluate.
+- What to do: fix the Nix file and line named in the message.
+
+```
+error: undefined variable 'foo'
+```
+
+[Open the full log](https://github.com/owner/repo/actions/runs/42)
+
+#### `treefmt` (x86_64-linux)
+
+This check proves that the code is formatted.
+
+- Cause: the code is not formatted or a linter found a problem.
+- What to do: run `nix fmt`, then commit the result.
+
+[Open the full log](https://github.com/owner/repo/actions/runs/42)

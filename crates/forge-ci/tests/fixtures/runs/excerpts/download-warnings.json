@@ -1,0 +1,5 @@
+[
+  "warning: error: unable to download 'https://cache.nixos.org/nar/1x2y3z.nar.xz': HTTP error 503; retrying in 281 ms",
+  "warning: error: unable to download 'https://cache.nixos.org/nar/1x2y3z.nar.xz': Timeout was reached (28) connect timeout; retrying in 612 ms",
+  "AssertionError: the greeter never showed"
+]

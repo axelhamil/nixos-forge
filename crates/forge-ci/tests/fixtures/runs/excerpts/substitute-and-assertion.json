@@ -1,0 +1,15 @@
+[
+  "  /nix/store/7h2k4m6p8r0t2v4x6z8b0d2f4h6j8l0n-linux-6.12.8",
+  "copying path '/nix/store/7h2k4m6p8r0t2v4x6z8b0d2f4h6j8l0n-linux-6.12.8' from 'https://cache.nixos.org'...",
+  "warning: error: unable to download 'https://cache.nixos.org/nar/1x2y3z.nar.xz': HTTP error 503; retrying in 281 ms",
+  "warning: error: unable to download 'https://cache.nixos.org/nar/1x2y3z.nar.xz': Timeout was reached (28) connect timeout; retrying in 612 ms",
+  "error: some substitutes for the outputs of derivation '/nix/store/9q8w7e6r5t4y3u2i1o0p9a8s7d6f5g4h-linux-6.12.8.drv' failed (usually happens due to networking issues); try '--fallback' to build derivation from source",
+  "error: Cannot build '/nix/store/5xq2m1b9v4g8hz0p7d6a3c1kq0w9s8r2-nixos-system-example-25.11.drv'.",
+  "booted_machine # qemu-system-x86_64: terminating on signal 15 from pid 39 (/nix/store/lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7/bin/python3.14)",
+  "(finished: cleanup, in 0.02 seconds)",
+  "Traceback (most recent call last):",
+  "    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+  "  File \"<string>\", line 150, in <module>",
+  "AssertionError: doctor misses a file written to /",
+  "error: Cannot build '/nix/store/a8mc6k1b06kh5k6k5w4y5qa7jqp2gd-vm-test-run-disko-example-server-disko.drv'."
+]

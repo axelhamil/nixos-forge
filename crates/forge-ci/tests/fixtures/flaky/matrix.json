@@ -1,0 +1,6 @@
+[
+  { "check": "steady", "system": "x86_64-linux", "runner": "ubuntu-24.04" },
+  { "check": "flaky", "system": "x86_64-linux", "runner": "ubuntu-24.04" },
+  { "check": "changed", "system": "x86_64-linux", "runner": "ubuntu-24.04" },
+  { "check": "new", "system": "x86_64-linux", "runner": "ubuntu-24.04" }
+]

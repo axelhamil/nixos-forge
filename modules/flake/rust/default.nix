@@ -15,6 +15,8 @@ in
           (craneLib.fileset.commonCargoSources root)
           (lib.fileset.fileFilter (file: file.hasExt "snap") root)
           (root + "/forge/tests/fixtures")
+          (root + "/forge-ci/tests/fixtures")
+          (root + "/forge-ci/src/report/causes.tsv")
           (root + "/deny.toml")
         ];
       };
@@ -33,8 +35,20 @@ in
         commonArgs
         // {
           inherit cargoArtifacts;
+          cargoExtraArgs = "--locked -p forge";
           doCheck = false;
           meta.mainProgram = "forge";
+        }
+      );
+
+      packages.forge-ci = craneLib.buildPackage (
+        commonArgs
+        // {
+          inherit cargoArtifacts;
+          pname = "forge-ci";
+          cargoExtraArgs = "--locked -p forge-ci";
+          doCheck = false;
+          meta.mainProgram = "forge-ci";
         }
       );
 

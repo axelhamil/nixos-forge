@@ -1,0 +1,4 @@
+[
+  "error: writing to file: No space left on device",
+  "error: Cannot build '/nix/store/x-example.drv'."
+]

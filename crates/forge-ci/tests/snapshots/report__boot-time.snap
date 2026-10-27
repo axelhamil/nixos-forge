@@ -1,0 +1,55 @@
+---
+source: forge-ci/tests/report.rs
+expression: "scenario.report(&[])"
+---
+**Everything works: every machine builds, boots and passed its tests.**
+
+Nothing to fix: this commit is ready for the machines.
+
+### example
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-toplevel` | the system builds | passed |
+| `example-boots` | it starts and every user can log in | passed |
+| `example-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-wipe-home` | with wipe-home added, it installs and starts each boot with an empty /home | passed |
+
+### example-pi
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-pi-sd-image` | the SD card image builds | passed |
+
+### example-server
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-server-toplevel` | the system builds | passed |
+| `example-server-boots` | it starts and every user can log in | passed |
+| `example-server-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-server-installer` | the USB installer installs it | passed |
+
+<details>
+<summary>Module checks: 3 passed</summary>
+
+| Check | What it proves | Result |
+|---|---|---|
+| `feature-ssh` | ssh works in a VM | passed |
+| `init` | `nix run .#init` writes a first host and person whose system evaluates | passed |
+| `treefmt` | the code is formatted | passed |
+
+</details>
+
+### Boot time
+
+`systemd-analyze` in each boot test, on a shared CI VM: read the trend over several runs, not one value.
+
+| Machine | Total | Total on the base | Userspace | Userspace on the base |
+|---|---|---|---|---|
+| example | 7.0 s | 6.8 s | 3.0 s | n/a |
+| example-server | n/a | 9.0 s | n/a | 4.3 s |
+
+### Screenshots
+
+- `feature-ssh` (x86_64-linux): `desktop.png` in the artifact `screenshot-x86_64-linux-feature-ssh` of [this run](https://github.com/owner/repo/actions/runs/42#artifacts).

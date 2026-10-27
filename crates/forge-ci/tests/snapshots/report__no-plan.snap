@@ -1,0 +1,9 @@
+---
+source: forge-ci/tests/report.rs
+expression: "scenario.report(&[])"
+---
+**CI could not plan this run, so nothing was built.**
+
+Fix what is listed below and push again: CI runs on every push.
+
+[Open the full log](https://github.com/owner/repo/actions/runs/42) to see why.

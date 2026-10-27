@@ -1,0 +1,10 @@
+[
+  "machine # [   15.893195] uwsm_hyprland-uwsm.desktop[1000]: >                   Using 0, ignoring 0",
+  "machine # [   15.893669] uwsm_hyprland-uwsm.desktop[1000]: Errors from xkbcomp are not fatal to the X server",
+  "Traceback (most recent call last):",
+  "    machine.wait_until_succeeds(\"pgrep -u alice -x Hyprland\", timeout=120)",
+  "RequestedAssertionFailed: action timed out after 120.73 seconds (timeout=120.0)",
+  "machine # [2026-10-16T08:48:14Z INFO  virtiofsd] Client disconnected, shutting down",
+  "(finished: cleanup, in 0.08 seconds)",
+  "error: Cannot build '/nix/store/6v7dr7zp125qnmc4v0hmcax9sygqq4-vm-test-run-desktop-hyprland.drv'."
+]

@@ -136,6 +136,7 @@ fn command(invocation: &Invocation) -> Command {
         let mut command = Command::new(&invocation.program);
         command
             .args(&invocation.args)
+            .args(&invocation.os_args)
             .envs(invocation.env.iter().map(|(name, value)| (name, value)));
         return command;
     };
@@ -157,7 +158,8 @@ fn command(invocation: &Invocation) -> Command {
                 .map(|(name, value)| format!("{name}={value}")),
         )
         .arg(&invocation.program)
-        .args(&invocation.args);
+        .args(&invocation.args)
+        .args(&invocation.os_args);
     command
 }
 

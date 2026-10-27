@@ -1,7 +1,7 @@
-{ config, withSystem, ... }:
+{ config, ... }:
 
 let
-  inherit (config.helpers) wrapForge;
+  inherit (config.helpers) flakePackage wrapForge;
 in
 {
   base =
@@ -20,7 +20,7 @@ in
         }
       );
 
-      forge = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
+      forge = flakePackage pkgs "forge";
     in
     {
       options.forge.commands = lib.mkOption {

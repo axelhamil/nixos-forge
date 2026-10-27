@@ -1,7 +1,7 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) relativeToHome;
+  inherit (config.helpers) flakePackage relativeToHome;
 in
 {
   apps.upgrade-notify.homeManager =
@@ -12,14 +12,12 @@ in
       ...
     }:
     let
+      forge-apps = flakePackage pkgs "forge-apps";
+
       upgrade-notify = pkgs.writeShellApplication {
         name = "upgrade-notify";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.jq
-          pkgs.libnotify
-        ];
-        text = builtins.readFile ./upgrade-notify.sh;
+        runtimeInputs = [ pkgs.libnotify ];
+        text = ''exec ${lib.getExe' forge-apps "upgrade-notify"} "$@"'';
       };
     in
     {

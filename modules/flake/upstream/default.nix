@@ -1,16 +1,14 @@
 {
   perSystem =
-    { pkgs, ... }:
+    { pkgs, self', ... }:
     {
       packages.upstream = pkgs.writeShellApplication {
         name = "upstream";
         runtimeInputs = [
+          self'.packages.forge
           pkgs.git
-          pkgs.gnugrep
-          pkgs.gnused
-          pkgs.coreutils
         ];
-        text = builtins.readFile ./upstream.sh;
+        text = ''exec forge upstream "$@"'';
       };
     };
 }

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 pub use config::{CONFIG_VARIABLE, Config};
 
-use crate::system::interrupt::Flag;
+use crate::system::interrupt::{self, Flag, SIGINT};
 use crate::system::prompt::{Console, Terminal};
 use crate::system::{
     Answer, Commands, Files, Invocation, Machine, Storage, config as settings, privilege,
@@ -18,9 +18,6 @@ use steps::install;
 
 pub const SUBCOMMAND: &str = "install";
 
-const SIGINT: i32 = 2;
-const INTERRUPTED: u8 = 130;
-const TERMINATED: u8 = 143;
 const USAGE_ERROR: u8 = 2;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -136,8 +133,7 @@ impl Stop {
         match self {
             Self::Refused(_) => 1,
             Self::Quit(code) => *code,
-            Self::Interrupted(SIGINT) => INTERRUPTED,
-            Self::Interrupted(_) => TERMINATED,
+            Self::Interrupted(signal) => interrupt::exit_code(*signal),
         }
     }
 
@@ -222,10 +218,7 @@ impl Session<'_, '_> {
     }
 
     pub fn checkpoint(&self) -> Result<(), Stop> {
-        match self.ports.interrupt.raised() {
-            Some(signal) => Err(Stop::Interrupted(signal)),
-            None => Ok(()),
-        }
+        self.ports.interrupt.checkpoint().map_err(Stop::Interrupted)
     }
 
     pub fn run(&self, invocation: &Invocation) -> Result<Answer, Stop> {
@@ -359,7 +352,7 @@ mod tests {
     fn an_interrupt_exits_130_and_a_stop_request_143() {
         assert_eq!(Stop::Interrupted(2).exit_code(), 130);
         assert_eq!(Stop::Interrupted(15).exit_code(), 143);
-        assert_eq!(Stop::Interrupted(1).exit_code(), 143);
+        assert_eq!(Stop::Interrupted(1).exit_code(), 129);
     }
 
     #[test]

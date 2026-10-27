@@ -1,8 +1,10 @@
 use std::env;
 use std::fmt::Write as _;
-use std::fs::{self, File, OpenOptions, Permissions};
+use std::fs::{self, DirBuilder, File, OpenOptions, Permissions};
 use std::io::{self, Read, Write};
-use std::os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt, symlink};
+use std::os::unix::fs::{
+    DirBuilderExt, FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt, symlink,
+};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -140,7 +142,7 @@ fn command(invocation: &Invocation) -> Command {
     command
 }
 
-fn find_in_path(program: &str, search_path: &str) -> Option<PathBuf> {
+pub(crate) fn find_in_path(program: &str, search_path: &str) -> Option<PathBuf> {
     env::split_paths(search_path)
         .map(|dir| dir.join(program))
         .find(|candidate| plugins::is_executable(candidate))
@@ -216,6 +218,10 @@ impl Storage for Machine {
         }
         remove_if_exists(link)?;
         symlink(target, link)
+    }
+
+    fn create_new_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
+        DirBuilder::new().mode(mode).create(path)
     }
 
     fn install_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
@@ -308,6 +314,23 @@ fn remove_if_exists(path: &Path) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_new_dir_gets_its_mode_and_an_existing_one_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let made = dir.path().join("deploy-key");
+
+        Machine.create_new_dir(&made, 0o700).unwrap();
+
+        let permissions = fs::metadata(&made).unwrap().permissions();
+        assert_eq!(permissions.mode() & 0o777, 0o700);
+        assert_eq!(
+            Machine
+                .create_new_dir(&made, 0o700)
+                .map_err(|error| error.kind()),
+            Err(io::ErrorKind::AlreadyExists)
+        );
+    }
 
     #[test]
     fn a_stream_reaches_the_log_with_both_outputs_and_its_status() {

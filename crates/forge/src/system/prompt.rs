@@ -136,6 +136,50 @@ impl Drop for EchoOff<'_> {
 }
 
 #[cfg(test)]
+pub struct Typed {
+    pub answers: std::collections::VecDeque<io::Result<String>>,
+    pub prompts: Vec<String>,
+}
+
+#[cfg(test)]
+impl Typed {
+    #[must_use]
+    pub fn new(answers: &[&str]) -> Self {
+        Self {
+            answers: answers
+                .iter()
+                .map(|&answer| Ok(answer.to_owned()))
+                .collect(),
+            prompts: Vec::new(),
+        }
+    }
+
+    #[must_use]
+    pub fn then_fail(mut self, kind: io::ErrorKind) -> Self {
+        self.answers.push_back(Err(kind.into()));
+        self
+    }
+}
+
+#[cfg(test)]
+impl Terminal for Typed {
+    fn line(&mut self, prompt: &str) -> io::Result<String> {
+        self.prompts.push(prompt.to_owned());
+        self.answers
+            .pop_front()
+            .unwrap_or_else(|| Err(io::ErrorKind::UnexpectedEof.into()))
+    }
+
+    fn secret(&mut self, prompt: &str) -> io::Result<String> {
+        self.line(prompt)
+    }
+
+    fn is_interactive(&self) -> bool {
+        true
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::io::PipeReader;
 

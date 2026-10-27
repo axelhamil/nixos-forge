@@ -103,7 +103,7 @@ in
 ## Registry field: `modules/flake/hosts/options.nix` or `users.nix`
 
 - Plain values only, names as lists, never `enable` booleans; turn them into imports at the flake-parts level, never inside a NixOS module.
-- Add a line for the field in all three example hosts (or in `modules/users/alice`), run `nix run .#options-doc`, and keep `init.sh` able to rewrite the host by its lines.
+- Add a line for the field in all three example hosts (or in `modules/users/alice`), run `nix run .#options-doc`, and keep `forge init` (`crates/forge/src/init/`) able to rewrite the host by its lines.
 - A field that names modules resolves inside `selection` in `options.nix`, so a host's `specialisations` take it too; its unknown-name message names the field path (`specialisations.<variant>.<field>` for a variant) and gets a case in `modules/flake/hosts/namespaces-check.nix`.
 
 ## Helper: `modules/flake/helpers/<topic>.nix`
@@ -135,7 +135,7 @@ in
 }
 ```
 
-- Run with `nix run .#<tool>`. Test: `check.nix` plus `<tool>-test.sh`, as `modules/flake/upstream/`.
+- Run with `nix run .#<tool>`. Test: `check.nix` plus `<tool>-test.sh`, as `modules/flake/ci/plan-check.nix` and `plan-test.sh`.
 - A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people is static, written by the script itself. Document it in `docs/reference/ci.md` (a check or a script) or `docs/how-to/ci.md` (a setting a fork must make).
 
 ## Flake input: `flake.nix`

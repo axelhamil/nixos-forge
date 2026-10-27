@@ -53,7 +53,6 @@ let
     ci-pin-kernels = "every host kernel the binary cache holds is pinned there so it is never evicted, a kernel it lacks is reported, and a failed pin fails the job after the others are tried";
     ci-mirror = "main and the deploy branches reach the mirror, and nothing else";
     try-install = "`nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything";
-    upstream = "`nix run .#upstream` lists the starter's breaking changes and merges its release into a branch whose pull request lists the upstream commits, or stops cleanly on a conflict";
     example-hosts = "every example host and the example person list every option the starter ships";
     wrong-namespace = "a name of another registry field, or an unknown person, stops the build with the field's own names";
     apps-once = "an app named by the host and the person is imported once, and an unfree package of an overlay works as an app";

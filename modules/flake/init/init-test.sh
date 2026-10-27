@@ -12,12 +12,12 @@ fresh_fork() {
   git -C "$dir" -c user.name=test -c user.email=test@example.org commit -q -m fork
 }
 
-has_line() {
-  grep -qxE -- "$1" "$host_file" || fail "$host_file has no line matching: $1"
-}
-
-person_has_line() {
-  grep -qxE -- "$1" "$person_file" || fail "$person_file has no line matching: $1"
+parses_and_is_formatted() {
+  local file
+  for file in "$@"; do
+    "$NIX_INSTANTIATE" --parse "$file" >/dev/null || fail "$file does not parse"
+    nixfmt --check "$file" || fail "$file is not formatted"
+  done
 }
 
 toplevels() {
@@ -46,231 +46,66 @@ docs_pass() {
   output=$(forge check-docs "$PWD" 2>&1) || fail "the docs of the fork in $PWD fail: $output"
 }
 
-refuses() {
-  local expected=$1 output
-  shift
-  if output=$(init "$@" 2>&1 </dev/null); then
-    fail "init $* succeeded, expected: $expected"
-  fi
-  grep -qF -- "$expected" <<<"$output" || fail "init $* failed with: $output"
-}
-
 export NIX_STATE_DIR=$TMPDIR/nix-state
 export NIX_STORE_DIR=$TMPDIR/nix-store
-
-fork=$TMPDIR/fork
-fresh_fork "$fork"
-cd "$fork"
-
 export XDG_RUNTIME_DIR=$TMPDIR/runtime
 mkdir -m 700 "$XDG_RUNTIME_DIR"
+
+fresh_fork "$TMPDIR/first"
+cd "$TMPDIR/first"
 init --yes \
   --host my-box \
   --profile laptop \
   --login bob \
   --full-name "Bob \"the\" Builder \${x}" \
   --email bob@example.net \
-  --time-zone Europe/Paris \
-  --keyboard fr \
-  --locale fr_FR.UTF-8 \
   --features disk,docker \
   --hardware 'nvidia framework-13-7040-amd' \
   --apps firefox,vlc \
   --keep-pi >"$TMPDIR/init.out"
-
-host_file=modules/hosts/my-box/default.nix
-[[ -f $host_file ]] || fail "$host_file was not written"
-
-"$NIX_INSTANTIATE" --parse "$host_file" >/dev/null || fail "$host_file does not parse"
-nixfmt --check "$host_file" || fail "$host_file is not formatted"
-
-has_line '  configurations\.nixos\.my-box = \{'
-has_line '    system = "x86_64-linux";.*'
-has_line '    profile = "laptop";.*'
-has_line '    flake = "/home/bob/nixos";'
-has_line '    # mirrors = \[ "https://codeberg.org/bob/nixos.git" \]; # .*'
-has_line '    timeZone = "Europe/Paris";.*'
-has_line '    keyboard = "fr";.*'
-has_line '    locale = "fr_FR\.UTF-8";.*'
-has_line '    users\.bob = \{'
-has_line '      "disk" # .*'
-has_line '      "docker" # .*'
-has_line '      # "secure-boot" # .*'
-has_line '      # "libvirt" # .*'
-has_line '      "nvidia" # .*'
-has_line '      "framework-13-7040-amd"'
-has_line '      # "common-pc-ssd" # .*'
-has_line '      "firefox" # .*'
-has_line '      "vlc"'
-has_line '      # "hyprland" # .*'
-has_line '      # "direnv" # .*'
-if grep -q alice "$host_file"; then
-  fail "$host_file still names the example user"
-fi
-
-signer() {
-  grep -A1 -xE '    signers = \[' "$1" | sed -n 's/^      "\(ssh-ed25519 [A-Za-z0-9+/]*=* deploy\)"$/\1/p'
-}
-
-has_line '    signers = \[.*'
-signing_key=$(signer "$host_file")
-[[ -n $signing_key ]] || fail "$host_file holds no deploy signing key: $(grep -A2 signers "$host_file")"
-[[ $(signer modules/hosts/example-pi/default.nix) == "$signing_key" ]] || fail "the kept example-pi does not trust the deploy signing key"
-nixfmt --check modules/hosts/example-pi/default.nix || fail "the kept example-pi is not formatted"
+parses_and_is_formatted modules/hosts/my-box/default.nix modules/users/bob/default.nix modules/hosts/example-pi/default.nix
 key_command=$(grep -E '^  gh secret set DEPLOY_SIGNING_KEY --env deploy < [^ ]+ && shred -u [^ ]+$' "$TMPDIR/init.out") || fail "init does not print the command storing the private key: $(cat "$TMPDIR/init.out")"
 key_file=${key_command##* }
-[[ $key_command == *" < $key_file && shred -u $key_file" ]] || fail "the command stores one file and shreds another: $key_command"
-[[ $key_file == "$XDG_RUNTIME_DIR"/* ]] || fail "the private key is not under XDG_RUNTIME_DIR: $key_file"
-[[ $(stat -c %a "$key_file") == 600 && $(stat -c %a "$(dirname "$key_file")") == 700 ]] || fail "the private key or its folder is readable by others: $(stat -c '%a %n' "$key_file" "$(dirname "$key_file")")"
-grep -qF "shred -u $key_file" <(grep -v '^  gh secret set' "$TMPDIR/init.out") || fail "init does not print the way through the GitHub web page"
-if grep -q "PRIVATE KEY" "$TMPDIR/init.out"; then
-  fail "init printed the private deploy key"
-fi
-[[ $(ssh-keygen -y -f "$key_file" | cut -d' ' -f1,2) == "${signing_key% deploy}" ]] || fail "the private key file does not match the public key in $host_file"
-cp "$key_file" "$TMPDIR/deploy-key"
-key_line=$(sed -n 2p "$TMPDIR/deploy-key")
-if grep -rqF --exclude-dir=.git -- "$key_line" . || git grep --cached -qF -- "$key_line"; then
-  fail "init wrote the private deploy key into the fork"
-fi
-
-person_file=modules/users/bob/default.nix
-[[ -f $person_file ]] || fail "$person_file was not written"
-"$NIX_INSTANTIATE" --parse "$person_file" >/dev/null || fail "$person_file does not parse"
-nixfmt --check "$person_file" || fail "$person_file is not formatted"
-person_has_line '  users\.bob = \{'
-person_has_line '    fullName = "Bob \\"the\\" Builder \\\$\{x\}";.*'
-person_has_line '    email = "bob@example\.net";.*'
-if grep -q alice "$person_file"; then
-  fail "$person_file still names the example person"
-fi
-[[ ! -e modules/users/alice ]] || fail "the example person left on disk"
-grep -qxF '    users.bob = {' modules/hosts/example-pi/default.nix || fail "the kept example-pi does not give bob his account"
-
-[[ ! -e modules/hosts/example && ! -e modules/hosts/example-server ]] || fail "example hosts left on disk"
-[[ -f modules/hosts/example-pi/default.nix ]] || fail "--keep-pi removed example-pi"
-
-changes=$(git status --porcelain --no-renames | sort)
-expected=$(printf '%s\n' \
-  "A  $host_file" \
-  "A  $person_file" \
-  "D  modules/hosts/example-server/default.nix" \
-  "D  modules/hosts/example/default.nix" \
-  "D  modules/users/alice/default.nix" \
-  "M  README.md" \
-  "M  modules/hosts/example-pi/default.nix" | sort)
-[[ $changes == "$expected" ]] || fail "unexpected changes: $changes"
+public_key=$(ssh-keygen -y -f "$key_file" | cut -d' ' -f1,2) || fail "init printed no readable key file: $key_file"
+grep -qxF "      \"$public_key deploy\"" modules/hosts/my-box/default.nix || fail "the signers of my-box do not hold the public key of $key_file"
 fork_evaluates '["example-pi","my-box"]'
 
-refuses "is missing" --yes --host other --login bob --full-name Bob --email ""
-
-second=$TMPDIR/second
-fresh_fork "$second"
-cd "$second"
-
-refuses "already exists" --yes --host example-server --login bob --full-name Bob --email "" --keep-server
-refuses "1 to 63" --yes --host -bad --login bob --full-name Bob --email ""
-refuses "--login is required" --yes --host box --full-name Bob --email ""
-refuses "--email is required" --yes --host box --login bob --full-name Bob
-refuses "unknown feature" --yes --host box --login bob --full-name Bob --email "" --features disk,nope
-mkdir -p modules/users/carol
-refuses "modules/users/carol already exists" --yes --host box --login carol --full-name Carol --email ""
-rmdir modules/users/carol
-[[ -z $(git status --porcelain) ]] || fail "a refused run changed the checkout"
-
+fresh_fork "$TMPDIR/second"
+cd "$TMPDIR/second"
 init --yes --host pi-box --system aarch64-linux --login bob --full-name Bob --email "" >/dev/null
-host_file=modules/hosts/pi-box/default.nix
-[[ -n $(signer "$host_file") && $(signer "$host_file") != "$signing_key" ]] || fail "a second fork does not get a deploy signing key of its own"
-"$NIX_INSTANTIATE" --parse "$host_file" >/dev/null || fail "$host_file does not parse"
-nixfmt --check "$host_file" || fail "$host_file is not formatted"
-has_line '    system = "aarch64-linux";.*'
-has_line '    profile = "pi";.*'
-has_line '      "ssh" # .*'
-has_line '      # "disk" # .*'
-has_line '      "raspberry-pi-5" # .*'
-has_line '      # "firefox" # .*'
-has_line '      # "hyprland" # .*'
-person_file=modules/users/bob/default.nix
-person_has_line '    # email = "bob@example\.org";.*'
-[[ ! -e modules/hosts/example-pi ]] || fail "example-pi left without --keep-pi"
+parses_and_is_formatted modules/hosts/pi-box/default.nix modules/users/bob/default.nix
 fork_evaluates '["pi-box"]'
 
-third=$TMPDIR/third
-fresh_fork "$third"
-cd "$third"
-
-init --yes --host rec --login in --full-name In --email ""
-host_file=modules/hosts/rec/default.nix
-"$NIX_INSTANTIATE" --parse "$host_file" >/dev/null || fail "$host_file does not parse"
-has_line '  configurations\.nixos\."rec" = \{'
-has_line '    users\."in" = \{'
-has_line '      "hyprland" # .*'
-has_line '      "kitty" # .*'
-has_line '      "lock" # .*'
-has_line '      "direnv" # .*'
-has_line '      "nix-ld" # .*'
-has_line '      "greetd" # .*'
-has_line '      "printing" # .*'
-has_line '      "firmware" # .*'
-has_line '      "audio" # .*'
-has_line '      "bluetooth" # .*'
-person_file=modules/users/in/default.nix
-person_has_line '      "zsh" # .*'
-person_has_line '  users\."in" = \{'
-person_has_line '.* an account with .users\."in".*'
+fresh_fork "$TMPDIR/third"
+cd "$TMPDIR/third"
+init --yes --host rec --login in --full-name In --email "" >/dev/null
+parses_and_is_formatted modules/hosts/rec/default.nix modules/users/in/default.nix
 fork_evaluates '["rec"]'
 perf_systems=$("$NIX_INSTANTIATE" --eval --strict --json --expr "import $FORK_PERF_SYSTEMS $PWD") || fail "ci.perfMatrix of the fork in $PWD does not evaluate"
 [[ $perf_systems == '["x86_64-linux"]' ]] || fail "the fork in $PWD, whose host is not on the starter, gets the perf job on $perf_systems, expected [\"x86_64-linux\"]"
 docs_pass
-grep -qF "Your [\`rec\`](modules/hosts/rec/default.nix) host" README.md || fail "README.md does not point at the host init wrote"
-grep -qF "[\`modules/users/in/default.nix\`](modules/users/in/default.nix)" README.md || fail "README.md does not point at the person init wrote"
 
-fourth=$TMPDIR/fourth
-fresh_fork "$fourth"
-cd "$fourth"
-
-init --yes --host keeps-alice --login alice --full-name "Alice Fork" --email "" --keep-server
-person_file=modules/users/alice/default.nix
-person_has_line '    fullName = "Alice Fork";.*'
-grep -qxF '    users.alice = {' modules/hosts/example-server/default.nix || fail "example-server lost the account of alice"
-host_file=modules/hosts/example-server/default.nix
-has_line '      # "auto-upgrade" # .*'
-has_line '    # flake = "github:alice/nixos";'
+fresh_fork "$TMPDIR/fourth"
+cd "$TMPDIR/fourth"
+init --yes --host keeps-alice --login alice --full-name "Alice Fork" --email "" --keep-server >/dev/null
+parses_and_is_formatted modules/hosts/example-server/default.nix
 fork_evaluates '["example-server","keeps-alice"]'
 
-kept_flake() {
-  local dir=$1 origin=$2
-  fresh_fork "$dir"
-  cd "$dir"
-  git remote add origin "$origin"
-  init --yes --host box --login bob --full-name Bob --email "" --keep-server --keep-pi
-  host_file=modules/hosts/example-server/default.nix
-}
-
-kept_flake "$TMPDIR/sixth" git@github.com:bob/my-nixos.git
-has_line '      "auto-upgrade" # .*'
-has_line '    flake = "github:bob/my-nixos";'
-host_file=modules/hosts/example-pi/default.nix
-has_line '    # flake = "github:bob/my-nixos";'
+fresh_fork "$TMPDIR/fifth"
+cd "$TMPDIR/fifth"
+git remote add origin git@github.com:bob/my-nixos.git
+init --yes --host box --login bob --full-name Bob --email "" --keep-server --keep-pi >/dev/null
+parses_and_is_formatted modules/hosts/example-server/default.nix modules/hosts/example-pi/default.nix
 fork_evaluates '["box","example-pi","example-server"]'
 docs_pass
 
-kept_flake "$TMPDIR/seventh" https://git.example.org/bob/nixos.git
-has_line '      "auto-upgrade" # .*'
-has_line '    flake = "git\+https://git\.example\.org/bob/nixos\.git";'
-
-kept_flake "$TMPDIR/eighth" https://github.com/axelhamil/nixos-forge.git
-has_line '      # "auto-upgrade" # .*'
-has_line '    # flake = "github:alice/nixos";'
-
-fifth=$TMPDIR/fifth
-fresh_fork "$fifth"
-cd "$fifth"
-
-init --yes --host typo --profile server --login dan --full-name Dan --email "" --apps nope-not-a-package
+fresh_fork "$TMPDIR/sixth"
+cd "$TMPDIR/sixth"
+init --yes --host typo --profile server --login dan --full-name Dan --email "" --apps nope-not-a-package >/dev/null
 fork_fails 'configurations.nixos.typo.apps: unknown name "nope-not-a-package"'
 git reset -q --hard
 git clean -q -fd
-init --yes --host typo --profile server --login dan --full-name Dan --email ""
+init --yes --host typo --profile server --login dan --full-name Dan --email "" >/dev/null
 person_file=modules/users/dan/default.nix
 fork_evaluates '["typo"]'
 

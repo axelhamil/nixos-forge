@@ -336,14 +336,14 @@ impl Drop for Release<'_> {
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
-    use std::collections::{HashMap, HashSet, VecDeque};
+    use std::collections::{HashMap, HashSet};
     use std::io::{self, Write as _};
     use std::path::{Path, PathBuf};
 
     use super::*;
     use crate::install::Parsed;
     use crate::system::interrupt::Flag;
-    use crate::system::prompt::{Console, Terminal};
+    use crate::system::prompt::{Console, Terminal, Typed};
     use crate::system::{Answer, Files, Owner};
 
     const HASH: &str = "$y$j9T$salt$hash";
@@ -535,6 +535,10 @@ mod tests {
             Ok(())
         }
 
+        fn create_new_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
+            self.install_dir(path, mode)
+        }
+
         fn install_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
             self.record(Change::Dir(path.to_path_buf(), mode));
             Ok(())
@@ -566,45 +570,6 @@ mod tests {
         fn remove_dir(&self, path: &Path) -> io::Result<()> {
             self.record(Change::Removed(path.to_path_buf()));
             Ok(())
-        }
-    }
-
-    struct Typed {
-        answers: VecDeque<io::Result<String>>,
-        prompts: Vec<String>,
-    }
-
-    impl Typed {
-        fn new(answers: &[&str]) -> Self {
-            Self {
-                answers: answers
-                    .iter()
-                    .map(|&answer| Ok(answer.to_owned()))
-                    .collect(),
-                prompts: Vec::new(),
-            }
-        }
-
-        fn then_fail(mut self, kind: io::ErrorKind) -> Self {
-            self.answers.push_back(Err(kind.into()));
-            self
-        }
-    }
-
-    impl Terminal for Typed {
-        fn line(&mut self, prompt: &str) -> io::Result<String> {
-            self.prompts.push(prompt.to_owned());
-            self.answers
-                .pop_front()
-                .unwrap_or_else(|| Err(io::ErrorKind::UnexpectedEof.into()))
-        }
-
-        fn secret(&mut self, prompt: &str) -> io::Result<String> {
-            self.line(prompt)
-        }
-
-        fn is_interactive(&self) -> bool {
-            true
         }
     }
 

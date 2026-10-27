@@ -89,7 +89,7 @@ The Cargo workspace `crates/` is built with [crane](https://github.com/ipetkov/c
 | `rust-fmt` | always, on `x86_64-linux` | `cargo fmt --check` changes nothing |
 | `rust-deny` | always, on `x86_64-linux` | `cargo deny` (bans, licenses, sources, offline) accepts every dependency: a license of `crates/deny.toml`, crates.io only |
 | `rust-audit` | always, on `x86_64-linux` | `cargo audit` finds no RustSec advisory against `Cargo.lock`, with the advisory database of the `advisory-db` input, which the weekly lock PR refreshes |
-| `rust-tests` | always, on `x86_64-linux` | every Rust test passes under nextest, the insta snapshots included, never written in CI |
+| `rust-tests` | always, on `x86_64-linux` | every Rust test passes under nextest, the insta snapshots included, never written in CI; among them `forge upstream` lists upstream's breaking changes and merges its release into a branch whose PR lists the upstream commits, or stops cleanly on a conflict, over real git repositories |
 
 ### Checks of the CI scripts
 
@@ -104,7 +104,6 @@ The Cargo workspace `crates/` is built with [crane](https://github.com/ipetkov/c
 | `ci-flaky` | always, on `x86_64-linux` | with stand-ins for `nix` and a local `origin`, `ci-flaky` records every run of a check without stopping at a failure, counts a rebuild whose output differs as a pass, never counts the first build and calls `nix build --rebuild` only once the check is realised; `ci-flaky-plan` plans nothing and without evaluating the flake on a tree already measured green, skips a derivation recorded with 5 passing runs, measures a failing or missing one again, measures everything when `flaky.json` is missing or malformed, and stops, saying so, when the `badges` branch cannot be fetched; `ci-flaky-report` lists every check, the skipped ones as not rerun, fails on a check under 100 % or without result, and records the tree only when every check passed |
 | `reproducibility` | always, on `x86_64-linux` | with a stand-in for `nix`, `reproducibility` reports an identical rebuild, shows the diffoscope lines of a differing one without failing, and fails only when a system does not build |
 | `try-install` | always, on `x86_64-linux` | `nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything |
-| `upstream` | always, on `x86_64-linux` | `nix run .#upstream` lists upstream's breaking changes and merges its release into a branch whose PR lists the upstream commits, or stops cleanly on a conflict |
 | `perf-regression` | on a PR only, in the `perf` job, outside `ci-ok` and `ci.matrix`, while an `x86_64-linux` host boots in a VM here (forks included) | boots the base's and this version's VM of each host that also boots in a VM on the base, in turn, 5 times each, runs CPU, memory and disk benchmarks after each boot (`sysbench`, `fio`, from this version's `pkgs` on both sides), and writes `perf.json`, listing the other hosts as not measured (`absent` or `no-vm`); it fails only when a boot cannot be measured, never on a regression ([the report](../how-to/ci.md#performance-against-the-base)) |
 
 The checks that only make sense upstream, on its example hosts and its upgrade path (`feature-migration`, `init`, `example-hosts`), are in [maintenance/ci.md](../maintenance/ci.md). <!-- docs-check: allow example -->

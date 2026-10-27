@@ -45,7 +45,7 @@ What it does, step by step:
 4. On yes, creates that branch from `origin/main` and merges the tag with a merge commit. It never starts from the branch you are on, so unreleased work on `develop` stays out.
 5. Pushes it to `origin` and opens a PR against `main` with `gh` when it is logged in. Otherwise it prints the `gh pr create --repo <owner>/<repo>` command to run. The PR body lists the upstream commits it merges (`git log --oneline` from `origin/main` to the tag), then the breaking changes and the changelog.
 
-Upstream is the argument (a git URL or a GitHub `owner/repo`), else your `upstream` remote, else the URL written at the top of `modules/flake/upstream/upstream.sh`.
+Upstream is the argument (a git URL or a GitHub `owner/repo`), else your `upstream` remote, else the repository written in `crates/forge/src/system/remote.rs` (`UPSTREAM_REPOSITORY`).
 
 It never merges into `main` on its own: upstream's code reaches your machines only once you have read the diff. Adapt your hosts on the branch if needed and wait for `ci-ok`. Then merge with a merge commit, never a squash, so the next merge starts from there.
 

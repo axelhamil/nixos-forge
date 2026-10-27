@@ -3,7 +3,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use super::config::BesideWindowsSettings;
-use crate::system::interrupt::Flag;
+use crate::system::interrupt::{self, Flag};
 use crate::system::mount::Mounts;
 use crate::system::partitions::{self, Partition};
 use crate::system::{Answer, Commands, Files, Invocation, Sizes, Storage};
@@ -17,9 +17,6 @@ const REUSED_ON_THE_ESP: [&str; 3] = ["EFI/nixos", "EFI/Linux", "loader"];
 const LUKS_TYPE_CODE: &str = "8309";
 const SETTLE_TIMEOUT: Duration = Duration::from_secs(150);
 const REFUSED: u8 = 1;
-const SIGINT: i32 = 2;
-const INTERRUPTED: u8 = 130;
-const TERMINATED: u8 = 143;
 
 pub struct Ports<'a> {
     pub commands: &'a dyn Commands,
@@ -37,10 +34,7 @@ impl Ports<'_> {
     }
 
     fn checkpoint(&self) -> Result<(), Stop> {
-        match self.interrupt.raised() {
-            Some(signal) => Err(Stop::Interrupted(signal)),
-            None => Ok(()),
-        }
+        self.interrupt.checkpoint().map_err(Stop::Interrupted)
     }
 }
 
@@ -81,8 +75,7 @@ pub fn install(
             let _ = writeln!(ports.out, "\nforge dual-boot: {message}");
             REFUSED
         }
-        Err(Stop::Interrupted(SIGINT)) => INTERRUPTED,
-        Err(Stop::Interrupted(_)) => TERMINATED,
+        Err(Stop::Interrupted(signal)) => interrupt::exit_code(signal),
     }
 }
 
@@ -612,6 +605,10 @@ mod tests {
 
         fn link(&self, _: &Path, _: &Path) -> io::Result<()> {
             Ok(())
+        }
+
+        fn create_new_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
+            self.install_dir(path, mode)
         }
 
         fn install_dir(&self, _: &Path, _: u32) -> io::Result<()> {

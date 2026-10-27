@@ -1,0 +1,46 @@
+---
+source: forge/src/init/render.rs
+expression: "format!(\"{}\\n{}\",\nupdate_kept_example(PI, \"bob\", \"github:bob/my-nixos\", SIGNER),\nupdate_kept_example(include_str!(\"../../tests/fixtures/init/modules/hosts/example-server/default.nix\"),\n\"alice\", \"\", SIGNER))"
+---
+{
+  configurations.nixos.example-pi = {
+    system = "aarch64-linux";
+    profile = "pi";
+
+    features = [
+      "ssh" # key-only SSH server
+      # "auto-upgrade" # daily, no automatic rollback on a Pi
+    ];
+
+    # flake = "github:bob/my-nixos";
+    signers = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFake deploy"
+    ]; # keys signing deploy/<host>; init writes yours
+
+    users.bob = {
+      # admin = false; # true by default: may run sudo
+    };
+  };
+}
+
+{
+  configurations.nixos.example-server = {
+    system = "x86_64-linux";
+    profile = "server";
+
+    features = [
+      "disk" # LUKS and btrfs, `/` wiped at every boot
+      # "auto-upgrade" # daily, the version CI validated
+    ];
+
+    # flake = "github:alice/nixos";
+    # mirrors = [ "https://codeberg.org/alice/nixos.git" ]; # other copies of your fork
+    signers = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFake deploy"
+    ]; # keys signing deploy/<host>; init writes yours
+
+    users.alice = {
+      # admin = false; # true by default: may run sudo
+    };
+  };
+}

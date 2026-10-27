@@ -1,10 +1,12 @@
+mod common;
+
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use common::write_executable;
 use forge::doctor::{self, Config, Forks, Host, Mount, Options, Space, System, Totals};
 use forge::system::{Answer, Clock, Commands, Files, Invocation, Output, Owner};
 use insta::assert_snapshot;
@@ -1389,14 +1391,12 @@ fn files_older_than_the_boot_setup_are_not_lost() {
 
 fn fork_command(dir: &Path, name: &str, describe: &str, doctor: &str) {
     let path = dir.join(format!("forge-{name}"));
-    fs::write(
+    write_executable(
         &path,
-        format!(
+        &format!(
             "#!/bin/sh\nif [ \"$1\" = --forge-describe ]; then\n  echo '{describe}'\n  exit 0\nfi\n{doctor}\n"
         ),
-    )
-    .unwrap();
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+    );
 }
 
 fn describe(name: &str, doctor: bool) -> String {

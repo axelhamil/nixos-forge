@@ -1,5 +1,7 @@
+mod common;
+
+use common::write_executable;
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
 
 #[test]
@@ -7,12 +9,10 @@ fn a_leading_double_dash_reaches_nh_with_the_arguments_after_it() {
     let dir = tempfile::tempdir().unwrap();
     let seen = dir.path().join("seen");
     let nh = dir.path().join("nh");
-    fs::write(
+    write_executable(
         &nh,
-        format!("#!/bin/sh\nprintf '%s\\n' \"$@\" > {}\n", seen.display()),
-    )
-    .unwrap();
-    fs::set_permissions(&nh, fs::Permissions::from_mode(0o755)).unwrap();
+        &format!("#!/bin/sh\nprintf '%s\\n' \"$@\" > {}\n", seen.display()),
+    );
 
     let status = Command::new(env!("CARGO_BIN_EXE_forge"))
         .args(["update", "--", "--show-trace"])

@@ -66,14 +66,11 @@ in
       packages.init = pkgs.writeShellApplication {
         name = "init";
         runtimeInputs = [
+          config.packages.forge
           pkgs.git
-          pkgs.gawk
-          pkgs.gnused
-          pkgs.coreutils
           pkgs.openssh
         ];
-        runtimeEnv.SET_STRING = ./set-string.awk;
-        text = builtins.readFile ./init.sh;
+        text = ''exec forge init "$@"'';
       };
 
       checks = lib.optionalAttrs (system == "x86_64-linux" && builtins.pathExists ../../hosts/example) {

@@ -74,8 +74,8 @@
                 RemainAfterExit = true;
               };
               script = ''
-                ${lib.optionalString pkgs.stdenv.hostPlatform.isx86_64 "${pkgs.kmod}/bin/modprobe rtc_cmos"}
                 stepped=$(($(date +%s%N) - 1500000000))
+                ${lib.optionalString pkgs.stdenv.hostPlatform.isx86_64 "${pkgs.kmod}/bin/modprobe rtc_cmos"}
                 date -s "@$((stepped / 1000000000)).$(printf %09d $((stepped % 1000000000)))"
               '';
             };

@@ -1,5 +1,0 @@
-{
-  "example": ["example-toplevel", "example-boots", "example-disk", "example-wipe-home"],
-  "example-pi": ["example-pi-sd-image"],
-  "example-server": ["example-server-toplevel", "example-server-boots", "example-server-disk", "example-server-installer"]
-}

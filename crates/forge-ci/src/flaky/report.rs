@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::{Number, Value};
 
 use super::plan::{FlakyJob, tree};
-use super::{HistoryUnreadable, history};
+use crate::badges::{FlakyHistoryError, flaky_history};
 use crate::model::{FlakyHistory, FlakyRecord, FlakyRun, key};
 use crate::results;
 
@@ -36,7 +36,7 @@ enum ReportError {
     #[error("ci-flaky-report: {} is not valid JSON: {reason}", .path.display())]
     Result { path: PathBuf, reason: String },
     #[error(transparent)]
-    History(#[from] HistoryUnreadable),
+    History(#[from] FlakyHistoryError),
     #[error("ci-flaky-report: cannot write {}: {error}", .path.display())]
     Write { path: PathBuf, error: io::Error },
 }
@@ -269,7 +269,7 @@ fn write_report(
     let matrix: Vec<FlakyJob> = variable("MATRIX", matrix)?;
     let planned: Vec<Named> = variable("PLANNED", planned)?;
     let results = load_results(results_dir)?;
-    let old = history(commands, err)?;
+    let old = flaky_history(commands, ".", err)?;
     let tree = tree(commands).unwrap_or_default();
 
     let report = report(&matrix, &planned, &results, &old, &tree);

@@ -4,7 +4,8 @@ use std::io::{self, Write};
 use forge::system::{Commands, Git, Machine};
 use serde::{Deserialize, Serialize};
 
-use super::{HistoryUnreadable, RUNS, history};
+use super::RUNS;
+use crate::badges::{FlakyHistoryError, flaky_history};
 use crate::jobs::{self, JobsError};
 use crate::model::FlakyHistory;
 
@@ -30,7 +31,7 @@ pub struct Plan {
 #[derive(Debug, thiserror::Error)]
 pub enum PlanError {
     #[error(transparent)]
-    History(#[from] HistoryUnreadable),
+    History(#[from] FlakyHistoryError),
     #[error("ci-flaky-plan: git rev-parse HEAD^{{tree}} failed: {0}")]
     Tree(String),
     #[error("ci-flaky-plan: {0}")]
@@ -68,7 +69,7 @@ fn measured(history: &FlakyHistory, job: &FlakyJob) -> bool {
 }
 
 pub fn plan(commands: &dyn Commands, err: &mut dyn Write) -> Result<Plan, PlanError> {
-    let history = history(commands, err)?;
+    let history = flaky_history(commands, ".", err)?;
     let tree = tree(commands).map_err(PlanError::Tree)?;
     if history.tree.as_deref() == Some(tree.as_str()) {
         let _ = writeln!(

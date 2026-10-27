@@ -3,6 +3,7 @@ pub mod check_docs;
 pub mod doctor;
 pub mod dual_boot;
 pub mod enroll;
+pub mod init;
 pub mod install;
 pub mod plugins;
 pub mod process;

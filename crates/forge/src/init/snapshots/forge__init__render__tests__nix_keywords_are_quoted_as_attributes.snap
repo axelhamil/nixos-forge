@@ -1,0 +1,94 @@
+---
+source: forge/src/init/render.rs
+expression: "format!(\"{}\\n{}\\n{}\", render_host(HOST, &answers, SIGNER),\nrender_person(PERSON, &answers), point_readme(README, \"rec\", \"in\"))"
+---
+# One machine, one file: `nix run .#init` writes your own host from this file.
+{
+  configurations.nixos."rec" = {
+    system = "x86_64-linux";
+
+    profile = "laptop";
+
+    features = [
+      "disk" # LUKS and btrfs, `/` wiped at every boot
+      # "secure-boot" # lanzaboote with its own keys
+      # "fido2" # a security key logs in and runs sudo
+      # "wipe-home" # an empty /home at every boot, needs disk
+      # "plymouth" # graphical boot splash
+      # "greetd" # the tuigreet login screen
+      "docker" # rootless Docker
+      # "libvirt" # virtual machines with virt-manager
+      # "nix-ld" # run binaries not built for NixOS
+      # "ssh" # key-only SSH server
+      # "printing" # CUPS with driverless network printers
+      # "auto-upgrade" # daily, the version CI validated
+    ];
+
+    hardware = [
+      # "common-pc-ssd" # nixos-hardware: weekly TRIM
+      # "firmware" # redistributable firmware
+      # "audio" # PipeWire
+      # "bluetooth" # Bluetooth, powered on at boot
+      "nvidia" # NVIDIA GPU with the open kernel module
+      # "raspberry-pi-5" # Raspberry Pi 5, aarch64-linux
+      "framework-13-7040-amd"
+    ];
+
+    apps = [
+      # "hyprland" # Hyprland through uwsm
+      # "waybar" # a top bar
+      # "fuzzel" # an app launcher
+      # "kitty" # a terminal
+      # "mako" # a notification daemon
+      # "lock" # a lock screen
+      # "upgrade-notify" # a notification after an auto-upgrade
+      # "direnv" # per-project dev shells
+      "firefox" # Firefox with telemetry off
+      # "zsh" # zsh with suggestions
+      "vlc"
+    ];
+
+    flake = "/home/in/nixos";
+    # mirrors = [ "https://codeberg.org/in/nixos.git" ]; # other copies of your fork
+    signers = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFake deploy"
+    ]; # keys signing deploy/<host>; init writes yours
+
+    timeZone = "Europe/Paris"; # such as "UTC"
+    locale = "fr_FR.UTF-8"; # such as "en_US.UTF-8"
+    keyboard = "fr"; # such as "us"
+
+    users."in" = {
+      # admin = false; # true by default: may run sudo
+    };
+  };
+}
+
+# One person, one folder. A host gives them an account with `users."in"`
+# (modules/hosts/example), and `nix run .#init` writes your own person from this file.
+{
+  users."in" = {
+    fullName = "Bob \"the\" Builder \${x}";
+
+    email = "bob@example.net";
+
+    # Public SSH keys allowed to log in as in.
+    sshKeys = [ ];
+
+    apps = [
+      "zsh" # zsh with suggestions
+      "git" # git, the person's name and email are the author
+    ];
+
+    # Any other file of modules/users/in may set part of it.
+    # module = { pkgs, ... }: { home.packages = [ pkgs.gimp ]; };
+  };
+}
+
+# A fork
+
+Your [`rec`](modules/hosts/rec/default.nix) host lists every profile, feature, hardware module and app upstream shipped when you ran `nix run .#init`, one line each, commented out when you did not pick it. Read it top to bottom and keep what you like.
+
+1. Run `nix run .#init`, which:
+   - writes your host, [`modules/hosts/rec/default.nix`](modules/hosts/rec/default.nix), from the example host and your person, [`modules/users/in/default.nix`](modules/users/in/default.nix), from the example person;
+   - removes the examples.

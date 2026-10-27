@@ -10,7 +10,7 @@ use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
 use forge::doctor::{self, Config, Forks, Options, System};
 use forge::enroll;
 use forge::system::{Git, Machine, config};
-use forge::{check_docs, dual_boot, install, plugins, update, upstream};
+use forge::{check_docs, dual_boot, init, install, plugins, update, upstream};
 
 #[derive(Parser)]
 #[command(
@@ -106,6 +106,18 @@ enum Command {
         )]
         args: Vec<OsString>,
     },
+    #[command(
+        about = "Make a fresh fork yours: write its host and person from the examples, then remove them",
+        disable_help_flag = true
+    )]
+    Init {
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            help = "--host NAME, --login LOGIN, --yes and the other options of --help"
+        )]
+        args: Vec<OsString>,
+    },
     #[command(external_subcommand)]
     External(Vec<OsString>),
 }
@@ -144,6 +156,7 @@ fn main() -> ExitCode {
         Command::Install { .. } => install_command(),
         Command::DualBoot { .. } => dual_boot_command(),
         Command::Upstream { .. } => upstream_command(),
+        Command::Init { .. } => init_command(),
         Command::External(args) => external_command(&dirs, &args),
     }
 }
@@ -331,6 +344,11 @@ fn dual_boot_command() -> ExitCode {
 fn upstream_command() -> ExitCode {
     let args = update::arguments_after(upstream::SUBCOMMAND, env::args_os());
     ExitCode::from(upstream::run(&args))
+}
+
+fn init_command() -> ExitCode {
+    let args = update::arguments_after(init::SUBCOMMAND, env::args_os());
+    ExitCode::from(init::run(&args))
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

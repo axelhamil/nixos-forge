@@ -1,0 +1,26 @@
+---
+source: forge/src/init/steps.rs
+expression: outcome.out
+---
+
+modules/hosts/box/default.nix and modules/users/bob/default.nix are ready and staged; the example hosts you did not
+keep are removed. Read them top to bottom: every line you may want is there, commented out.
+
+Next steps:
+  nix develop          installs the pre-push hook
+  nix flake check -L   builds every host and boots it in a VM
+  nix build .#nixosConfigurations.box.config.system.build.vm && ./result/bin/run-box-vm
+                       boots box in a VM: log in as bob with the password "test"
+  nix build .#installer-box
+                       the installer ISO, for a host with the disk feature (docs/tutorials/install.md)
+
+Deploy signing key: CI signs every deploy/<host> commit with it, and auto-upgrade
+applies only commits signed by its public key, written in the signers of your hosts.
+The private key is in /run/user/1000/deploy-key.42-7/deploy, outside the repository and readable
+by you alone. In your fork, create the environment deploy limited to the main branch
+(Settings, Environments; docs/how-to/ci.md), then store the key there and delete the file:
+
+  gh secret set DEPLOY_SIGNING_KEY --env deploy < /run/user/1000/deploy-key.42-7/deploy && shred -u /run/user/1000/deploy-key.42-7/deploy
+
+or, on GitHub, paste the content of the file in the secret DEPLOY_SIGNING_KEY of the
+environment deploy, then run: shred -u /run/user/1000/deploy-key.42-7/deploy

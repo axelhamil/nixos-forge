@@ -26,5 +26,6 @@ pub use config::{ConfigError, Settings};
 pub use files::Files;
 pub use git::Git;
 pub use real::Machine;
+pub(crate) use real::find_in_path;
 pub use sizes::{Sizes, Space, space};
 pub use storage::Storage;

@@ -59,6 +59,10 @@ in
           commonArgs
           // {
             inherit cargoArtifacts;
+            nativeCheckInputs = [
+              pkgs.git
+              pkgs.openssh
+            ];
             INSTA_UPDATE = "no";
           }
         );

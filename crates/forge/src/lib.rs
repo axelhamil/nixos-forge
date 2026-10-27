@@ -8,3 +8,4 @@ pub mod plugins;
 pub mod process;
 pub mod system;
 pub mod update;
+pub mod upstream;

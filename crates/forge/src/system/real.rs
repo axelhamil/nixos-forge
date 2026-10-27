@@ -140,7 +140,7 @@ fn command(invocation: &Invocation) -> Command {
     command
 }
 
-fn find_in_path(program: &str, search_path: &str) -> Option<PathBuf> {
+pub(crate) fn find_in_path(program: &str, search_path: &str) -> Option<PathBuf> {
     env::split_paths(search_path)
         .map(|dir| dir.join(program))
         .find(|candidate| plugins::is_executable(candidate))

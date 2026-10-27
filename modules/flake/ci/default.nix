@@ -89,10 +89,11 @@ in
   };
 
   perSystem =
-    { pkgs, ... }:
+    { pkgs, self', ... }:
     let
       flakyHistory = import ./_ci-flaky-history.nix {
         inherit pkgs;
+        inherit (self'.packages) forge-ci;
         inherit (pkgs) nix nix-eval-jobs;
       };
     in
@@ -118,7 +119,10 @@ in
 
       packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
 
-      packages.ci-badges = import ./_ci-badges.nix { inherit pkgs; };
+      packages.ci-badges = import ./_ci-badges.nix {
+        inherit pkgs;
+        inherit (self'.packages) forge-ci;
+      };
 
       packages.ci-flaky = import ./_ci-flaky.nix {
         inherit pkgs;

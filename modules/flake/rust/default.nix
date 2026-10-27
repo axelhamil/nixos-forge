@@ -15,6 +15,7 @@ in
           (craneLib.fileset.commonCargoSources root)
           (lib.fileset.fileFilter (file: file.hasExt "snap") root)
           (root + "/forge/tests/fixtures")
+          (root + "/forge-ci/tests/fixtures")
           (root + "/deny.toml")
         ];
       };

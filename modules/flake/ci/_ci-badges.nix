@@ -1,13 +1,10 @@
-{ pkgs }:
+{ pkgs, forge-ci }:
 
 pkgs.writeShellApplication {
   name = "ci-badges";
   runtimeInputs = [
-    pkgs.jq
-    pkgs.coreutils
-    pkgs.gnugrep
+    forge-ci
     pkgs.git
   ];
-  excludeShellChecks = [ "SC2016" ];
-  text = builtins.readFile ./ci-badges.sh;
+  text = ''exec forge-ci badges "$@"'';
 }

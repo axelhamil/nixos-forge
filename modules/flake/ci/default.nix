@@ -125,7 +125,11 @@ in
         text = ''exec forge-ci build "$@"'';
       };
 
-      packages.ci-report = import ./_ci-report.nix { inherit pkgs; };
+      packages.ci-report = pkgs.writeShellApplication {
+        name = "ci-report";
+        runtimeInputs = [ config.flake.packages.${pkgs.stdenv.hostPlatform.system}.forge-ci ];
+        text = ''exec forge-ci report "$@"'';
+      };
 
       packages.ci-badges = import ./_ci-badges.nix { inherit pkgs; };
 

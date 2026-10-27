@@ -1,0 +1,9 @@
+---
+source: forge-ci/tests/report.rs
+expression: "no_plan.report(&[])"
+---
+**The flake did not evaluate, so nothing was built or tested.**
+
+Fix what is listed below and push again: CI runs on every push.
+
+The `plan` job log names the file and line: [open the run](https://github.com/owner/repo/actions/runs/42), then the `plan` job.

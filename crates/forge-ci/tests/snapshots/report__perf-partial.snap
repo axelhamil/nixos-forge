@@ -1,0 +1,61 @@
+---
+source: forge-ci/tests/report.rs
+expression: "scenario.report(&[])"
+---
+**Everything works: every machine builds, boots and passed its tests.**
+
+Nothing to fix: this commit is ready for the machines.
+
+### example
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-toplevel` | the system builds | passed |
+| `example-boots` | it starts and every user can log in | passed |
+| `example-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-wipe-home` | with wipe-home added, it installs and starts each boot with an empty /home | passed |
+
+### example-pi
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-pi-sd-image` | the SD card image builds | passed |
+
+### example-server
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-server-toplevel` | the system builds | passed |
+| `example-server-boots` | it starts and every user can log in | passed |
+| `example-server-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-server-installer` | the USB installer installs it | passed |
+
+<details>
+<summary>Module checks: 3 passed</summary>
+
+| Check | What it proves | Result |
+|---|---|---|
+| `feature-ssh` | ssh works in a VM | passed |
+| `init` | `nix run .#init` writes a first host and person whose system evaluates | passed |
+| `treefmt` | the code is formatted | passed |
+
+</details>
+
+### Performance against the base
+
+The base revision and this change, each booted 5 times in turn in one VM job. Boot times and idle RAM compare the best of the 5 boots of each side; running services and the benchmarks run after each boot (CPU, memory bandwidth, disk) their median; the closure that of the real system. A metric is flagged only past both its relative and its absolute threshold, a benchmark when it drops. The benchmark thresholds come from the noise of local runs and a shared CI runner is noisier: read their trend over several runs, not one value. Informational: it never blocks the merge.
+
+No metric crossed its threshold.
+
+#### example
+
+| Metric | Base | This change | Change |
+|---|---|---|---|
+| Boot, total (best) | n/a | 7.0 s | n/a |
+| Boot, userspace (best) | n/a | 3.0 s | n/a |
+| Idle RAM (best) | n/a | 400.0 MiB | n/a |
+| Closure | n/a | 2048.0 MiB | n/a |
+| Running services (median) | n/a | 20 | n/a |
+| CPU, sysbench (median) | n/a | 7500.0 events/s | n/a |
+| Memory bandwidth, sysbench (median) | n/a | 50000.0 MiB/s | n/a |
+| Disk, 4k random read (median) | n/a | 50000 IOPS | n/a |

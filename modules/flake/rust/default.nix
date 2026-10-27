@@ -16,6 +16,7 @@ in
           (lib.fileset.fileFilter (file: file.hasExt "snap") root)
           (root + "/forge/tests/fixtures")
           (root + "/forge-ci/tests/fixtures")
+          (root + "/forge-ci/src/report/causes.tsv")
           (root + "/deny.toml")
         ];
       };

@@ -89,7 +89,7 @@ in
   };
 
   perSystem =
-    { pkgs, ... }:
+    { pkgs, self', ... }:
     let
       flakyHistory = import ./_ci-flaky-history.nix {
         inherit pkgs;
@@ -147,13 +147,13 @@ in
       packages.ci-promote = pkgs.writeShellApplication {
         name = "ci-promote";
         runtimeInputs = [
+          self'.packages.forge-ci
           pkgs.git
-          pkgs.jq
-          pkgs.coreutils
-          pkgs.gnugrep
           pkgs.openssh
         ];
-        text = builtins.readFile ./ci-promote.sh;
+        text = ''
+          exec forge-ci promote "$@"
+        '';
       };
 
       packages.ci-mirror = pkgs.writeShellApplication {

@@ -1,0 +1,6 @@
+{"attr":"x86_64-linux.new","drvPath":"/nix/store/n1.drv"}
+{"attr":"x86_64-linux.treefmt","drvPath":"/nix/store/t1.drv"}
+{"attr":"x86_64-linux.changed","drvPath":"/nix/store/c2.drv"}
+{"attr":"x86_64-linux.flaky","drvPath":"/nix/store/f1.drv"}
+{"attr":"x86_64-linux.steady","drvPath":"/nix/store/s1.drv"}
+{"attr":"aarch64-linux.steady","drvPath":"/nix/store/a1.drv"}

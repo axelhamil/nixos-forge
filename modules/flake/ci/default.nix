@@ -90,13 +90,6 @@ in
 
   perSystem =
     { pkgs, self', ... }:
-    let
-      flakyHistory = import ./_ci-flaky-history.nix {
-        inherit pkgs;
-        inherit (self'.packages) forge-ci;
-        inherit (pkgs) nix nix-eval-jobs;
-      };
-    in
     {
       packages.closure-diff = pkgs.writeShellApplication {
         name = "closure-diff";
@@ -137,14 +130,34 @@ in
         inherit (self'.packages) forge-ci;
       };
 
-      packages.ci-flaky = import ./_ci-flaky.nix {
-        inherit pkgs;
-        inherit (pkgs) nix;
+      packages.ci-flaky = pkgs.writeShellApplication {
+        name = "ci-flaky";
+        runtimeInputs = [
+          self'.packages.forge-ci
+          pkgs.nix
+        ];
+        text = ''exec forge-ci flaky "$@"'';
       };
 
-      packages.ci-flaky-plan = flakyHistory.plan;
+      packages.ci-flaky-plan = pkgs.writeShellApplication {
+        name = "ci-flaky-plan";
+        runtimeInputs = [
+          self'.packages.forge-ci
+          pkgs.nix
+          pkgs.nix-eval-jobs
+          pkgs.git
+        ];
+        text = ''exec forge-ci flaky-plan "$@"'';
+      };
 
-      packages.ci-flaky-report = flakyHistory.report;
+      packages.ci-flaky-report = pkgs.writeShellApplication {
+        name = "ci-flaky-report";
+        runtimeInputs = [
+          self'.packages.forge-ci
+          pkgs.git
+        ];
+        text = ''exec forge-ci flaky-report "$@"'';
+      };
 
       packages.ci-boot-time = pkgs.writeShellApplication {
         name = "ci-boot-time";
@@ -156,9 +169,14 @@ in
         text = builtins.readFile ./ci-boot-time.sh;
       };
 
-      packages.reproducibility = import ./_reproducibility.nix {
-        inherit pkgs;
-        inherit (pkgs) nix;
+      packages.reproducibility = pkgs.writeShellApplication {
+        name = "reproducibility";
+        runtimeInputs = [
+          self'.packages.forge-ci
+          pkgs.nix
+          pkgs.diffoscopeMinimal
+        ];
+        text = ''exec forge-ci reproducibility "$@"'';
       };
 
       packages.ci-promote = pkgs.writeShellApplication {

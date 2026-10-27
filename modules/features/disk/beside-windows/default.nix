@@ -1,5 +1,13 @@
-{ inputs, ... }:
+{
+  inputs,
+  config,
+  withSystem,
+  ...
+}:
 
+let
+  inherit (config.helpers) wrapForge;
+in
 {
   features.disk =
     {
@@ -25,25 +33,26 @@
           esp = partitionDisk partitions.ESP;
         };
       } pkgs;
+
+      forge = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
     in
     {
-      system.build.installBesideWindows = pkgs.writeShellApplication {
-        name = "install-beside-windows";
+      system.build.installBesideWindows = wrapForge pkgs forge {
         runtimeInputs = [
           pkgs.coreutils
-          pkgs.gawk
           pkgs.gptfdisk
           pkgs.parted
           pkgs.util-linux
           config.systemd.package
           config.nix.package
         ];
-        runtimeEnv = {
-          FORMAT_MOUNT = lib.getExe formatMount;
-          ESP_DEVICE = partitions.ESP.content.device;
-          LUKS_DEVICE = partitions.luks.content.device;
-        };
-        text = builtins.readFile ./beside-windows.sh;
+        environment.FORGE_BESIDE_WINDOWS_CONFIG = "${pkgs.writeText "beside-windows.json" (
+          builtins.toJSON {
+            formatMount = lib.getExe formatMount;
+            espDevice = partitions.ESP.content.device;
+            luksDevice = partitions.luks.content.device;
+          }
+        )}";
       };
     };
 }

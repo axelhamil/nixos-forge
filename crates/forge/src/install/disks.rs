@@ -3,6 +3,7 @@ use serde_json::Value;
 
 use super::{Session, Stop};
 use crate::system::Invocation;
+use crate::system::partitions::{self, Partition};
 
 const LAYOUT_PREFIX: &str = "disk-main-";
 const EXCLUDED_PREFIXES: [&str; 2] = ["/dev/fd", "/dev/zram"];
@@ -54,15 +55,17 @@ pub fn candidates(lsblk_json: &str, live: &[String]) -> Vec<String> {
 }
 
 #[must_use]
-pub fn layout_holders(lsblk_json: &str, target: &str) -> Vec<String> {
-    devices(lsblk_json)
+pub fn layout_holders(partitions: &[Partition], target: &str) -> Vec<String> {
+    partitions
         .iter()
-        .filter(|device| {
-            text(device, "partlabel").is_some_and(|label| label.starts_with(LAYOUT_PREFIX))
+        .filter(|partition| {
+            partition
+                .label
+                .as_deref()
+                .is_some_and(|label| label.starts_with(LAYOUT_PREFIX))
         })
-        .filter(|device| text(device, "pkname") != Some(target))
-        .filter_map(|device| text(device, "name"))
-        .map(str::to_owned)
+        .filter(|partition| partition.disk.as_deref() != Some(target))
+        .map(|partition| partition.name.clone())
         .collect()
 }
 
@@ -102,17 +105,11 @@ pub fn list(session: &Session) -> Result<Vec<String>, Stop> {
 }
 
 pub fn others_with_layout(session: &Session, target: &str) -> Result<Vec<String>, Stop> {
-    let listing = session.run(&Invocation::new(
-        "lsblk",
-        &["-J", "-l", "-p", "-o", "NAME,PKNAME,PARTLABEL"],
-    ))?;
-    if !listing.success {
-        return Err(Stop::Refused(format!(
-            "cannot list the partition labels: {}",
-            listing.stderr.trim()
-        )));
-    }
-    Ok(layout_holders(&listing.stdout, target))
+    let listed = partitions::list(session.ports.commands, None);
+    session.checkpoint()?;
+    let listed = listed
+        .map_err(|error| Stop::Refused(format!("cannot list the partition labels: {error}")))?;
+    Ok(layout_holders(&listed, target))
 }
 
 pub fn describe(session: &Session, disk: &str) -> Result<String, Stop> {
@@ -183,19 +180,22 @@ mod tests {
 
     #[test]
     fn another_disk_carrying_the_layout_labels_is_named() {
-        let lsblk = r#"{"blockdevices": [
-            {"name": "/dev/vda", "pkname": null, "partlabel": null},
-            {"name": "/dev/vda1", "pkname": "/dev/vda", "partlabel": "disk-main-ESP"},
-            {"name": "/dev/vdb", "pkname": null, "partlabel": null},
-            {"name": "/dev/vdb1", "pkname": "/dev/vdb", "partlabel": "disk-main-ESP"},
-            {"name": "/dev/vdb2", "pkname": "/dev/vdb", "partlabel": "disk-main-luks"},
-            {"name": "/dev/vdc1", "pkname": "/dev/vdc", "partlabel": "Basic data partition"}
-        ]}"#;
+        let lsblk = partitions::parse(
+            r#"{"blockdevices": [
+            {"name": "/dev/vda", "type": "disk", "pkname": null, "partlabel": null},
+            {"name": "/dev/vda1", "type": "part", "pkname": "/dev/vda", "partlabel": "disk-main-ESP"},
+            {"name": "/dev/vdb", "type": "disk", "pkname": null, "partlabel": null},
+            {"name": "/dev/vdb1", "type": "part", "pkname": "/dev/vdb", "partlabel": "disk-main-ESP"},
+            {"name": "/dev/vdb2", "type": "part", "pkname": "/dev/vdb", "partlabel": "disk-main-luks"},
+            {"name": "/dev/vdc1", "type": "part", "pkname": "/dev/vdc", "partlabel": "Basic data partition"}
+        ]}"#,
+        )
+        .unwrap();
 
         assert_eq!(
-            layout_holders(lsblk, "/dev/vda"),
+            layout_holders(&lsblk, "/dev/vda"),
             ["/dev/vdb1", "/dev/vdb2"]
         );
-        assert_eq!(layout_holders(lsblk, "/dev/vdb"), ["/dev/vda1"]);
+        assert_eq!(layout_holders(&lsblk, "/dev/vdb"), ["/dev/vda1"]);
     }
 }

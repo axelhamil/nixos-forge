@@ -1,6 +1,7 @@
 use std::time::Duration;
 
-use super::{Config, Options, Ports, Session, Stop, Storage, disks, secrets};
+use super::{Config, Options, Ports, Session, Stop, disks, secrets};
+use crate::system::Storage;
 use crate::system::{Commands, Invocation};
 
 const UNMOUNT_TIMEOUT: Duration = Duration::from_secs(600);
@@ -145,7 +146,15 @@ fn apply(session: &mut Session, options: &Options, plan: &Plan) -> Result<bool, 
         session.say(&format!(
             "Creating the encrypted layout beside Windows on {disk}"
         ));
-        Invocation::new(&config.beside_windows, &[target, &config.system])
+        Invocation::new(
+            &config.beside_windows,
+            &[
+                "dual-boot",
+                "install-beside-windows",
+                target,
+                &config.system,
+            ],
+        )
     } else {
         session.say(&format!("Erasing {disk} and creating the encrypted layout"));
         Invocation::new(&config.disko, &["--yes-wipe-all-disks"])
@@ -360,8 +369,8 @@ mod tests {
     ]}"#;
 
     const NO_LAYOUT: &str = r#"{"blockdevices": [
-        {"name": "/dev/vda", "pkname": null, "partlabel": null},
-        {"name": "/dev/vdb", "pkname": null, "partlabel": null}
+        {"name": "/dev/vda", "type": "disk", "pkname": null, "partlabel": null},
+        {"name": "/dev/vdb", "type": "disk", "pkname": null, "partlabel": null}
     ]}"#;
 
     struct Machine {
@@ -382,7 +391,7 @@ mod tests {
             machine.answer("findmnt -no SOURCE /iso", Answer::exited(1));
             machine.answer("lsblk -J -d -p -b -o NAME,TYPE,SIZE,RO", Answer::ok(LSBLK));
             machine.answer(
-                "lsblk -J -l -p -o NAME,PKNAME,PARTLABEL",
+                "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL",
                 Answer::ok(NO_LAYOUT),
             );
             machine.answer("lsblk -dno SIZE /dev/vda", Answer::ok("  16G\n"));
@@ -517,6 +526,10 @@ mod tests {
             self.block_devices.contains(&self.canonicalize(path))
         }
 
+        fn exists(&self, path: &Path) -> bool {
+            self.contents.contains_key(path)
+        }
+
         fn link(&self, target: &Path, link: &Path) -> io::Result<()> {
             self.record(Change::Link(target.to_path_buf(), link.to_path_buf()));
             Ok(())
@@ -532,8 +545,27 @@ mod tests {
             Ok(())
         }
 
+        fn create_dirs(&self, path: &Path) -> io::Result<()> {
+            self.record(Change::Dir(path.to_path_buf(), 0o755));
+            Ok(())
+        }
+
+        fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
+            self.record(Change::File(path.to_path_buf(), bytes.to_vec(), 0o644));
+            Ok(())
+        }
+
+        fn rename(&self, _: &Path, _: &Path) -> io::Result<()> {
+            Ok(())
+        }
+
         fn remove(&self, path: &Path) {
             self.record(Change::Removed(path.to_path_buf()));
+        }
+
+        fn remove_dir(&self, path: &Path) -> io::Result<()> {
+            self.record(Change::Removed(path.to_path_buf()));
+            Ok(())
         }
     }
 
@@ -760,7 +792,9 @@ mod tests {
 
         assert_eq!(outcome.code, 0, "{}", outcome.printed);
         assert!(
-            machine.ran_command("/nix/store/install-beside-windows /dev/vda /nix/store/system")
+            machine.ran_command(
+                "/nix/store/install-beside-windows dual-boot install-beside-windows /dev/vda /nix/store/system"
+            )
         );
         assert!(!machine.ran_command("/nix/store/disko --yes-wipe-all-disks"));
         assert!(
@@ -851,11 +885,11 @@ mod tests {
     fn another_disk_carrying_the_layout_labels_is_refused_by_name() {
         let mut machine = Machine::new();
         machine.answer(
-            "lsblk -J -l -p -o NAME,PKNAME,PARTLABEL",
+            "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL",
             Answer::ok(
                 r#"{"blockdevices": [
-                {"name": "/dev/vdb1", "pkname": "/dev/vdb", "partlabel": "disk-main-ESP"},
-                {"name": "/dev/vdb2", "pkname": "/dev/vdb", "partlabel": "disk-main-luks"}
+                {"name": "/dev/vdb1", "type": "part", "pkname": "/dev/vdb", "partlabel": "disk-main-ESP"},
+                {"name": "/dev/vdb2", "type": "part", "pkname": "/dev/vdb", "partlabel": "disk-main-luks"}
             ]}"#,
             ),
         );

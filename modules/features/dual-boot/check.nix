@@ -47,7 +47,7 @@ let
           qemu_img = "${lib.getExe' pkgs.qemu-utils "qemu-img"}"
           partprobe = "${lib.getExe' pkgs.parted "partprobe"}"
           mkntfs = "${lib.getExe' pkgs.ntfs3g "mkntfs"}"
-          install_beside_windows = "${lib.getExe config.system.build.installBesideWindows}"
+          install_beside_windows = "${lib.getExe config.system.build.installBesideWindows} dual-boot install-beside-windows"
           tpm_unlocks = ${if secure then "True" else "False"}
           expected_secure_boot = "${if secure then "01" else "00"}"
           ${lib.optionalString (!secure) (secureMachineScript pkgs)}

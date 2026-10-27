@@ -10,7 +10,7 @@ use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
 use forge::doctor::{self, Config, Forks, Options, System};
 use forge::enroll;
 use forge::system::{Git, Machine, config};
-use forge::{check_docs, install, plugins, update};
+use forge::{check_docs, dual_boot, install, plugins, update};
 
 #[derive(Parser)]
 #[command(
@@ -81,6 +81,19 @@ enum Command {
         )]
         args: Vec<OsString>,
     },
+    #[command(
+        about = "Keep Windows in the boot menu and the firmware boot order, or make room for NixOS beside it",
+        name = "dual-boot",
+        disable_help_flag = true
+    )]
+    DualBoot {
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            help = "sync, or install-beside-windows DISK SYSTEM"
+        )]
+        args: Vec<OsString>,
+    },
     #[command(external_subcommand)]
     External(Vec<OsString>),
 }
@@ -117,6 +130,7 @@ fn main() -> ExitCode {
         Command::Update { .. } => update_command(&update::arguments(env::args_os())),
         Command::Enroll { method } => enroll_command(&method),
         Command::Install { .. } => install_command(),
+        Command::DualBoot { .. } => dual_boot_command(),
         Command::External(args) => external_command(&dirs, &args),
     }
 }
@@ -293,6 +307,12 @@ fn install_command() -> ExitCode {
     let args = update::arguments_after(install::SUBCOMMAND, env::args_os());
     let path = env::var_os(install::CONFIG_VARIABLE).map(PathBuf::from);
     ExitCode::from(install::run(&args, path.as_deref()))
+}
+
+fn dual_boot_command() -> ExitCode {
+    let args = update::arguments_after(dual_boot::SUBCOMMAND, env::args_os());
+    let config_path = |variable: &str| env::var_os(variable).map(PathBuf::from);
+    ExitCode::from(dual_boot::run(&args, &config_path))
 }
 
 fn external_command(dirs: &[PathBuf], args: &[OsString]) -> ExitCode {

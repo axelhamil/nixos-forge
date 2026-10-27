@@ -11,11 +11,10 @@ use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
 use super::{
-    Accounts, Answer, Clock, Commands, Directory, Files, Invocation, Output, Owner, Streamed,
-    Streams,
+    Accounts, Answer, Clock, Commands, Directory, Files, Invocation, Output, Owner, Sizes, Storage,
+    Streamed, Streams, space,
 };
 use crate::enroll::tpm2::Host;
-use crate::install::Storage;
 use crate::{plugins, process};
 
 pub struct Machine;
@@ -207,6 +206,10 @@ impl Storage for Machine {
         fs::metadata(path).is_ok_and(|metadata| metadata.file_type().is_block_device())
     }
 
+    fn exists(&self, path: &Path) -> bool {
+        fs::symlink_metadata(path).is_ok()
+    }
+
     fn link(&self, target: &Path, link: &Path) -> io::Result<()> {
         if let Some(parent) = link.parent() {
             fs::create_dir_all(parent)?;
@@ -224,8 +227,43 @@ impl Storage for Machine {
         write_with_mode(path, bytes, mode)
     }
 
+    fn create_dirs(&self, path: &Path) -> io::Result<()> {
+        fs::create_dir_all(path)
+    }
+
+    fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
+        fs::write(path, bytes)
+    }
+
+    fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+        fs::rename(from, to)
+    }
+
     fn remove(&self, path: &Path) {
         let _ = remove_if_exists(path);
+    }
+
+    fn remove_dir(&self, path: &Path) -> io::Result<()> {
+        fs::remove_dir(path)
+    }
+}
+
+impl Sizes for Machine {
+    fn available(&self, path: &Path) -> io::Result<u64> {
+        space(path).map(|space| space.avail)
+    }
+
+    fn file_size(&self, path: &Path) -> io::Result<u64> {
+        fs::metadata(path).map(|metadata| metadata.len())
+    }
+
+    fn tree_size(&self, path: &Path) -> u64 {
+        walkdir::WalkDir::new(path)
+            .into_iter()
+            .flatten()
+            .filter_map(|entry| entry.metadata().ok())
+            .map(|metadata| metadata.len())
+            .sum()
     }
 }
 

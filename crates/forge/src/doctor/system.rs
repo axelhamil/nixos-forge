@@ -2,13 +2,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+pub use crate::system::Space;
 use crate::system::{Clock, Commands, Files};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Space {
-    pub size: u64,
-    pub avail: u64,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mount {

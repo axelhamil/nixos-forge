@@ -11,7 +11,9 @@ pub use config::{CONFIG_VARIABLE, Config};
 
 use crate::system::interrupt::Flag;
 use crate::system::prompt::{Console, Terminal};
-use crate::system::{Answer, Commands, Files, Invocation, Machine, config as settings, privilege};
+use crate::system::{
+    Answer, Commands, Files, Invocation, Machine, Storage, config as settings, privilege,
+};
 use steps::install;
 
 pub const SUBCOMMAND: &str = "install";
@@ -142,14 +144,6 @@ impl Stop {
     fn failed(answer: &Answer) -> Self {
         Self::Quit(answer.exit_code())
     }
-}
-
-pub trait Storage {
-    fn is_block_device(&self, path: &Path) -> bool;
-    fn link(&self, target: &Path, link: &Path) -> io::Result<()>;
-    fn install_dir(&self, path: &Path, mode: u32) -> io::Result<()>;
-    fn install_file(&self, path: &Path, bytes: &[u8], mode: u32) -> io::Result<()>;
-    fn remove(&self, path: &Path);
 }
 
 #[must_use]

@@ -12,19 +12,7 @@
       espMount = config.boot.loader.efi.efiSysMountPoint;
       lanzaboote = options.boot ? lanzaboote;
 
-      syncWindows = pkgs.writeShellApplication {
-        name = "dual-boot-sync";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.diffutils
-          pkgs.efibootmgr
-          pkgs.gawk
-          pkgs.gnused
-          pkgs.util-linux
-        ];
-        runtimeEnv.ESP_MOUNT = espMount;
-        text = builtins.readFile ./dual-boot.sh;
-      };
+      syncWindows = "${config.forge.package}/bin/forge dual-boot sync";
 
       readOnlyDefaults = "uid=$UID,gid=$GID,ro";
     in
@@ -48,7 +36,7 @@
         {
           boot.loader.systemd-boot.rebootForBitlocker = true;
           boot.loader.systemd-boot.configurationLimit = lib.mkDefault 3;
-          boot.loader.systemd-boot.extraInstallCommands = lib.getExe syncWindows;
+          boot.loader.systemd-boot.extraInstallCommands = syncWindows;
 
           boot.supportedFilesystems.ntfs = true;
           services.udisks2.enable = true;
@@ -56,6 +44,14 @@
             "ntfs:ntfs3_defaults" = readOnlyDefaults;
             "ntfs:ntfs_defaults" = "${readOnlyDefaults},windows_names";
           };
+
+          forge.runtimeInputs = [
+            pkgs.efibootmgr
+            pkgs.util-linux
+          ];
+          forge.environment.FORGE_DUAL_BOOT_CONFIG = "${pkgs.writeText "dual-boot.json" (
+            builtins.toJSON { inherit espMount; }
+          )}";
 
           environment.systemPackages = [
             pkgs.cryptsetup
@@ -70,7 +66,7 @@
               Type = "oneshot";
               RemainAfterExit = true;
               PrivateMounts = true;
-              ExecStart = lib.getExe syncWindows;
+              ExecStart = syncWindows;
             };
           };
         }
@@ -83,7 +79,7 @@
               pkgs.writeShellScript "install-boot-loader" ''
                 set -e
                 ${config.boot.loader.external.installHook} "$@"
-                ${lib.getExe syncWindows}
+                ${syncWindows}
               ''
             )
           );

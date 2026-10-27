@@ -96,30 +96,19 @@ fn objects(dir: &Path) -> Vec<Map<String, Value>> {
 }
 
 fn closures(dir: &Path) -> String {
-    let Ok(entries) = fs::read_dir(dir) else {
-        return String::new();
-    };
-
-    let mut files: Vec<PathBuf> = entries
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
+    results::files_with(dir, "md")
+        .iter()
         .filter(|path| {
-            path.extension().is_some_and(|extension| extension == "md")
-                && path
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.starts_with("closure-"))
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("closure-"))
         })
-        .collect();
-    files.sort();
-    files.iter().filter_map(|file| fs::read(file).ok()).fold(
-        String::new(),
-        |mut closures, bytes| {
+        .filter_map(|file| fs::read(file).ok())
+        .fold(String::new(), |mut closures, bytes| {
             closures.push_str(&String::from_utf8_lossy(&bytes));
             closures.push('\n');
             closures
-        },
-    )
+        })
 }
 
 impl Inputs {

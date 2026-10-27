@@ -10,7 +10,7 @@ use forge::system::{Commands, Machine};
 use crate::badges_branch::{self, ReadError};
 use crate::model::{
     Badge, BootTime, CheckResult, FlakyHistory, HostChecks, PlannedJob, SkippedJob, Status,
-    Verdict, env_json, json_or_none, statuses,
+    Verdict, env_json, json_or_none, seconds, statuses,
 };
 use crate::results;
 
@@ -88,16 +88,6 @@ fn write_badge(path: &Path, badge: &Badge) -> Result<String, BadgesError> {
     })? + "\n";
     fs::write(path, &text).map_err(io_error(&format!("write {}", path.display())))?;
     Ok(text)
-}
-
-fn seconds(value: f64) -> String {
-    let rounded = (value * 10.0).round() / 10.0;
-    let text = rounded.to_string();
-    if text.contains('.') {
-        format!("{text} s")
-    } else {
-        format!("{text}.0 s")
-    }
 }
 
 struct Run {

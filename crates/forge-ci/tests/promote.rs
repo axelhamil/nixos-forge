@@ -1,3 +1,4 @@
+#[path = "../../forge/tests/common/mod.rs"]
 mod common;
 
 use std::fs;

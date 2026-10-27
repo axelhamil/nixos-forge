@@ -122,7 +122,11 @@ enum Command {
 }
 
 fn main() -> ExitCode {
-    let code = match Cli::parse().command {
+    let command = Cli::parse().command;
+    if let Err(error) = forge::process::stop_children_on_signals() {
+        eprintln!("forge-ci: cannot watch for signals: {error}");
+    }
+    let code = match command {
         Command::Plan { args } => plan::run(&args),
         Command::Build { args } => build::run(&args),
         Command::Report { args } => report::run(&args),

@@ -3,10 +3,10 @@ mod signing;
 use std::env;
 use std::ffi::OsString;
 use std::path::Path;
-use std::time::Duration;
 
 use forge::system::{Answer, Git, Machine};
 
+use crate::badges_branch::GIT_TIMEOUT;
 use crate::model::{HostChecks, JobStatus, PlannedJob, SkippedJob, Status, env_json, statuses};
 use crate::results::check_results;
 use signing::Signing;
@@ -17,7 +17,6 @@ const CANNOT_SIGN: &str =
     "DEPLOY_SIGNING_KEY cannot sign, it must hold an OpenSSH private key without a passphrase";
 const NOT_A_FAST_FORWARD: &str = "not a fast-forward";
 const DEPLOY_REFS: &str = "+refs/heads/deploy/*:refs/remotes/origin/deploy/*";
-const GIT_TIMEOUT: Duration = Duration::from_mins(45);
 const USAGE_ERROR: u8 = 2;
 
 #[derive(Debug, PartialEq, Eq)]

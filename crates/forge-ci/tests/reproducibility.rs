@@ -1,3 +1,4 @@
+#[path = "../../forge/tests/common/mod.rs"]
 mod common;
 
 use std::env;
@@ -157,6 +158,7 @@ fn an_identical_and_a_differing_rebuild_are_reported_with_the_diffoscope_summary
     assert_eq!(fences[1] - fences[0] - 1, 200);
     assert!(summary.ends_with("```\n</details>\n\n"), "{summary}");
     assert!(!summary.contains("diffoscope wrote"));
+    assert!(!summary.contains("may not be deterministic"), "{summary}");
 }
 
 #[test]

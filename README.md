@@ -174,7 +174,7 @@ CI is the heart of the forge. Checks are generated from the registry, so a machi
 | `<host>-installer` | For the hosts listed in `installer.testedHosts`: the installer ISO installs the host without questions and the installed disk boots. |
 | `feature-rollback` and its variants | A new generation whose health check fails, or whose service fails after boot, is never blessed: after 3 tries the machine boots the one before. |
 | `feature-migration` | A machine installed from the base revision (the PR's base, or the commit before a push) upgrades to this one in place and keeps its state. |
-| `ci-promote`, `feature-auto-upgrade-signed` | `deploy/<host>` moves only once every check of that host passed, signed by CI, and a machine applies only a commit signed for it, never an older one replayed. |
+| `rust-tests`, `feature-auto-upgrade-signed` | `deploy/<host>` moves only once every check of that host passed, signed by CI, and a machine applies only a commit signed for it, never an older one replayed. |
 | `app-*`, `feature-*`, `profile-*`, `base-*` | Each module with a `check.nix` boots in its own VM test, from the Hyprland session to hibernate and resume, and dual boot with Windows. |
 
 Every PR also gets the package diff of each system ([nvd](https://git.sr.ht/~khumba/nvd)) and its boot time beside the base's. A performance comparison flags regressions without blocking the merge. A nightly workflow rebuilds every system and checks it is reproducible. Every check, with when it runs, is in [docs/reference/ci.md](docs/reference/ci.md#checks).

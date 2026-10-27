@@ -1,9 +1,17 @@
+#[path = "../../forge/tests/common/mod.rs"]
 mod common;
 
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::os::unix::fs::symlink;
+use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::Output;
+use std::process::{Child, ExitStatus, Output, Stdio};
+use std::sync::mpsc::{self, Receiver};
+use std::thread;
+use std::time::{Duration, Instant};
+
+use rustix::process::{Pid, Signal, kill_process, test_kill_process};
 
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -307,4 +315,119 @@ fn a_plan_without_its_event_is_a_usage_error() {
 
     assert_eq!(planned.output.status.code(), Some(2));
     assert_eq!(planned.stderr(), "usage: ci-plan <event>\n");
+}
+
+const HUNG_NIX: &str = r#"#!/bin/sh
+echo "error: evaluating hung check" >&2
+echo $$ > "$EVALUATOR"
+exec sleep 30
+"#;
+
+struct Hung {
+    child: Child,
+    lines: Receiver<String>,
+    evaluator: PathBuf,
+    _dir: TempDir,
+}
+
+impl Hung {
+    fn start() -> Self {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("bin");
+        fs::create_dir(&bin).unwrap();
+        common::write_executable(&bin.join("nix"), HUNG_NIX);
+        symlink(common::find_program("sleep"), bin.join("sleep")).unwrap();
+        let evaluator = dir.path().join("evaluator");
+        let mut child = common::sandboxed(
+            Path::new(env!("CARGO_BIN_EXE_forge-ci")),
+            dir.path(),
+            &bin,
+            dir.path(),
+        )
+        .args(["plan", "push"])
+        .env("EVALUATOR", &evaluator)
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+        let stderr = child.stderr.take().unwrap();
+        let (sender, lines) = mpsc::channel();
+        thread::spawn(move || {
+            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                let _ = sender.send(line);
+            }
+        });
+        Self {
+            child,
+            lines,
+            evaluator,
+            _dir: dir,
+        }
+    }
+
+    fn first_line(&self) -> String {
+        self.lines.recv_timeout(Duration::from_secs(10)).unwrap()
+    }
+
+    fn evaluator(&self) -> Pid {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            if let Ok(pid) = fs::read_to_string(&self.evaluator)
+                && let Ok(pid) = pid.trim().parse()
+            {
+                return Pid::from_raw(pid).unwrap();
+            }
+            assert!(Instant::now() < deadline, "the evaluator never started");
+            thread::sleep(Duration::from_millis(20));
+        }
+    }
+
+    fn exit_status(&mut self) -> ExitStatus {
+        let deadline = Instant::now() + Duration::from_secs(15);
+        loop {
+            if let Some(status) = self.child.try_wait().unwrap() {
+                return status;
+            }
+            assert!(Instant::now() < deadline, "forge-ci did not stop");
+            thread::sleep(Duration::from_millis(20));
+        }
+    }
+}
+
+impl Drop for Hung {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+fn is_gone(pid: Pid) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while Instant::now() < deadline {
+        if test_kill_process(pid).is_err() {
+            return true;
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    false
+}
+
+#[test]
+fn an_evaluation_error_shows_before_the_evaluation_ends() {
+    let mut hung = Hung::start();
+
+    assert_eq!(hung.first_line(), "error: evaluating hung check");
+    assert!(hung.child.try_wait().unwrap().is_none());
+}
+
+#[test]
+fn an_interrupted_plan_stops_its_evaluation_and_dies_of_the_signal() {
+    let mut hung = Hung::start();
+    let evaluator = hung.evaluator();
+    hung.first_line();
+
+    kill_process(Pid::from_child(&hung.child), Signal::INT).unwrap();
+
+    assert_eq!(hung.exit_status().signal(), Some(2));
+    assert!(is_gone(evaluator), "the evaluation outlived forge-ci");
 }

@@ -30,6 +30,11 @@ impl<T> Default for Loaded<T> {
 
 #[must_use]
 pub fn json_files(dir: &Path) -> Vec<PathBuf> {
+    files_with(dir, "json")
+}
+
+#[must_use]
+pub fn files_with(dir: &Path, extension: &str) -> Vec<PathBuf> {
     let Ok(entries) = fs::read_dir(dir) else {
         return Vec::new();
     };
@@ -37,10 +42,7 @@ pub fn json_files(dir: &Path) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = entries
         .filter_map(Result::ok)
         .map(|entry| entry.path())
-        .filter(|path| {
-            path.extension()
-                .is_some_and(|extension| extension == "json")
-        })
+        .filter(|path| path.extension().is_some_and(|found| found == extension))
         .filter(|path| path.is_file())
         .collect();
     files.sort();

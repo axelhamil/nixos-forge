@@ -1,48 +1,18 @@
 use std::ffi::OsString;
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::time::Duration;
 
-use forge::system::{Commands, Invocation, Machine};
+use forge::system::{Commands, Invocation, Machine, Streams};
 
+use crate::jobs::EVALUATION_TIMEOUT;
 use crate::model::{REPRODUCIBILITY_HEADING, REPRODUCIBILITY_INTRO, Verdict};
 
 const USAGE: &str = "usage: reproducibility [<host>...]";
 const LOG_LINES: usize = 20;
 const DIFF_LINES: usize = 200;
-const EVALUATION_TIMEOUT: Duration = Duration::from_mins(90);
 const DIFFOSCOPE_TIMEOUT: Duration = Duration::from_mins(240);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Built {
-    pub succeeded: bool,
-    pub stdout: String,
-}
-
-pub trait Builds {
-    fn build(&self, invocation: &Invocation, log: &Path) -> io::Result<Built>;
-}
-
-impl Builds for Machine {
-    fn build(&self, invocation: &Invocation, log: &Path) -> io::Result<Built> {
-        let mut child = Command::new(&invocation.program)
-            .args(&invocation.args)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(File::create(log)?)
-            .spawn()?;
-        let mut stdout = Vec::new();
-        if let Some(mut pipe) = child.stdout.take() {
-            pipe.read_to_end(&mut stdout)?;
-        }
-        Ok(Built {
-            succeeded: child.wait()?.success(),
-            stdout: String::from_utf8_lossy(&stdout).into_owned(),
-        })
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 enum ReproducibilityError {
@@ -113,7 +83,7 @@ fn remove(path: &Path) {
 
 struct Checker<'a> {
     commands: &'a dyn Commands,
-    builds: &'a dyn Builds,
+    streams: &'a dyn Streams,
     work: PathBuf,
 }
 
@@ -127,13 +97,16 @@ impl Checker<'_> {
     fn check(&self, host: &str) -> Result<Checked, ReproducibilityError> {
         let installable = format!(".#nixosConfigurations.{host}.config.system.build.toplevel");
         let build_log = self.work.join("build.log");
+        let out_paths = self.work.join("out-paths");
         let built = self
-            .builds
-            .build(
+            .streams
+            .stream(
                 &Invocation::new(
                     "nix",
                     &["build", "--no-link", "--print-out-paths", &installable],
-                ),
+                )
+                .stdout_to(&out_paths)
+                .discard_output(),
                 &build_log,
             )
             .map_err(io_error("run nix build"))?;
@@ -144,7 +117,10 @@ impl Checker<'_> {
             ));
         }
 
-        let path = built.stdout.trim_end_matches('\n').to_owned();
+        let path = fs::read_to_string(&out_paths)
+            .map_err(io_error("read the output path of nix build"))?
+            .trim_end_matches('\n')
+            .to_owned();
         let check = PathBuf::from(format!("{path}.check"));
         remove(&check);
         if fs::symlink_metadata(&check).is_ok() {
@@ -153,8 +129,8 @@ impl Checker<'_> {
 
         let rebuild_log = self.work.join("rebuild.log");
         let rebuilt = self
-            .builds
-            .build(
+            .streams
+            .stream(
                 &Invocation::new(
                     "nix",
                     &[
@@ -164,7 +140,8 @@ impl Checker<'_> {
                         "--keep-failed",
                         &installable,
                     ],
-                ),
+                )
+                .discard_output(),
                 &rebuild_log,
             )
             .map_err(io_error("run nix build --rebuild"))?;
@@ -209,7 +186,7 @@ fn differs(host: &str, diff: &str) -> String {
 
 fn compare(
     commands: &dyn Commands,
-    builds: &dyn Builds,
+    streams: &dyn Streams,
     hosts: &[String],
     out: &mut dyn Write,
     err: &mut dyn Write,
@@ -217,7 +194,7 @@ fn compare(
     let work = tempfile::tempdir().map_err(io_error("create a temporary directory"))?;
     let checker = Checker {
         commands,
-        builds,
+        streams,
         work: work.path().to_owned(),
     };
 

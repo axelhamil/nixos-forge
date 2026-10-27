@@ -241,6 +241,7 @@ dependencies = [
  "fancy-regex",
  "forge",
  "insta",
+ "rustix",
  "serde",
  "serde_json",
  "tempfile",

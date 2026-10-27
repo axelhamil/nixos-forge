@@ -17,7 +17,8 @@ use super::{
     Streamed, Streams, space,
 };
 use crate::enroll::tpm2::Host;
-use crate::{plugins, process};
+use crate::plugins;
+use crate::process::{self, Stderr};
 
 pub struct Machine;
 
@@ -28,9 +29,7 @@ const UNLOCK_KEY_BYTES: usize = 48;
 impl Commands for Machine {
     fn run(&self, invocation: &Invocation) -> Answer {
         let answer = answer(invocation);
-        if invocation.output == Output::Shown {
-            eprint!("{}", answer.stderr);
-        }
+        process::die_if_stopping();
         answer
     }
 }
@@ -38,7 +37,13 @@ impl Commands for Machine {
 fn answer(invocation: &Invocation) -> Answer {
     let mut command = command(invocation);
     let timeout = invocation.timeout.unwrap_or(COMMAND_TIMEOUT);
-    let cannot_run = |error| Answer::failed(&format!("cannot run {}: {error}", invocation.program));
+    let failed = |message: &str| {
+        if invocation.output == Output::Shown {
+            eprint!("{message}");
+        }
+        Answer::failed(message)
+    };
+    let cannot_run = |error| failed(&format!("cannot run {}: {error}", invocation.program));
 
     match invocation.output {
         Output::Attached => match command.status() {
@@ -60,9 +65,20 @@ fn answer(invocation: &Invocation) -> Answer {
         },
         Output::Captured | Output::Shown => {
             let limit = invocation.output_limit.unwrap_or(process::OUTPUT_LIMIT);
-            match process::run_capped(&mut command, invocation.input.as_deref(), timeout, limit) {
+            let stderr = if invocation.output == Output::Shown {
+                Stderr::Shown
+            } else {
+                Stderr::Kept
+            };
+            match process::run_capped(
+                &mut command,
+                invocation.input.as_deref(),
+                timeout,
+                limit,
+                stderr,
+            ) {
                 Ok(Some(captured)) if captured.overflowed => {
-                    Answer::failed(&format!("printed more than {limit} bytes"))
+                    failed(&format!("printed more than {limit} bytes"))
                 }
                 Ok(Some(captured)) => Answer {
                     success: captured.status.success(),
@@ -70,7 +86,7 @@ fn answer(invocation: &Invocation) -> Answer {
                     stdout: String::from_utf8_lossy(&captured.stdout).into_owned(),
                     stderr: String::from_utf8_lossy(&captured.stderr).into_owned(),
                 },
-                Ok(None) => Answer::failed("timed out"),
+                Ok(None) => failed("timed out"),
                 Err(error) => cannot_run(error),
             }
         }
@@ -90,6 +106,7 @@ impl Streams for Machine {
         let mut child = command.spawn()?;
         drop(command);
 
+        let shown = invocation.output != Output::Discarded;
         let mut stdout = io::stdout();
         let mut logged = Ok(());
         let mut buffer = [0; 8192];
@@ -101,15 +118,16 @@ impl Streams for Machine {
                 Err(error) => return Err(error),
             };
             let chunk = &buffer[..read];
-            let _ = stdout.write_all(chunk).and_then(|()| stdout.flush());
+            if shown {
+                let _ = stdout.write_all(chunk).and_then(|()| stdout.flush());
+            }
             if logged.is_ok() {
                 logged = file.write_all(chunk);
             }
         }
-        Ok(Streamed {
-            succeeded: child.wait()?.success(),
-            logged,
-        })
+        let succeeded = child.wait()?.success();
+        process::die_if_stopping();
+        Ok(Streamed { succeeded, logged })
     }
 }
 

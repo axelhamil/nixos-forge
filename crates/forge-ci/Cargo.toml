@@ -17,6 +17,7 @@ thiserror = "2"
 
 [dev-dependencies]
 insta = "1"
+rustix = { version = "1", features = ["process"] }
 
 [lints]
 workspace = true

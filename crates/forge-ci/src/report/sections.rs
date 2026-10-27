@@ -4,7 +4,7 @@ use serde_json::{Map, Number, Value};
 
 use super::Inputs;
 use super::causes::{Causes, Diagnosis};
-use crate::model::{CACHED, COMPILES_A_KERNEL, key};
+use crate::model::{self, CACHED, COMPILES_A_KERNEL, jq_number, key, one_decimal};
 
 const READY: &str = "Nothing to fix: this commit is ready for the machines.";
 const TO_FIX: &str = "Fix what is listed below and push again: CI runs on every push.";
@@ -66,59 +66,8 @@ fn outcome(result: &Map<String, Value>) -> Option<String> {
     }
 }
 
-fn jq_number(value: f64) -> String {
-    if value == 0.0 {
-        return if value.is_sign_negative() { "-0" } else { "0" }.to_owned();
-    }
-
-    let scientific = format!("{:e}", value.abs());
-    let sign = if value < 0.0 { "-" } else { "" };
-    let (mantissa, exponent) = scientific.split_once('e').unwrap_or((&scientific, "0"));
-    let digits = mantissa.replace('.', "");
-    let exponent: i64 = exponent.parse().unwrap_or_default();
-    let point = exponent + 1;
-    let count = i64::try_from(digits.len()).unwrap_or(i64::MAX);
-    if point <= -4 || point > count + 15 {
-        let (first, rest) = digits.split_at(1);
-        let fraction = if rest.is_empty() {
-            String::new()
-        } else {
-            format!(".{rest}")
-        };
-        let exponent_sign = if exponent < 0 { '-' } else { '+' };
-        return format!(
-            "{sign}{first}{fraction}e{exponent_sign}{:02}",
-            exponent.unsigned_abs()
-        );
-    }
-
-    if point <= 0 {
-        let zeros = "0".repeat(usize::try_from(-point).unwrap_or_default());
-        return format!("{sign}0.{zeros}{digits}");
-    }
-
-    let point = usize::try_from(point).unwrap_or_default();
-    if point >= digits.len() {
-        return format!("{sign}{digits}{}", "0".repeat(point - digits.len()));
-    }
-
-    format!("{sign}{}.{}", &digits[..point], &digits[point..])
-}
-
-fn one_decimal(value: f64) -> String {
-    let rounded = jq_number((value * 10.0).round() / 10.0);
-    if rounded.contains('.') {
-        return rounded;
-    }
-
-    format!("{rounded}.0")
-}
-
 fn seconds(value: Option<f64>) -> String {
-    value.map_or_else(
-        || "n/a".to_owned(),
-        |value| format!("{} s", one_decimal(value)),
-    )
+    value.map_or_else(|| "n/a".to_owned(), model::seconds)
 }
 
 fn plural<'a>(count: usize, one: &'a str, many: &'a str) -> &'a str {

@@ -74,7 +74,7 @@ A comment over 64 KiB is cut and points to the run summary, which holds up to 1 
 - **Performance against the base**, on a PR ([below](#performance-against-the-base)).
 - **Screenshots**: every check whose VM test took a screenshot (`machine.screenshot`) lists its images and the artifact that holds them, `screenshot-<system>-<check>`, kept 7 days. They are evidence to look at, never compared.
 - **What went wrong**, for each failed check:
-  - the likely cause and what to do, read from `modules/flake/ci/causes.tsv` (the first row whose pattern matches a line of the excerpt wins). A substitute Nix could not download from the binary cache is reported as `the binary cache could not be reached`, to rerun with nothing to fix; CI never retries it by itself, and a failing test or builder in the same excerpt keeps its own cause;
+  - the likely cause and what to do, read from `crates/forge-ci/src/report/causes.tsv` (the first row whose pattern matches a line of the excerpt wins). A substitute Nix could not download from the binary cache is reported as `the binary cache could not be reached`, to rerun with nothing to fix; CI never retries it by itself, and a failing test or builder in the same excerpt keeps its own cause;
   - the excerpt of the log: the last 20 distinct lines that name an error, each with the two lines before it;
   - a link to the full log.
 - **Package changes per machine**, folded, on a PR: the nvd diff of each host against the base branch.

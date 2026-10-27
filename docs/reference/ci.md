@@ -95,16 +95,23 @@ The Cargo workspace `crates/` is built with [crane](https://github.com/ipetkov/c
 
 | Check | When | What it proves |
 |---|---|---|
-| `ci-plan` | always, on `x86_64-linux` | with stand-ins for `nix` and `nix-eval-jobs`, `ci-plan` builds every check the binary cache lacks, skips a check that compiles its system's host kernel in a pull request only, with a 240 minutes timeout on a push, never skips a check with a `baseInput` as cached, builds a system's closure only when no uncached check of it compiles its kernel, prints `checks=[]` when everything is cached, and stops naming the check that does not evaluate or is missing from the evaluation |
-| `ci-promote` | always, on `x86_64-linux` | `deploy/<host>` moves only when every check of that host passed, never backwards, and with `DEPLOY_SIGNING_KEY` only to a promotion commit signed by that key; a tip the key did not sign is replaced with a warning |
 | `ci-pin-kernels` | always, on `x86_64-linux` | with stand-ins for `nix` and `cachix`, `ci-pin-kernels` pins each kernel output the cache holds under its name with `--keep-revisions 3`, reports and skips one the cache lacks, still tries every pin after one fails and then fails, and stops before any call without `CACHIX_AUTH_TOKEN` |
 | `ci-mirror` | always, on `x86_64-linux` | `main` and every `deploy/<host>` reach the mirror and nothing else does, a deploy branch moved back in the fork follows on the mirror, and the `MIRROR_TOKEN` header is sent |
-| `ci-report` | always, on `x86_64-linux` | `ci-build` builds a check once and keeps a clean log excerpt of a failure; `ci-report` turns sample runs into the right verdict, tables, failure causes, boot times and performance sections, with the hosts left out of the performance comparison and their reason |
-| `ci-badges` | always, on `x86_64-linux` | `ci-badges` turns sample runs into the right badges, a publish keeps the badges it does not write, a read prints a published file, and both stop when the `badges` branch cannot be fetched |
-| `ci-flaky` | always, on `x86_64-linux` | with stand-ins for `nix` and a local `origin`, `ci-flaky` records every run of a check without stopping at a failure, counts a rebuild whose output differs as a pass, never counts the first build and calls `nix build --rebuild` only once the check is realised; `ci-flaky-plan` plans nothing and without evaluating the flake on a tree already measured green, skips a derivation recorded with 5 passing runs, measures a failing or missing one again, measures everything when `flaky.json` is missing or malformed, and stops, saying so, when the `badges` branch cannot be fetched; `ci-flaky-report` lists every check, the skipped ones as not rerun, fails on a check under 100 % or without result, and records the tree only when every check passed |
-| `reproducibility` | always, on `x86_64-linux` | with a stand-in for `nix`, `reproducibility` reports an identical rebuild, shows the diffoscope lines of a differing one without failing, and fails only when a system does not build |
 | `try-install` | always, on `x86_64-linux` | `nix run .#try-install` refuses a device, an unknown host or a host without an installer before touching anything |
 | `perf-regression` | on a PR only, in the `perf` job, outside `ci-ok` and `ci.matrix`, while an `x86_64-linux` host boots in a VM here (forks included) | boots the base's and this version's VM of each host that also boots in a VM on the base, in turn, 5 times each, runs CPU, memory and disk benchmarks after each boot (`sysbench`, `fio`, from this version's `pkgs` on both sides), and writes `perf.json`, listing the other hosts as not measured (`absent` or `no-vm`); it fails only when a boot cannot be measured, never on a regression ([the report](../how-to/ci.md#performance-against-the-base)) |
+
+### What `rust-tests` proves about the CI scripts
+
+The CI scripts above are the `forge-ci` binary (`crates/forge-ci`), each wrapped by its `nix run .#<script>` package. Its Rust tests, run by `rust-tests` with stand-ins for `nix`, `nix-eval-jobs` and `diffoscope` and real git repositories, prove:
+
+| Script | What it proves |
+|---|---|
+| `ci-plan` | with stand-ins for `nix` and `nix-eval-jobs`, `ci-plan` builds every check the binary cache lacks, skips a check that compiles its system's host kernel in a pull request only, with a 240 minutes timeout on a push, never skips a check with a `baseInput` as cached, builds a system's closure only when no uncached check of it compiles its kernel, prints `checks=[]` when everything is cached, and stops naming the check that does not evaluate or is missing from the evaluation |
+| `ci-promote` | `deploy/<host>` moves only when every check of that host passed, never backwards, and with `DEPLOY_SIGNING_KEY` only to a promotion commit signed by that key; a tip the key did not sign is replaced with a warning |
+| `ci-report` | `ci-build` builds a check once and keeps a clean log excerpt of a failure; `ci-report` turns sample runs into the right verdict, tables, failure causes, boot times and performance sections, with the hosts left out of the performance comparison and their reason |
+| `ci-badges` | `ci-badges` turns sample runs into the right badges, a publish keeps the badges it does not write, a read prints a published file, and both stop when the `badges` branch cannot be fetched |
+| `ci-flaky` | with stand-ins for `nix` and a local `origin`, `ci-flaky` records every run of a check without stopping at a failure, counts a rebuild whose output differs as a pass, never counts the first build and calls `nix build --rebuild` only once the check is realised; `ci-flaky-plan` plans nothing and without evaluating the flake on a tree already measured green, skips a derivation recorded with 5 passing runs, measures a failing or missing one again, measures everything when `flaky.json` is missing or malformed, and stops, saying so, when the `badges` branch cannot be fetched; `ci-flaky-report` lists every check, the skipped ones as not rerun, fails on a check under 100 % or without result, and records the tree only when every check passed |
+| `reproducibility` | with a stand-in for `nix`, `reproducibility` reports an identical rebuild, shows the diffoscope lines of a differing one without failing, and fails only when a system does not build |
 
 The checks that only make sense upstream, on its example hosts and its upgrade path (`feature-migration`, `init`, `example-hosts`), are in [maintenance/ci.md](../maintenance/ci.md). <!-- docs-check: allow example -->
 
@@ -134,7 +141,7 @@ A night with no change costs one plan job of about 2 minutes. A night after a lo
 
 ## Running the CI scripts locally
 
-The matrix and scripts live in Nix (`modules/flake/ci/`), so they run the same on your machine.
+The matrix lives in Nix (`modules/flake/ci/`) and the scripts in the `forge-ci` binary (`crates/forge-ci`), wrapped by the packages of `modules/flake/ci/`, so they run the same on your machine.
 
 | Command | What it does |
 |---|---|

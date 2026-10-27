@@ -36,6 +36,15 @@ pub fn run_with_input(
     input: Option<&[u8]>,
     timeout: Duration,
 ) -> io::Result<Option<Captured>> {
+    run_capped(command, input, timeout, OUTPUT_LIMIT)
+}
+
+pub fn run_capped(
+    command: &mut Command,
+    input: Option<&[u8]>,
+    timeout: Duration,
+    limit: u64,
+) -> io::Result<Option<Captured>> {
     let deadline = Instant::now() + timeout;
     let stdin = if input.is_some() {
         Stdio::piped()
@@ -50,8 +59,8 @@ pub fn run_with_input(
         .spawn()?;
     write_input(child.stdin.take(), input);
 
-    let stdout = read_capped(child.stdout.take());
-    let stderr = read_capped(child.stderr.take());
+    let stdout = read_capped(child.stdout.take(), limit);
+    let stderr = read_capped(child.stderr.take(), limit);
 
     let Some(status) = finish(&mut child, deadline)? else {
         return Ok(None);
@@ -106,15 +115,15 @@ trait Pipe: Read + Send + 'static {}
 impl Pipe for ChildStdout {}
 impl Pipe for ChildStderr {}
 
-fn read_capped(pipe: Option<impl Pipe>) -> Reader {
+fn read_capped(pipe: Option<impl Pipe>, limit: u64) -> Reader {
     let (sender, receiver) = mpsc::channel();
     thread::spawn(move || {
-        let _ = sender.send(read_up_to_limit(pipe));
+        let _ = sender.send(read_up_to_limit(pipe, limit));
     });
     receiver
 }
 
-fn read_up_to_limit(pipe: Option<impl Pipe>) -> io::Result<Output> {
+fn read_up_to_limit(pipe: Option<impl Pipe>, limit: u64) -> io::Result<Output> {
     let mut bytes = Vec::new();
     let Some(mut pipe) = pipe else {
         return Ok(Output {
@@ -122,7 +131,7 @@ fn read_up_to_limit(pipe: Option<impl Pipe>) -> io::Result<Output> {
             overflowed: false,
         });
     };
-    pipe.by_ref().take(OUTPUT_LIMIT).read_to_end(&mut bytes)?;
+    pipe.by_ref().take(limit).read_to_end(&mut bytes)?;
     let overflowed = pipe.read(&mut [0; 1])? > 0;
     Ok(Output { bytes, overflowed })
 }
@@ -232,6 +241,21 @@ mod tests {
         .unwrap();
 
         assert_eq!(captured.stdout, b"got secret\n");
+    }
+
+    #[test]
+    fn an_endless_output_is_cut_at_the_limit_it_is_given() {
+        let captured = run_capped(
+            &mut Command::new("yes"),
+            None,
+            Duration::from_secs(10),
+            3 * 1024 * 1024,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(captured.overflowed);
+        assert_eq!(captured.stdout.len(), 3 * 1024 * 1024);
     }
 
     #[test]

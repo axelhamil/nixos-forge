@@ -89,7 +89,7 @@ in
   };
 
   perSystem =
-    { pkgs, ... }:
+    { pkgs, self', ... }:
     let
       flakyHistory = import ./_ci-flaky-history.nix {
         inherit pkgs;
@@ -106,14 +106,23 @@ in
         text = builtins.readFile ./closure-diff.sh;
       };
 
-      packages.ci-plan = import ./_ci-plan.nix {
-        inherit pkgs;
-        inherit (pkgs) nix-eval-jobs;
+      packages.ci-plan = pkgs.writeShellApplication {
+        name = "ci-plan";
+        runtimeInputs = [
+          self'.packages.forge-ci
+          pkgs.nix
+          pkgs.nix-eval-jobs
+        ];
+        text = ''exec forge-ci plan "$@"'';
       };
 
-      packages.ci-build = import ./_ci-build.nix {
-        inherit pkgs;
-        inherit (pkgs) nix;
+      packages.ci-build = pkgs.writeShellApplication {
+        name = "ci-build";
+        runtimeInputs = [
+          self'.packages.forge-ci
+          pkgs.nix
+        ];
+        text = ''exec forge-ci build "$@"'';
       };
 
       packages.ci-report = import ./_ci-report.nix { inherit pkgs; };

@@ -1,0 +1,21 @@
+hello> unpacking source archive /nix/store/9c4ma5h6dd6n6m6xyjzdqw3jy7mz2x1a-hello-1.0.tar.gz
+hello> building
+hello> build flags: SHELL=/nix/store/a1s263pmsl0d6l0mbbyasn4c7dmrhh1x-bash-5.2p37/bin/bash
+hello> gcc -O2 -c main.c -o main.o
+hello> main.c: In function 'main':
+hello> main.c:3:1: error: expected ';' before '}' token
+hello>     3 | }
+hello>       | ^
+hello> make: *** [Makefile:2: main.o] Error 1
+error: builder for '/nix/store/0n2l6x8kq0m3bq4h0vw3hjv5yk8nq1ac-hello-1.0.drv' failed with exit code 2;
+       last 4 log lines:
+       > main.c:3:1: error: expected ';' before '}' token
+       >     3 | }
+       >       | ^
+       > make: *** [Makefile:2: main.o] Error 1
+       For full logs, run:
+         nix log /nix/store/0n2l6x8kq0m3bq4h0vw3hjv5yk8nq1ac-hello-1.0.drv
+error: Cannot build '/nix/store/5xq2m1b9v4g8hz0p7d6a3c1kq0w9s8r2-nixos-system-example-25.11.drv'.
+       Reason: 1 dependency failed.
+       Output paths:
+         /nix/store/j4w7m2x9q1c8v5b3n6a0z2k4l7p9r1s3-nixos-system-example-25.11

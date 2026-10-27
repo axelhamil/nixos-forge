@@ -1,6 +1,7 @@
 pub mod badges;
 pub mod badges_branch;
 pub mod build;
+pub mod excerpt;
 pub mod flaky;
 pub mod jobs;
 pub mod model;

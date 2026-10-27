@@ -1,0 +1,10 @@
+these 2 derivations will be built:
+  /nix/store/3k2l9m8n7b6v5c4x3z2a1s0d9f8g7h6j-source.drv
+  /nix/store/5xq2m1b9v4g8hz0p7d6a3c1kq0w9s8r2-nixos-system-example-25.11.drv
+building '/nix/store/3k2l9m8n7b6v5c4x3z2a1s0d9f8g7h6j-source.drv'...
+trying https://github.com/owner/tool/archive/v1.2.tar.gz
+error: hash mismatch in fixed-output derivation '/nix/store/3k2l9m8n7b6v5c4x3z2a1s0d9f8g7h6j-source.drv':
+         specified: sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+            got:    sha256-4kYp2Qm8fN1vXb7sL0cR9tH3jW6eZ5aD1gK8uO2iP4E=
+error: Cannot build '/nix/store/5xq2m1b9v4g8hz0p7d6a3c1kq0w9s8r2-nixos-system-example-25.11.drv'.
+       Reason: 1 dependency failed.

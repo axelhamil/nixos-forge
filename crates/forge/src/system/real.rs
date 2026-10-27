@@ -59,11 +59,11 @@ fn answer(invocation: &Invocation) -> Answer {
             Err(error) => cannot_run(error),
         },
         Output::Captured | Output::Shown => {
-            match process::run_with_input(&mut command, invocation.input.as_deref(), timeout) {
-                Ok(Some(captured)) if captured.overflowed => Answer::failed(&format!(
-                    "printed more than {} bytes",
-                    process::OUTPUT_LIMIT
-                )),
+            let limit = invocation.output_limit.unwrap_or(process::OUTPUT_LIMIT);
+            match process::run_capped(&mut command, invocation.input.as_deref(), timeout, limit) {
+                Ok(Some(captured)) if captured.overflowed => {
+                    Answer::failed(&format!("printed more than {limit} bytes"))
+                }
                 Ok(Some(captured)) => Answer {
                     success: captured.status.success(),
                     code: captured.status.code(),
@@ -81,11 +81,12 @@ impl Streams for Machine {
     fn stream(&self, invocation: &Invocation, log: &Path) -> io::Result<Streamed> {
         let mut file = File::create(log)?;
         let (mut reader, writer) = io::pipe()?;
+        let stdout = match &invocation.stdout_file {
+            Some(path) => Stdio::from(File::create(path)?),
+            None => Stdio::from(writer.try_clone()?),
+        };
         let mut command = command(invocation);
-        command
-            .stdin(Stdio::null())
-            .stdout(writer.try_clone()?)
-            .stderr(writer);
+        command.stdin(Stdio::null()).stdout(stdout).stderr(writer);
         let mut child = command.spawn()?;
         drop(command);
 
@@ -347,6 +348,37 @@ mod tests {
         assert!(!streamed.succeeded);
         assert!(streamed.logged.is_ok());
         assert_eq!(fs::read_to_string(&log).unwrap(), "out\nerr\n");
+    }
+
+    #[test]
+    fn a_stream_sends_its_stdout_to_a_file_when_asked_and_logs_the_rest() {
+        let dir = tempfile::tempdir().unwrap();
+        let log = dir.path().join("build.log");
+        let out_paths = dir.path().join("out-paths");
+
+        let streamed = Machine
+            .stream(
+                &Invocation::new("sh", &["-c", "echo out; echo err >&2"]).stdout_to(&out_paths),
+                &log,
+            )
+            .unwrap();
+
+        assert!(streamed.succeeded);
+        assert_eq!(fs::read_to_string(&log).unwrap(), "err\n");
+        assert_eq!(fs::read_to_string(&out_paths).unwrap(), "out\n");
+    }
+
+    #[test]
+    fn a_raised_output_limit_keeps_an_output_the_default_one_refuses() {
+        let long = Invocation::new("head", &["-c", "1100000", "/dev/zero"]);
+
+        let refused = Machine.run(&long);
+        let kept = Machine.run(&long.clone().output_limit(2 * 1024 * 1024));
+
+        assert!(!refused.success);
+        assert_eq!(refused.stderr, "printed more than 1048576 bytes");
+        assert!(kept.success);
+        assert_eq!(kept.stdout.len(), 1_100_000);
     }
 
     #[test]

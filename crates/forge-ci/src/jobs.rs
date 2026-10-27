@@ -11,6 +11,8 @@ pub const EVALUATION_TIMEOUT: Duration = Duration::from_mins(90);
 
 const MAX_MEMORY_SIZE: &str = "3072";
 
+pub const EVALUATION_OUTPUT_LIMIT: u64 = 256 * 1024 * 1024;
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 pub struct Evaluated {
     pub attr: String,
@@ -90,6 +92,7 @@ pub fn evaluate(
     args.extend(["--workers", &workers, "--max-memory-size", MAX_MEMORY_SIZE]);
     let invocation = Invocation::new("nix-eval-jobs", &args)
         .timeout(EVALUATION_TIMEOUT)
+        .output_limit(EVALUATION_OUTPUT_LIMIT)
         .loud();
     let stdout = output(commands, &invocation)?;
 
@@ -217,6 +220,12 @@ mod tests {
                 "nix-eval-jobs --flake .#checks --force-recurse --check-cache-status --workers 4 --max-memory-size 3072",
                 "nix-eval-jobs --flake .#checks --force-recurse --workers 2 --max-memory-size 3072",
             ]
+        );
+        assert!(
+            nix.calls
+                .borrow()
+                .iter()
+                .all(|call| call.output_limit == Some(EVALUATION_OUTPUT_LIMIT))
         );
         assert_eq!(evaluated.len(), 2);
         assert!(!evaluated[0].is_cached);

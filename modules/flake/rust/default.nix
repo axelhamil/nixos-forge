@@ -33,8 +33,20 @@ in
         commonArgs
         // {
           inherit cargoArtifacts;
+          cargoExtraArgs = "--locked -p forge";
           doCheck = false;
           meta.mainProgram = "forge";
+        }
+      );
+
+      packages.forge-ci = craneLib.buildPackage (
+        commonArgs
+        // {
+          inherit cargoArtifacts;
+          pname = "forge-ci";
+          cargoExtraArgs = "--locked -p forge-ci";
+          doCheck = false;
+          meta.mainProgram = "forge-ci";
         }
       );
 

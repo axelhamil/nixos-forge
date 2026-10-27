@@ -1,0 +1,63 @@
+---
+source: forge-ci/tests/report.rs
+expression: red
+---
+**1 check failed: example-server would not get this change.**
+
+Fix what is listed below and push again: CI runs on every push.
+
+### example
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-toplevel` | the system builds | passed |
+| `example-boots` | it starts and every user can log in | passed |
+| `example-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-wipe-home` | with wipe-home added, it installs and starts each boot with an empty /home | passed |
+
+### example-pi
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-pi-sd-image` | the SD card image builds | passed |
+
+### example-server
+
+| Check | What it proves | Result |
+|---|---|---|
+| `example-server-toplevel` | the system builds | passed |
+| `example-server-boots` | it starts and every user can log in | failed |
+| `example-server-disk` | it installs on an encrypted disk, wipes / at boot and takes a snapshot | passed |
+| `example-server-installer` | the USB installer installs it | passed |
+
+<details>
+<summary>Module checks: 3 passed</summary>
+
+| Check | What it proves | Result |
+|---|---|---|
+| `feature-ssh` | ssh works in a VM | passed |
+| `init` | `nix run .#init` writes a first host and person whose system evaluates | passed |
+| `treefmt` | the code is formatted | passed |
+
+</details>
+
+### What went wrong
+
+#### `example-server-boots` (x86_64-linux)
+
+This check proves that it starts and every user can log in.
+
+- Cause: the system started but a test found it behaving wrong.
+- What to do: read the failing line, then reproduce with `nix build -L .#checks.x86_64-linux.example-server-boots`.
+
+```
+booted_machine # qemu-system-x86_64: terminating on signal 15 from pid 39 (/nix/store/lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7/bin/python3.14)
+(finished: cleanup, in 0.02 seconds)
+Traceback (most recent call last):
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 150, in <module>
+AssertionError: doctor misses a file written to /
+error: Cannot build '/nix/store/a8mc6k1b06kh5k6k5w4y5qa7jqp2gd-vm-test-run-disko-example-server-disko.drv'.
+```
+
+[Open the full log](https://github.com/owner/repo/actions/runs/42)

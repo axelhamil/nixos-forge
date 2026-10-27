@@ -8,6 +8,7 @@ publish.workspace = true
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+fancy-regex = "0.19"
 forge = { path = "../forge" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

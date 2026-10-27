@@ -1,0 +1,12 @@
+---
+source: forge-ci/tests/report.rs
+expression: "lines[lines.len() - 8..].join(\"\\n\")"
+---
+[U.] package-2136: 1.0 -> 2.0
+[U.] package-2137: 1.0 -> 2.0
+[U.] package-2138: 1.0 -> 2.0
+[U.] package-2139: 1.0 -> 2.0
+```
+</details>
+
+The report is too long for a comment: read it in full in the [run summary](https://github.com/owner/repo/actions/runs/42).

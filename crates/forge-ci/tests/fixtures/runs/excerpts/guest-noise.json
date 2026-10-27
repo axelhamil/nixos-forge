@@ -1,0 +1,4 @@
+[
+  "machine # [    8.0] dhcpcd[612]: eth0: DHCPv6 solicit timed out",
+  "AssertionError: the greeter never showed"
+]

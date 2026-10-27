@@ -1,5 +1,6 @@
 {
   pkgs,
+  forge-ci,
   nix,
   nix-eval-jobs,
 }:
@@ -8,7 +9,7 @@ let
   history = pkgs.writeShellApplication {
     name = "flaky-history";
     runtimeInputs = [
-      (import ./_ci-badges.nix { inherit pkgs; })
+      (import ./_ci-badges.nix { inherit pkgs forge-ci; })
       pkgs.jq
     ];
     text = builtins.readFile ./flaky-history.sh;

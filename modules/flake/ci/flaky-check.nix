@@ -2,7 +2,12 @@
 
 {
   perSystem =
-    { pkgs, system, ... }:
+    {
+      pkgs,
+      self',
+      system,
+      ...
+    }:
     let
       fakeNix = pkgs.writeShellApplication {
         name = "nix";
@@ -26,6 +31,7 @@
 
       flakyHistory = import ./_ci-flaky-history.nix {
         inherit pkgs;
+        inherit (self'.packages) forge-ci;
         nix = fakeNix;
         nix-eval-jobs = fakeEvalJobs;
       };
@@ -43,7 +49,7 @@
           CI_FLAKY = lib.getExe ciFlaky;
           CI_FLAKY_PLAN = lib.getExe flakyHistory.plan;
           CI_FLAKY_REPORT = lib.getExe flakyHistory.report;
-          CI_BADGES = lib.getExe (import ./_ci-badges.nix { inherit pkgs; });
+          CI_BADGES = lib.getExe self'.packages.ci-badges;
         };
         excludeShellChecks = [ "SC2016" ];
         text = builtins.readFile ./flaky-test.sh;

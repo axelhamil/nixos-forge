@@ -1,10 +1,13 @@
+mod common;
+
 use std::env;
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::{PermissionsExt, symlink};
+use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+use common::{find_program, sandboxed, write_executable};
 use tempfile::TempDir;
 
 const BRANCH: &str = "chore/sync-upstream-v0.2.0";
@@ -30,7 +33,7 @@ impl World {
         };
         fs::create_dir_all(world.home()).unwrap();
         fs::create_dir_all(world.bin()).unwrap();
-        symlink(real_git(), world.bin().join("git")).unwrap();
+        symlink(find_program("git"), world.bin().join("git")).unwrap();
         fs::write(
             world.home().join(".gitconfig"),
             "[init]\n\tdefaultBranch = main\n[advice]\n\tdetachedHead = false\n[user]\n\tname = test\n\temail = test@example.com\n",
@@ -52,14 +55,7 @@ impl World {
     }
 
     fn command(&self, program: &Path, dir: &Path) -> Command {
-        let mut command = Command::new(program);
-        command
-            .current_dir(dir)
-            .env_clear()
-            .env("PATH", self.bin())
-            .env("HOME", self.home())
-            .env("GIT_CONFIG_NOSYSTEM", "1");
-        command
+        sandboxed(program, dir, &self.bin(), &self.home())
     }
 
     fn git_in(&self, dir: &Path, args: &[&str]) -> (bool, String) {
@@ -224,13 +220,6 @@ impl World {
         assert!(!self.has_branch(fork), "{what} left {BRANCH} behind");
         assert!(!self.on_origin(name), "{what} pushed {BRANCH}");
     }
-}
-
-fn real_git() -> PathBuf {
-    env::split_paths(&env::var_os("PATH").unwrap())
-        .map(|dir| dir.join("git"))
-        .find(|path| path.is_file())
-        .unwrap()
 }
 
 fn lines(text: &str) -> Vec<&str> {
@@ -444,15 +433,13 @@ fn in_github_actions_the_merge_is_made_by_the_bot_and_gh_opens_the_pull_request(
     let fork = world.fork("bot");
     let seen = world.root().join("gh-args");
     let gh = world.bin().join("gh");
-    fs::write(
+    write_executable(
         &gh,
-        format!(
+        &format!(
             "#!/bin/sh\n[ \"$1\" = auth ] && exit 0\nprintf '%s\\n' \"$@\" > {}\n",
             seen.display()
         ),
-    )
-    .unwrap();
-    fs::set_permissions(&gh, fs::Permissions::from_mode(0o755)).unwrap();
+    );
 
     let run = world.upstream(&fork, &["--yes", &world.starter], "", true);
 

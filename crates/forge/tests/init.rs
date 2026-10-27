@@ -1,9 +1,14 @@
+mod common;
+
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
+use common::{find_program, sandboxed};
 use fancy_regex::Regex;
 use tempfile::TempDir;
 
@@ -15,14 +20,6 @@ struct Fork {
     home: PathBuf,
     runtime: PathBuf,
     bin: PathBuf,
-}
-
-fn find_program(name: &str) -> PathBuf {
-    let path = env::var_os("PATH").unwrap_or_default();
-    env::split_paths(&path)
-        .map(|dir| dir.join(name))
-        .find(|candidate| candidate.is_file())
-        .unwrap_or_else(|| panic!("{name} is not on PATH"))
 }
 
 fn copy_tree(from: &Path, to: &Path) {
@@ -40,8 +37,12 @@ fn copy_tree(from: &Path, to: &Path) {
 
 impl Fork {
     fn new() -> Self {
+        Self::named(OsStr::new("fork"))
+    }
+
+    fn named(name: &OsStr) -> Self {
         let dir = tempfile::tempdir().unwrap();
-        let root = dir.path().join("fork");
+        let root = dir.path().join(name);
         let home = dir.path().join("home");
         let runtime = dir.path().join("runtime");
         let bin = dir.path().join("bin");
@@ -82,16 +83,11 @@ impl Fork {
     }
 
     fn command(&self, program: &Path) -> Command {
-        let mut command = Command::new(program);
+        let mut command = sandboxed(program, &self.root, &self.bin, &self.home);
         command
-            .current_dir(&self.root)
-            .env_clear()
-            .env("PATH", &self.bin)
-            .env("HOME", &self.home)
             .env("TMPDIR", self.dir.path())
             .env("XDG_RUNTIME_DIR", &self.runtime)
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .env("GIT_CONFIG_NOSYSTEM", "1")
             .stdin(Stdio::null());
         command
     }
@@ -659,6 +655,19 @@ fn the_repo_of_a_github_fork_is_named_in_the_secret_command() {
         printed.lines().any(|line| line
             .starts_with("  gh secret set DEPLOY_SIGNING_KEY --env deploy --repo bob/my-nixos < ")),
         "{printed}"
+    );
+}
+
+#[test]
+fn a_checkout_whose_path_is_not_utf8_is_initialised() {
+    let fork = Fork::named(OsStr::from_bytes(b"fork-\xff"));
+
+    fork.initialised(&LAPTOP);
+
+    assert!(fork.exists("modules/hosts/my-box/default.nix"));
+    assert!(
+        fork.status()
+            .contains(&"A  modules/hosts/my-box/default.nix".to_owned())
     );
 }
 

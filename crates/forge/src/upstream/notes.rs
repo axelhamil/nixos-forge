@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use fancy_regex::Regex;
 
-use crate::system::remote::{UPSTREAM_REPOSITORY, github_repository};
+use crate::system::remote::{GITHUB, UPSTREAM_REPOSITORY, github_repository};
 
 const GITHUB_SHORTHAND: &str = r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$";
 const BREAKING_LINE: &str = r"^(BREAKING[ -]CHANGE:|[a-z]+(\([^)]*\))?!:)";
@@ -11,7 +11,7 @@ const PEELED_SUFFIX: &str = "^{}";
 
 #[must_use]
 pub fn starter() -> String {
-    format!("https://github.com/{UPSTREAM_REPOSITORY}.git")
+    format!("{GITHUB}{UPSTREAM_REPOSITORY}.git")
 }
 
 pub(super) fn matches(pattern: &str, text: &str) -> bool {
@@ -21,14 +21,14 @@ pub(super) fn matches(pattern: &str, text: &str) -> bool {
 #[must_use]
 pub fn source_url(source: &str) -> String {
     if matches(GITHUB_SHORTHAND, source) {
-        return format!("https://github.com/{source}.git");
+        return format!("{GITHUB}{source}.git");
     }
     source.to_owned()
 }
 
 #[must_use]
 pub fn releases_page(url: &str) -> Option<String> {
-    github_repository(url).map(|repository| format!("https://github.com/{repository}/releases/tag"))
+    github_repository(url).map(|repository| format!("{GITHUB}{repository}/releases/tag"))
 }
 
 #[must_use]
@@ -143,25 +143,6 @@ pub fn merged_release(url: &str, tag: &str) -> String {
         Some(releases) => format!("[{tag}]({releases}/{tag})"),
         None => url.to_owned(),
     }
-}
-
-#[must_use]
-pub fn repository_of(origin: &str) -> String {
-    if let Some(repository) = github_repository(origin) {
-        return repository;
-    }
-    let trimmed = origin.strip_suffix('/').unwrap_or(origin);
-    let trimmed = trimmed.strip_suffix(".git").unwrap_or(trimmed);
-    let after_last = |text: &str| -> String {
-        text.rsplit_once(['/', ':'])
-            .map_or(text, |(_, last)| last)
-            .to_owned()
-    };
-    let name = after_last(trimmed);
-    let rest = trimmed
-        .rsplit_once(['/', ':'])
-        .map_or(trimmed, |(rest, _)| rest);
-    format!("{}/{name}", after_last(rest))
 }
 
 #[cfg(test)]
@@ -289,20 +270,6 @@ Changelog:
 No CHANGELOG.md entry.
 ```
 "
-        );
-    }
-
-    #[test]
-    fn the_repository_of_origin_is_its_last_two_segments() {
-        assert_eq!(repository_of("git@github.com:bob/nixos.git"), "bob/nixos");
-        assert_eq!(repository_of("https://github.com/bob/nixos/"), "bob/nixos");
-        assert_eq!(
-            repository_of("file:///tmp/run/synced-origin.git"),
-            "run/synced-origin"
-        );
-        assert_eq!(
-            repository_of("git@git.example.org:team/nixos.git"),
-            "team/nixos"
         );
     }
 }

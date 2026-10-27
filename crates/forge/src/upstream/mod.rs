@@ -54,13 +54,14 @@ pub fn parse(args: &[OsString]) -> Result<Parsed, ParseError> {
             "-h" | "--help" => return Ok(Parsed::Help),
             _ if arg.starts_with('-') => return Err(ParseError::Unknown(arg)),
             _ => {
-                if let Some(first) = options.source {
+                if let Some(first) = options.source.filter(|first| !first.is_empty()) {
                     return Err(ParseError::TwoStarters(first, arg));
                 }
                 options.source = Some(arg);
             }
         }
     }
+    options.source = options.source.filter(|source| !source.is_empty());
     Ok(Parsed::Run(options))
 }
 
@@ -146,6 +147,18 @@ mod tests {
             }))
         );
         assert_eq!(parsed(&[]), Ok(Parsed::Run(Options::default())));
+    }
+
+    #[test]
+    fn an_empty_starter_is_no_starter_as_in_the_shell() {
+        assert_eq!(parsed(&[""]), Ok(Parsed::Run(Options::default())));
+        assert_eq!(
+            parsed(&["", "bob/forge"]),
+            Ok(Parsed::Run(Options {
+                yes: false,
+                source: Some("bob/forge".to_owned()),
+            }))
+        );
     }
 
     #[test]

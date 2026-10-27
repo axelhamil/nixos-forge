@@ -1,11 +1,11 @@
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io;
 use std::path::{Path, PathBuf};
 
 use super::{Environment, Ports};
 use crate::system::interrupt::Flag;
-use crate::system::prompt::Terminal;
+use crate::system::prompt::Typed;
 use crate::system::{Answer, Commands, Files, Invocation, Owner, Storage};
 
 pub const ROOT: &str = "/fork";
@@ -89,10 +89,10 @@ impl Commands for Machine {
         if let Some(answer) = self.answers.get(&line) {
             return answer.clone();
         }
-        if line == "git rev-parse --show-toplevel" {
-            return Answer::ok(&format!("{ROOT}\n"));
+        if line == "git rev-parse --is-inside-work-tree --show-cdup" {
+            return Answer::ok("true\n\n");
         }
-        if line == format!("git -C {ROOT} remote get-url origin") {
+        if line == "git -C . remote get-url origin" {
             return Answer::exited(2);
         }
         if invocation.program == "ssh-keygen"
@@ -155,6 +155,13 @@ impl Storage for Machine {
         Ok(())
     }
 
+    fn create_new_dir(&self, path: &Path, _: u32) -> io::Result<()> {
+        if !self.dirs.borrow_mut().insert(path.to_path_buf()) {
+            return Err(io::ErrorKind::AlreadyExists.into());
+        }
+        Ok(())
+    }
+
     fn install_dir(&self, path: &Path, _: u32) -> io::Result<()> {
         self.dirs.borrow_mut().insert(path.to_path_buf());
         Ok(())
@@ -190,45 +197,6 @@ impl Storage for Machine {
     }
 }
 
-pub struct Typed {
-    pub answers: VecDeque<io::Result<String>>,
-    pub prompts: Vec<String>,
-}
-
-impl Typed {
-    pub fn new(answers: &[&str]) -> Self {
-        Self {
-            answers: answers
-                .iter()
-                .map(|&answer| Ok(answer.to_owned()))
-                .collect(),
-            prompts: Vec::new(),
-        }
-    }
-
-    pub fn then_fail(mut self, kind: io::ErrorKind) -> Self {
-        self.answers.push_back(Err(kind.into()));
-        self
-    }
-}
-
-impl Terminal for Typed {
-    fn line(&mut self, prompt: &str) -> io::Result<String> {
-        self.prompts.push(prompt.to_owned());
-        self.answers
-            .pop_front()
-            .unwrap_or_else(|| Err(io::ErrorKind::UnexpectedEof.into()))
-    }
-
-    fn secret(&mut self, prompt: &str) -> io::Result<String> {
-        self.line(prompt)
-    }
-
-    fn is_interactive(&self) -> bool {
-        true
-    }
-}
-
 pub fn environment() -> Environment {
     Environment {
         upstream: "axelhamil/nixos-forge".to_owned(),
@@ -254,13 +222,28 @@ pub fn run_init(
     env: &Environment,
     args: &[&str],
 ) -> Outcome {
+    let mut out = Vec::new();
+    let outcome = run_init_into(machine, terminal, flag, env, args, &mut out);
+    Outcome {
+        out: String::from_utf8_lossy(&out).into_owned(),
+        ..outcome
+    }
+}
+
+pub fn run_init_into(
+    machine: &Machine,
+    terminal: &mut Typed,
+    flag: &Flag,
+    env: &Environment,
+    args: &[&str],
+    out: &mut dyn io::Write,
+) -> Outcome {
     let args: Vec<_> = args.iter().map(std::ffi::OsString::from).collect();
     let Ok(super::Parsed::Run(flags)) = super::parse(&args) else {
         panic!("the arguments were refused");
     };
-    let mut out = Vec::new();
     let mut err = Vec::new();
-    let enter = |_: &Path| Ok(());
+    let enter = |_: &Path| Ok(PathBuf::from(ROOT));
     let code = {
         let mut ports = Ports {
             commands: machine,
@@ -269,14 +252,14 @@ pub fn run_init(
             terminal,
             interrupt: flag,
             enter: &enter,
-            out: &mut out,
+            out,
             err: &mut err,
         };
         super::steps::init(&flags, env, &mut ports)
     };
     Outcome {
         code,
-        out: String::from_utf8_lossy(&out).into_owned(),
+        out: String::new(),
         err: String::from_utf8_lossy(&err).into_owned(),
         prompts: terminal.prompts.clone(),
     }

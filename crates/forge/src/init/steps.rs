@@ -2,18 +2,17 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use fancy_regex::Regex;
-
 use super::answers::{Answers, Asker, EXAMPLE_PERSON, PERSON_TEMPLATE, TEMPLATE};
 use super::key::{self, DeployKey};
 use super::options::Flags;
 use super::render::{point_readme, render_host, render_person, update_kept_example};
 use super::{Environment, Ports, Stop};
-use crate::system::Invocation;
-use crate::system::remote::{github_repository, is_upstream};
+use crate::system::remote::{fork_flake, github_repository, is_upstream};
+use crate::system::{Git, Invocation};
 
 const FORMAT_TIMEOUT: Duration = Duration::from_secs(600);
 const KEPT_EXAMPLES: [&str; 2] = ["example-server", "example-pi"];
+const CHECKOUT: &str = ".";
 
 pub fn init(flags: &Flags, env: &Environment, ports: &mut Ports) -> u8 {
     match steps(flags, env, ports) {
@@ -100,32 +99,19 @@ fn prepare(
 
 fn checkout(ports: &mut Ports) -> Result<PathBuf, Stop> {
     let outside = || Stop::Refused("run it inside a git checkout of your fork".to_owned());
-    let answer = ports.run(&Invocation::new("git", &["rev-parse", "--show-toplevel"]))?;
-    if !answer.success || answer.line().is_empty() {
+    let answer = ports.run(&Invocation::new(
+        "git",
+        &["rev-parse", "--is-inside-work-tree", "--show-cdup"],
+    ))?;
+    let mut lines = answer.stdout.lines();
+    if !answer.success || lines.next() != Some("true") {
         return Err(outside());
     }
-    let root = PathBuf::from(answer.line());
-    (ports.enter)(&root).map_err(|_| outside())?;
-    Ok(root)
-}
-
-#[must_use]
-pub fn fork_flake(origin: Option<&str>, upstream: &str) -> String {
-    let Some(origin) = origin else {
-        return String::new();
+    let top = match lines.next().unwrap_or_default() {
+        "" => Path::new(CHECKOUT),
+        up => Path::new(up),
     };
-    if let Some(repository) = github_repository(origin) {
-        if is_upstream(&repository, upstream) {
-            return String::new();
-        }
-        return format!("github:{repository}");
-    }
-    let plain_https = Regex::new(r"^https://[^?#]+$")
-        .is_ok_and(|pattern| pattern.is_match(origin).unwrap_or(false));
-    if plain_https {
-        return format!("git+{origin}");
-    }
-    String::new()
+    (ports.enter)(top).map_err(|_| outside())
 }
 
 #[must_use]
@@ -144,6 +130,21 @@ pub fn shell_quoted(text: &str) -> String {
         quoted.push(c);
         quoted
     })
+}
+
+fn git(ports: &Ports, args: &[&str]) -> Result<(), Stop> {
+    let answer = Git::new(ports.commands, CHECKOUT).loud(args);
+    ports.checkpoint()?;
+    if answer.success {
+        return Ok(());
+    }
+    Err(Stop::Refused(format!("git {} failed", args.join(" "))))
+}
+
+fn origin(ports: &Ports) -> Result<Option<String>, Stop> {
+    let answer = Git::new(ports.commands, CHECKOUT).quiet(&["remote", "get-url", "origin"]);
+    ports.checkpoint()?;
+    Ok(answer.success.then(|| answer.line().to_owned()))
 }
 
 struct Fork<'f> {
@@ -169,10 +170,10 @@ impl Fork<'_> {
         self.install(ports, &target, &host)?;
         self.install(ports, &person, &you)?;
         self.format(ports, &[&target, &person])?;
-        self.git(ports, &["add", "--", &target, &person])?;
+        git(ports, &["add", "--", &target, &person])?;
 
         let removed = self.remove_examples(ports)?;
-        let origin = self.origin(ports)?;
+        let origin = origin(ports)?;
         let kept_flake = fork_flake(origin.as_deref(), &self.env.upstream);
         self.update_kept_examples(ports, &removed, &kept_flake)?;
         self.point_readme(ports)?;
@@ -182,8 +183,11 @@ impl Fork<'_> {
             .and_then(github_repository)
             .filter(|repository| !is_upstream(repository, &self.env.upstream));
         let steps = self.next_steps(repository.as_deref());
-        let _ = ports.out.write_all(steps.as_bytes());
-        Ok(())
+        ports
+            .out
+            .write_all(steps.as_bytes())
+            .and_then(|()| ports.out.flush())
+            .map_err(|error| Stop::Refused(format!("cannot print the next steps: {error}")))
     }
 
     fn install(&self, ports: &Ports, relative: &str, text: &str) -> Result<(), Stop> {
@@ -227,18 +231,6 @@ impl Fork<'_> {
         Ok(())
     }
 
-    fn git(&self, ports: &Ports, args: &[&str]) -> Result<(), Stop> {
-        let root = self.root.display().to_string();
-        let mut invocation = Invocation::new("git", &["-C", &root]);
-        invocation
-            .args
-            .extend(args.iter().map(|&arg| arg.to_owned()));
-        if ports.run(&invocation.loud())?.success {
-            return Ok(());
-        }
-        Err(Stop::Refused(format!("git {} failed", args.join(" "))))
-    }
-
     fn remove_examples(&self, ports: &Ports) -> Result<Vec<&'static str>, Stop> {
         let answers = self.answers;
         let mut removed = vec!["example"];
@@ -253,11 +245,11 @@ impl Fork<'_> {
             if *example == answers.host || !ports.files.is_dir(&self.root.join(&dir)) {
                 continue;
             }
-            self.git(ports, &["rm", "-r", "-q", "--", &dir])?;
+            git(ports, &["rm", "-r", "-q", "--", &dir])?;
         }
 
         if answers.login != EXAMPLE_PERSON {
-            self.git(
+            git(
                 ports,
                 &[
                     "rm",
@@ -269,15 +261,6 @@ impl Fork<'_> {
             )?;
         }
         Ok(removed)
-    }
-
-    fn origin(&self, ports: &Ports) -> Result<Option<String>, Stop> {
-        let root = self.root.display().to_string();
-        let answer = ports.run(&Invocation::new(
-            "git",
-            &["-C", &root, "remote", "get-url", "origin"],
-        ))?;
-        Ok(answer.success.then(|| answer.line().to_owned()))
     }
 
     fn update_kept_examples(
@@ -297,7 +280,7 @@ impl Fork<'_> {
             let updated =
                 update_kept_example(&text, &self.answers.login, kept_flake, &self.key.signer);
             self.rewrite(ports, &file, &updated)?;
-            self.git(ports, &["add", "--", &file])?;
+            git(ports, &["add", "--", &file])?;
         }
         Ok(())
     }
@@ -308,7 +291,7 @@ impl Fork<'_> {
         };
         let pointed = point_readme(&text, &self.answers.host, &self.answers.login);
         self.rewrite(ports, "README.md", &pointed)?;
-        self.git(ports, &["add", "--", "README.md"])
+        git(ports, &["add", "--", "README.md"])
     }
 
     fn next_steps(&self, repository: Option<&str>) -> String {
@@ -353,10 +336,11 @@ environment deploy, then run: shred -u {quoted}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::init::fake::{Machine, Typed, environment, run_init};
+    use crate::init::fake::{Machine, environment, run_init, run_init_into};
     use crate::system::Answer;
     use crate::system::Storage;
     use crate::system::interrupt::Flag;
+    use crate::system::prompt::Typed;
 
     const ARGS: [&str; 9] = [
         "--yes",
@@ -376,7 +360,7 @@ mod tests {
     fn an_interrupt_once_the_key_exists_exits_130_and_says_where_the_key_is_once() {
         let flag = Flag::default();
         let mut machine = Machine::fork();
-        machine.interrupt_on = Some(("git -C /fork add".to_owned(), flag.clone(), 2));
+        machine.interrupt_on = Some(("git -C . add".to_owned(), flag.clone(), 2));
 
         let outcome = run_init(&machine, &mut Typed::new(&[]), &flag, &environment(), &ARGS);
 
@@ -391,7 +375,7 @@ mod tests {
     #[test]
     fn a_failing_step_names_itself_then_the_kept_key() {
         let machine = Machine::fork().answer(
-            "git -C /fork rm -r -q -- modules/hosts/example",
+            "git -C . rm -r -q -- modules/hosts/example",
             Answer::exited(128),
         );
 
@@ -407,6 +391,38 @@ mod tests {
         assert_eq!(
             outcome.err,
             format!("forge init: git rm -r -q -- modules/hosts/example failed\n{KEPT}")
+        );
+    }
+
+    struct Closed;
+
+    impl std::io::Write for Closed {
+        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::ErrorKind::BrokenPipe.into())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn next_steps_that_cannot_be_printed_exit_1_and_say_where_the_key_is_once() {
+        let machine = Machine::fork();
+
+        let outcome = run_init_into(
+            &machine,
+            &mut Typed::new(&[]),
+            &Flag::default(),
+            &environment(),
+            &ARGS,
+            &mut Closed,
+        );
+
+        assert_eq!(outcome.code, 1);
+        assert_eq!(
+            outcome.err,
+            format!("forge init: cannot print the next steps: broken pipe\n{KEPT}")
         );
     }
 

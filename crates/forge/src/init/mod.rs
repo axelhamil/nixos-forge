@@ -15,17 +15,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub use options::{Flags, ParseError, Parsed, USAGE, parse};
 
-use crate::plugins;
-use crate::system::interrupt::Flag;
+use crate::system::interrupt::{self, Flag};
 use crate::system::prompt::{Console, Terminal};
 use crate::system::remote::UPSTREAM_REPOSITORY;
-use crate::system::{Answer, Commands, Files, Invocation, Machine, Storage};
+use crate::system::{Answer, Commands, Files, Invocation, Machine, Storage, find_in_path};
 
 pub const SUBCOMMAND: &str = "init";
 
-const SIGINT: i32 = 2;
-const INTERRUPTED: u8 = 130;
-const TERMINATED: u8 = 143;
 const USAGE_ERROR: u8 = 2;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -56,9 +52,7 @@ impl Environment {
             language: variable("LC_ALL")
                 .or_else(|| variable("LANG"))
                 .unwrap_or_default(),
-            nix_on_path: env::var_os("PATH").is_some_and(|path| {
-                env::split_paths(&path).any(|dir| plugins::is_executable(&dir.join("nix")))
-            }),
+            nix_on_path: find_in_path("nix", &env::var("PATH").unwrap_or_default()).is_some(),
             unique: format!("{}-{nanos}", process::id()),
         }
     }
@@ -77,8 +71,7 @@ impl Stop {
     pub fn exit_code(&self) -> u8 {
         match self {
             Self::Refused(_) => 1,
-            Self::Interrupted(SIGINT) => INTERRUPTED,
-            Self::Interrupted(_) => TERMINATED,
+            Self::Interrupted(signal) => interrupt::exit_code(*signal),
         }
     }
 }
@@ -89,17 +82,14 @@ pub struct Ports<'a> {
     pub storage: &'a dyn Storage,
     pub terminal: &'a mut dyn Terminal,
     pub interrupt: &'a Flag,
-    pub enter: &'a dyn Fn(&Path) -> io::Result<()>,
+    pub enter: &'a dyn Fn(&Path) -> io::Result<PathBuf>,
     pub out: &'a mut dyn Write,
     pub err: &'a mut dyn Write,
 }
 
 impl Ports<'_> {
     fn checkpoint(&self) -> Result<(), Stop> {
-        match self.interrupt.raised() {
-            Some(signal) => Err(Stop::Interrupted(signal)),
-            None => Ok(()),
-        }
+        self.interrupt.checkpoint().map_err(Stop::Interrupted)
     }
 
     fn run(&self, invocation: &Invocation) -> Result<Answer, Stop> {
@@ -137,7 +127,10 @@ pub fn run(args: &[OsString]) -> u8 {
     let mut terminal = Console::stdio(Some(interrupt.clone()));
     let mut stdout = io::stdout();
     let mut stderr = io::stderr();
-    let enter = |root: &Path| env::set_current_dir(root);
+    let enter = |top: &Path| {
+        env::set_current_dir(top)?;
+        env::current_dir()
+    };
     let mut ports = Ports {
         commands: &Machine,
         files: &Machine,

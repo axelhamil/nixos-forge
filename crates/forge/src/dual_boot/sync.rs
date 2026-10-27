@@ -438,6 +438,10 @@ mod tests {
             Ok(())
         }
 
+        fn create_new_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
+            self.install_dir(path, mode)
+        }
+
         fn install_dir(&self, _: &Path, _: u32) -> io::Result<()> {
             Ok(())
         }

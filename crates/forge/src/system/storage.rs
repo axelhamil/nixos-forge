@@ -5,6 +5,7 @@ pub trait Storage {
     fn is_block_device(&self, path: &Path) -> bool;
     fn exists(&self, path: &Path) -> bool;
     fn link(&self, target: &Path, link: &Path) -> io::Result<()>;
+    fn create_new_dir(&self, path: &Path, mode: u32) -> io::Result<()>;
     fn install_dir(&self, path: &Path, mode: u32) -> io::Result<()>;
     fn install_file(&self, path: &Path, bytes: &[u8], mode: u32) -> io::Result<()>;
     fn create_dirs(&self, path: &Path) -> io::Result<()>;

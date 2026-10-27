@@ -4,7 +4,8 @@ use std::path::Path;
 use fancy_regex::Regex;
 
 use super::options::Flags;
-use super::{Environment, Ports, SIGINT, Stop};
+use super::{Environment, Ports, Stop};
+use crate::system::interrupt::SIGINT;
 
 pub const TEMPLATE: &str = "modules/hosts/example/default.nix";
 pub const EXAMPLE_PERSON: &str = "alice";
@@ -503,8 +504,9 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::init::fake::{Machine, Typed, environment, run_init};
+    use crate::init::fake::{Machine, environment, run_init};
     use crate::system::interrupt::Flag;
+    use crate::system::prompt::Typed;
 
     #[test]
     fn lists_split_on_commas_and_spaces_and_keep_the_first_of_each_name() {
@@ -631,7 +633,10 @@ mod tests {
 
         assert_eq!(outcome.code, 130);
         assert_eq!(outcome.err, "");
-        assert_eq!(machine.ran(), ["git rev-parse --show-toplevel"]);
+        assert_eq!(
+            machine.ran(),
+            ["git rev-parse --is-inside-work-tree --show-cdup"]
+        );
     }
 
     #[test]

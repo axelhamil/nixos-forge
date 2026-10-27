@@ -1,7 +1,10 @@
+use std::io;
 use std::path::{Path, PathBuf};
 
 use super::{Environment, Ports, Stop};
 use crate::system::Invocation;
+
+const PRIVATE: u32 = 0o700;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeployKey {
@@ -36,15 +39,16 @@ pub fn key_dir(ports: &Ports, env: &Environment) -> PathBuf {
 
 pub fn create(ports: &Ports, env: &Environment) -> Result<DeployKey, KeyFailure> {
     let dir = key_dir(ports, env);
-    if ports.storage.exists(&dir) {
-        return Err(KeyFailure::before_key(format!(
-            "cannot create {}: it already exists",
-            dir.display()
-        )));
-    }
-    ports.storage.install_dir(&dir, 0o700).map_err(|error| {
-        KeyFailure::before_key(format!("cannot create {}: {error}", dir.display()))
-    })?;
+    ports
+        .storage
+        .create_new_dir(&dir, PRIVATE)
+        .map_err(|error| match error.kind() {
+            io::ErrorKind::AlreadyExists => KeyFailure::before_key(format!(
+                "cannot create {}: it already exists",
+                dir.display()
+            )),
+            _ => KeyFailure::before_key(format!("cannot create {}: {error}", dir.display())),
+        })?;
 
     let file = dir.join("deploy");
     let public = dir.join("deploy.pub");
@@ -92,14 +96,15 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
-    use crate::init::fake::{Machine, Typed, environment};
+    use crate::init::fake::{Machine, environment};
     use crate::system::Storage;
     use crate::system::interrupt::Flag;
+    use crate::system::prompt::Typed;
 
     fn created(machine: &Machine, env: &Environment) -> Result<DeployKey, KeyFailure> {
         let mut terminal = Typed::new(&[]);
         let (mut out, mut err) = (Vec::new(), Vec::new());
-        let enter = |_: &Path| Ok(());
+        let enter = |_: &Path| Ok(PathBuf::from(crate::init::fake::ROOT));
         let flag = Flag::default();
         let ports = Ports {
             commands: machine,

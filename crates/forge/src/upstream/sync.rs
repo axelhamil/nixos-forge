@@ -4,9 +4,10 @@ use std::time::Duration;
 
 use super::notes::{
     breaking_lines, changelog_lines, latest_tag, matches, merged_release, notes, pull_request_body,
-    repository_of, source_url, starter,
+    source_url, starter,
 };
 use super::{Context, Options, Ports};
+use crate::system::remote::repository_of;
 use crate::system::{Answer, Git, Invocation};
 
 const BASE: &str = "origin/main";

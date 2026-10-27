@@ -1,12 +1,11 @@
 {
   inputs,
   config,
-  withSystem,
   ...
 }:
 
 let
-  inherit (config.helpers) wrapForge;
+  inherit (config.helpers) flakePackage wrapForge;
 in
 {
   features.disk =
@@ -34,7 +33,7 @@ in
         };
       } pkgs;
 
-      forge = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
+      forge = flakePackage pkgs "forge";
     in
     {
       system.build.installBesideWindows = wrapForge pkgs forge {

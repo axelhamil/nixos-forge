@@ -2,12 +2,16 @@
   lib,
   inputs,
   config,
-  withSystem,
   ...
 }:
 
 let
-  inherit (config.helpers) hasDisk hostsOn wrapForge;
+  inherit (config.helpers)
+    flakePackage
+    hasDisk
+    hostsOn
+    wrapForge
+    ;
 
   targetLink = "/run/install-host/disk";
 
@@ -36,7 +40,7 @@ let
         }
       );
 
-      unwrapped = withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.forge);
+      unwrapped = flakePackage pkgs "forge";
 
       forge = wrapForge pkgs unwrapped {
         runtimeInputs = [

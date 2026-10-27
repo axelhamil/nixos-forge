@@ -59,14 +59,13 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **48. `forge dual-boot`**: `dual-boot.sh` and `beside-windows.sh` replaced by `forge dual-boot sync` and `forge dual-boot install-beside-windows`; the boot loader hooks and the service run `sync`, and `forge install --beside-windows` runs the target's own `forge` with its settings in a JSON file | `rust-tests`, `rust-clippy`, `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot`, `feature-dual-boot-hook-failure` |
 | **49. `forge init` and `forge upstream`**: `init.sh` and `upstream.sh` replaced by Rust built-ins with the same flags, prompts, rewrites and git effects; `nix run .#init` and `nix run .#upstream` run them, Rust tests over real git repositories replace the shell tests and the `upstream` check | `rust-tests`, `rust-clippy`, `init`, `docs` |
 | **50. CI scripts and the report in Rust**: `ci-plan`, `ci-build`, `ci-report` with its jq, `ci-promote`, `ci-badges`, the `flaky` scripts and `reproducibility` become the `forge-ci` binary of a crate of their own, kept off the hosts, behind the same `nix run .#<script>` packages; typed JSON replaces jq and awk, Rust tests with insta snapshots replace the `*-test.sh`; the mirror, kernel pins, boot time and closure diff stay shell, under or near 20 lines | `rust-tests`, `rust-clippy`, `rust-deny`, `ci-mirror`, `ci-pin-kernels` |
+| **51. `stow-dotfiles` and `upgrade-notify` in Rust**: both app scripts become the binaries of a `forge-apps` crate, behind the same app modules and only on hosts that list the app; `upgrade-notify` reads the auto-upgrade state with `forge auto-upgrade`'s own type, `stow-dotfiles` keeps GNU stow for the linking, and Rust tests over a stand-in `stow` and a fake desktop prove each message, exit code and file written | `app-stow`, `app-upgrade-notify`, `rust-tests`, `rust-clippy` |
 
 ## Planned
 
 In order, each with its guardrail. Every lot starts with a state of the art review (current tools and practices, with sources) and ships to that standard, not the first thing that works. Each Rust lot keeps the NixOS tests unchanged as proof of the same behavior, replaces the tool's shell tests with Rust tests and deletes the `.sh` in the same lot; scripts under about 20 lines stay shell.
 
-| Lot | Guardrail |
-|---|---|
-| **51. `stow-dotfiles` and `upgrade-notify`** in Rust | `app-stow`, `app-upgrade-notify` |
+None yet: the next lot is picked from Later below, or from what a fork asks for.
 
 ## Later
 

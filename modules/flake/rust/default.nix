@@ -52,6 +52,16 @@ in
         }
       );
 
+      packages.forge-apps = craneLib.buildPackage (
+        commonArgs
+        // {
+          inherit cargoArtifacts;
+          pname = "forge-apps";
+          cargoExtraArgs = "--locked -p forge-apps";
+          doCheck = false;
+        }
+      );
+
       checks = lib.optionalAttrs (system == "x86_64-linux") {
         rust-clippy = craneLib.cargoClippy (
           commonArgs

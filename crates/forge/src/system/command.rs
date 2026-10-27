@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+use std::ffi::{OsStr, OsString};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -17,6 +19,7 @@ pub enum Output {
 pub struct Invocation {
     pub program: String,
     pub args: Vec<String>,
+    pub os_args: Vec<OsString>,
     pub env: Vec<(String, String)>,
     pub timeout: Option<Duration>,
     pub run_as: Option<Owner>,
@@ -34,6 +37,13 @@ impl Invocation {
             args: args.iter().map(|&arg| arg.to_owned()).collect(),
             ..Self::default()
         }
+    }
+
+    #[must_use]
+    pub fn os_args<S: AsRef<OsStr>>(mut self, args: impl IntoIterator<Item = S>) -> Self {
+        self.os_args
+            .extend(args.into_iter().map(|arg| arg.as_ref().to_owned()));
+        self
     }
 
     #[must_use]
@@ -92,9 +102,10 @@ impl Invocation {
 
     #[must_use]
     pub fn command_line(&self) -> String {
-        std::iter::once(self.program.as_str())
-            .chain(self.args.iter().map(String::as_str))
-            .collect::<Vec<_>>()
+        std::iter::once(self.program.as_str().into())
+            .chain(self.args.iter().map(|arg| arg.as_str().into()))
+            .chain(self.os_args.iter().map(|arg| arg.to_string_lossy()))
+            .collect::<Vec<Cow<'_, str>>>()
             .join(" ")
     }
 }

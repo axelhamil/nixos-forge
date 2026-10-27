@@ -1,7 +1,7 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) relativeToHome;
+  inherit (config.helpers) flakePackage relativeToHome;
 in
 {
   apps.stow.homeManager =
@@ -14,15 +14,12 @@ in
     let
       cfg = config.stow;
 
+      forge-apps = flakePackage pkgs "forge-apps";
+
       script = pkgs.writeShellApplication {
         name = "stow-dotfiles";
-        runtimeInputs = with pkgs; [
-          stow
-          findutils
-          gnugrep
-          coreutils
-        ];
-        text = builtins.readFile ./stow-dotfiles.sh;
+        runtimeInputs = [ pkgs.stow ];
+        text = ''exec ${lib.getExe' forge-apps "stow-dotfiles"} "$@"'';
       };
 
       stowArgs =

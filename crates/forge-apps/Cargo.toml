@@ -1,0 +1,17 @@
+[package]
+name = "forge-apps"
+description = "The programs of nixos-forge apps: stow-dotfiles and upgrade-notify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+forge = { path = "../forge" }
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

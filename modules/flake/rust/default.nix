@@ -14,6 +14,7 @@ in
         fileset = lib.fileset.unions [
           (craneLib.fileset.commonCargoSources root)
           (lib.fileset.fileFilter (file: file.hasExt "snap") root)
+          (root + "/forge/tests/fixtures")
           (root + "/deny.toml")
         ];
       };
@@ -60,6 +61,10 @@ in
           // {
             inherit cargoArtifacts;
             INSTA_UPDATE = "no";
+            nativeCheckInputs = [
+              pkgs.git
+              pkgs.openssh
+            ];
           }
         );
       };

@@ -13,16 +13,15 @@ What CI proves about upstream's own examples and upgrade path. A fork that ran `
 
 ### What `init` proves
 
-On a copy of the flake, `nix run .#init -- --yes`:
+On copies of a short fixture checkout, the Rust tests of `forge init` (`rust-tests`) prove that it:
 
 - writes a host and a person that parse, with the answers and features asked;
 - removes the examples and renames the example person in the hosts it keeps;
 - refuses to overwrite a host or a person;
 - writes the same new deploy signing key in the hosts it writes and keeps, saves the private key in a 0600 file of a 0700 folder under `XDG_RUNTIME_DIR`, and prints only its path in the `gh secret set` and `shred -u` command;
-- rewrites the README's links to the examples to the host and person it wrote;
-- leaves hosts whose `toplevel` evaluates with the flake's locked inputs, and docs that pass `forge check-docs`, as the `docs` check does.
+- rewrites the README's links to the examples to the host and person it wrote.
 
-An unknown package in `--apps`, a person field of the wrong type and an unknown option in a person's `module` make it fail.
+On a copy of the flake, the `init` check runs `nix run .#init -- --yes` and proves the result parses and is formatted, its deploy key matches the signers of the host, and its hosts' `toplevel` evaluates with the flake's locked inputs, with docs that pass `forge check-docs`, as the `docs` check does. An unknown package in `--apps`, a person field of the wrong type and an unknown option in a person's `module` make it fail.
 
 ## Upgrades from the previous release
 

@@ -42,7 +42,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **31. Signed deploy refs**: CI signs each promotion of `deploy/<host>`, a host with `signers` applies only a commit signed for it, `init` generates the key pair | `ci-promote`, `feature-auto-upgrade-signed`, `base-doctor`, `init` |
 | **32. Live badges**: checks passing, VM tests, hosts built, boot time and reproducibility, published to an orphan `badges` branch | `ci-badges` |
 | **33. Standalone apps**: no app brings another app or a feature; Hyprland binds only the apps and audio it has; hardware and printing leave the profiles | `hyprland-alone`, `feature-printing`, `profile-desktop`, `profile-laptop`, `apps-once`, `app-hyprland`, `app-zsh`, `app-starship`, `app-git`, `app-delta`, `app-neovim`, `app-fzf`, `app-eza`, `example-hosts`, `init` |
-| **34. Static report text**: a fixed sentence under the report's verdict; release-please writes the release notes | `ci-report`, `upstream` |
+| **34. Static report text**: a fixed sentence under the report's verdict; release-please writes the release notes | `ci-report`, `rust-tests` |
 | **35. Dual boot**: opt-in `dual-boot` starts Windows from the systemd-boot menu through the firmware, on its own disk or beside NixOS, Secure Boot and BitLocker intact | `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot`, `feature-dual-boot-hook-failure`, `example-hosts`, `init`, `example-disk` |
 | **36. Variants**: host field `specialisations.<name>`, kept by `update` and `auto-upgrade`; `steam`, `gamemode` and `mangohud` apps | `specialisations`, `feature-auto-upgrade`, `wrong-namespace`, `example-hosts` |
 | **37. Base is mechanism only**: `base` keeps what every fork needs; `nix-index` and `gh` become apps, zram moves to the profiles, policy values become `mkDefault` | `base-nix`, `base-resolved`, `app-nix-index`, `app-gh`, `profile-desktop`, `profile-laptop`, `profile-pi`, `example-hosts` |
@@ -57,6 +57,7 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 | **46. `forge update` and `forge auto-upgrade`**: `update.sh` and `auto-upgrade.sh` replaced by Rust built-ins sharing doctor's command port; the service runs the system's wrapped `forge` with its settings in a JSON file, trusts a checkout through file descriptors opened without following links, bounds each source at 60 s, and decides from a pure function covered by Rust tests | `rust-tests`, `rust-clippy`, `base-update`, `base-doctor`, `base-forge`, `feature-auto-upgrade`, `feature-auto-upgrade-signed`, `feature-auto-upgrade-sources`, `feature-rollback`, `feature-rollback-secure-boot`, `feature-rollback-failed-unit`, `app-upgrade-notify`, `example-disk` |
 | **47. `forge install` and `forge enroll`**: `install-host`, `tpm2-enroll` and `fido2-enroll` replaced by Rust built-ins; the installer's tty1 runs `forge install` with the same flags and prompts, the `tpm2-enroll` service runs `forge enroll tpm2` and `forge enroll fido2` defaults to the host's disk, both reading the host's settings from a JSON file | `rust-tests`, `rust-clippy`, `<host>-installer`, `<host>-disk`, `feature-fido2`, `feature-dual-boot-same-disk`, `base-forge` |
 | **48. `forge dual-boot`**: `dual-boot.sh` and `beside-windows.sh` replaced by `forge dual-boot sync` and `forge dual-boot install-beside-windows`; the boot loader hooks and the service run `sync`, and `forge install --beside-windows` runs the target's own `forge` with its settings in a JSON file | `rust-tests`, `rust-clippy`, `feature-dual-boot`, `feature-dual-boot-same-disk`, `feature-dual-boot-systemd-boot`, `feature-dual-boot-hook-failure` |
+| **49. `forge init` and `forge upstream`**: `init.sh` and `upstream.sh` replaced by Rust built-ins with the same flags, prompts, rewrites and git effects; `nix run .#init` and `nix run .#upstream` run them, Rust tests over real git repositories replace the shell tests and the `upstream` check | `rust-tests`, `rust-clippy`, `init`, `docs` |
 
 ## Planned
 
@@ -64,7 +65,6 @@ In order, each with its guardrail. Every lot starts with a state of the art revi
 
 | Lot | Guardrail |
 |---|---|
-| **49. `forge init` and `forge upstream`** | `init`, `upstream` |
 | **50. CI scripts and the report in Rust**: `ci-build`, `ci-plan`, `ci-promote`, `ci-badges`, `ci-report` with its jq, the mirror and reproducibility; snapshot tests replace the `*-test.sh` | `ci-report`, `ci-plan`, `ci-promote`, `ci-badges`, `ci-mirror`, `reproducibility` |
 | **51. `stow-dotfiles` and `upgrade-notify`** in Rust | `app-stow`, `app-upgrade-notify` |
 

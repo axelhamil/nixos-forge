@@ -15,11 +15,13 @@
 | `forge enroll tpm2` | what the `tpm2-enroll` service runs at boot on a host with `disk` and `secure-boot`: once Secure Boot is enforced, it enrolls a TPM2 token bound to it with the volume key the initrd left in the keyring, then drops that key ([install](../tutorials/install.md#step-6-check-the-tpm2-unlocks-the-disk)). It refuses to run outside the service |
 | `forge install` | the installer ISO's assistant, started on its first console: picks the disk, asks the passphrase and the passwords, partitions with the host's disko layout and installs the prebuilt system; `--disk`, `--passphrase-file`, `--password-file USER=FILE`, `--beside-windows`, `--yes` and `--no-reboot` script it ([install](../tutorials/install.md#step-4-run-the-installer)) |
 | `forge update [ARGS...]` | pulls the host's `flake` checkout with `git pull --ff-only`, or refetches its flake reference, then runs `nh os switch ARGS...`; every argument, `--help` included, goes to nh ([updates](../explanation/updates.md)). It reads the flake from `FORGE_UPDATE_FLAKE`, set on a host with a `flake` field |
+| `forge init` | what `nix run .#init` runs: makes a fresh fork yours, writing its host and person from the examples, a deploy signing key, and removing the examples; `--yes` and the options of `--help` script it ([README](../../README.md#quick-start)) |
+| `forge upstream [--yes] [SOURCE]` | what `nix run .#upstream` runs: shows what upstream changed since your last merge, then merges its latest release into a branch of `origin` and opens its PR ([updates](../explanation/updates.md#your-fork-follows-upstream)) |
 | `forge help`, `forge --help` | lists the built-in commands, then the commands found on the machine with their summary |
 
 In `check-docs`, a root-relative link (`/README.md`) resolves from the repository root, and a fragment on a folder link (`../reference/#x`) must be an anchor of that folder's `README.md`.
 
-A built-in command always wins: a `forge-check-docs`, `forge-doctor`, `forge-dual-boot`, `forge-enroll`, `forge-install`, `forge-update` or `forge-auto-upgrade` program is never run.
+A built-in command always wins: a `forge-check-docs`, `forge-doctor`, `forge-dual-boot`, `forge-enroll`, `forge-init`, `forge-install`, `forge-update`, `forge-upstream` or `forge-auto-upgrade` program is never run.
 
 ## Commands a fork adds
 

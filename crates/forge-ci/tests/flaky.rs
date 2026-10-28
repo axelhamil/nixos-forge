@@ -466,7 +466,7 @@ fn an_origin_that_cannot_be_fetched_stops_the_plan_and_the_report() {
         "flaky-history: without the record, every VM check would be measured again; fix the fetch instead"
     ));
     assert!(!stderr.contains("no valid flaky.json"), "{stderr}");
-    assert!(text(&output.stdout).is_empty());
+    assert_eq!(text(&output.stdout), "");
 
     let report = flake.report_with("unreachable", &all, "[]");
     assert_eq!(report.code, Some(1), "{}", report.markdown);

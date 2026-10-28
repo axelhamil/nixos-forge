@@ -560,7 +560,7 @@ mod tests {
             "forge dual-boot: no ESP is mounted on /boot, nothing to do.\n"
         );
         assert_eq!(machine.ran(), [FINDMNT]);
-        assert!(esps.log().is_empty());
+        assert_eq!(esps.log(), Vec::<String>::new());
     }
 
     #[test]
@@ -580,7 +580,7 @@ mod tests {
         assert!(disk.content(MARK).is_some());
         assert!(disk.content(&format!("{COPY}.new")).is_none());
         assert_eq!(esps.log(), ["mount /dev/vdb1", "umount /dev/vdb1"]);
-        assert!(machine.ran_starting("efibootmgr").is_empty());
+        assert_eq!(machine.ran_starting("efibootmgr"), Vec::<String>::new());
     }
 
     #[test]
@@ -707,7 +707,7 @@ mod tests {
         assert_eq!(out, "");
         assert_eq!(disk.content(COPY).as_deref(), Some(&b"shared"[..]));
         assert!(disk.content(MARK).is_none());
-        assert!(esps.log().is_empty());
+        assert_eq!(esps.log(), Vec::<String>::new());
     }
 
     #[test]
@@ -735,7 +735,7 @@ mod tests {
 
         synced(&machine, &disk, &Esps::default());
 
-        assert!(machine.ran_starting("efibootmgr").is_empty());
+        assert_eq!(machine.ran_starting("efibootmgr"), Vec::<String>::new());
     }
 
     fn with_efivars() -> Disk {

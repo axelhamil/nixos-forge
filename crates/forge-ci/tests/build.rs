@@ -134,7 +134,7 @@ fn a_log_without_failure_yields_no_excerpt() {
     for index in 1..=5000 {
         writeln!(quiet, "machine # line {index} of a healthy boot").unwrap();
     }
-    assert!(excerpt_of(&quiet).is_empty());
+    assert_eq!(excerpt_of(&quiet), Vec::<String>::new());
 }
 
 #[test]

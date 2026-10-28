@@ -160,6 +160,6 @@ mod tests {
         let failure = created(&machine, &environment()).unwrap_err();
 
         assert_eq!(failure.file, None);
-        assert!(machine.ran().is_empty());
+        assert_eq!(machine.ran(), Vec::<String>::new());
     }
 }

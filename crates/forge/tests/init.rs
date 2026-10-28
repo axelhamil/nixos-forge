@@ -423,7 +423,7 @@ fn usage_errors_exit_2_and_help_exits_0() {
     assert!(
         String::from_utf8_lossy(&help.stdout).starts_with("Usage: nix run .#init -- [options]")
     );
-    assert!(fork.status().is_empty());
+    assert_eq!(fork.status(), Vec::<String>::new());
 }
 
 #[test]
@@ -763,5 +763,5 @@ fn input_that_ends_before_an_answer_names_the_flag_to_pass() {
         String::from_utf8_lossy(&output.stderr),
         "forge init: no answer for System (x86_64-linux aarch64-linux): pass --system, or --yes for the defaults\n"
     );
-    assert!(fork.status().is_empty());
+    assert_eq!(fork.status(), Vec::<String>::new());
 }

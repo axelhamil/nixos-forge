@@ -8,7 +8,6 @@
       };
 
       boot.consoleLogLevel = lib.mkOverride 900 3;
-      boot.initrd.verbose = lib.mkDefault false;
       boot.kernelParams = [
         "quiet"
         "udev.log_level=3"

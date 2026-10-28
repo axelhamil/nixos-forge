@@ -26,7 +26,7 @@ in
 {
   helpers.qemuBinary =
     pkgs:
-    (import "${pkgs.path}/nixos/lib/qemu-common.nix" { inherit (pkgs) lib stdenv; }).qemuBinary
+    (import (pkgs.path + "/nixos/lib/qemu-common.nix") { inherit (pkgs) lib stdenv; }).qemuBinary
       pkgs.qemu_test;
 
   helpers.testMachineScript = pkgs: ''

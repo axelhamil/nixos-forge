@@ -68,7 +68,7 @@ in
       nodes.machine =
         { pkgs, ... }:
         let
-          keys = import "${pkgs.path}/nixos/tests/ssh-keys.nix" pkgs;
+          keys = import (pkgs.path + "/nixos/tests/ssh-keys.nix") pkgs;
         in
         {
           imports = [

@@ -38,10 +38,6 @@
               message = "hibernate writes its image to a swap file inside the LUKS volume of the disk module: import disk too.";
             }
             {
-              assertion = config.boot.initrd.systemd.enable;
-              message = "hibernate resumes through the systemd initrd (boot.initrd.systemd.enable).";
-            }
-            {
               assertion = rollbackOrders "rollback-root" && rollbackOrders "rollback-home";
               message = "The initrd rollback of / and /home must run after systemd-hibernate-resume.service, or it would rewrite the disk under a hibernated system.";
             }

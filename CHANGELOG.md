@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.5](https://github.com/axelhamil/nixos-forge/compare/v0.2.4...v0.2.5) (2026-10-27)
+
+
+### Features
+
+* **apps:** port stow-dotfiles and upgrade-notify to rust ([#105](https://github.com/axelhamil/nixos-forge/issues/105)) ([b363377](https://github.com/axelhamil/nixos-forge/commit/b36337729c9214289256e6faa70f19654c1495e8))
+* **doctor:** replace doctor.sh with forge doctor and let forks add checks ([#97](https://github.com/axelhamil/nixos-forge/issues/97)) ([4e9afe4](https://github.com/axelhamil/nixos-forge/commit/4e9afe425249aab5b5d6c1b35ac2535095ef5e7a))
+* **forge-ci:** port the ci scripts and the report to a rust binary ([#104](https://github.com/axelhamil/nixos-forge/issues/104)) ([71039c8](https://github.com/axelhamil/nixos-forge/commit/71039c87370a7e69cbefe9fea2e25a23014ed152))
+* **forge:** add the forge cli in rust and port check-docs to it ([#96](https://github.com/axelhamil/nixos-forge/issues/96)) ([26afb92](https://github.com/axelhamil/nixos-forge/commit/26afb92ce66cd8f9ce7b25da96f021077f1645cc))
+* **forge:** port init.sh and upstream.sh to forge init and forge upstream ([#103](https://github.com/axelhamil/nixos-forge/issues/103)) ([bd5d8e6](https://github.com/axelhamil/nixos-forge/commit/bd5d8e691b5f114540ebf5299fc95adf542a4067))
+* **forge:** port install-host and the enroll scripts to forge install and forge enroll ([#99](https://github.com/axelhamil/nixos-forge/issues/99)) ([e90017c](https://github.com/axelhamil/nixos-forge/commit/e90017cbeddcfd8efc49991c298a53eff618166a))
+* **forge:** port the dual-boot scripts to forge dual-boot ([#102](https://github.com/axelhamil/nixos-forge/issues/102)) ([d58dc75](https://github.com/axelhamil/nixos-forge/commit/d58dc7579f331c01a5a62f8809876cd407b1e014))
+* **forge:** port update and auto-upgrade to forge update and forge auto-upgrade ([#98](https://github.com/axelhamil/nixos-forge/issues/98)) ([9fea0ed](https://github.com/axelhamil/nixos-forge/commit/9fea0edd743141f007a3ddbffba735da5051a5c7))
+
+
+### Bug fixes
+
+* **ci:** fetch each kernel from cachix before pinning it ([#92](https://github.com/axelhamil/nixos-forge/issues/92)) ([ab58e67](https://github.com/axelhamil/nixos-forge/commit/ab58e678dbc4cc8b7eeff706ac314d893853a7c1))
+* **ci:** fetch the references of a kernel output before pinning it ([#94](https://github.com/axelhamil/nixos-forge/issues/94)) ([f58f360](https://github.com/axelhamil/nixos-forge/commit/f58f36067b49a1b994c91f057ead3d003929e7c1))
+* **ci:** keep every host kernel cached by pinning it in cachix ([#91](https://github.com/axelhamil/nixos-forge/issues/91)) ([f6081e6](https://github.com/axelhamil/nixos-forge/commit/f6081e672835e01471fb92e4de75c3d6b07e6ea4))
+* **ci:** realise a kernel output from every substituter before pinning it ([#95](https://github.com/axelhamil/nixos-forge/issues/95)) ([3aff570](https://github.com/axelhamil/nixos-forge/commit/3aff5705a43728c575c7eb52af526d11d3016924))
+* **doctor:** never open a pruned mount point, so automounts stay idle ([#101](https://github.com/axelhamil/nixos-forge/issues/101)) ([3077125](https://github.com/axelhamil/nixos-forge/commit/3077125ac6bae1841984402498c46705ec8fe905))
+
 ## [0.2.4](https://github.com/axelhamil/nixos-forge/compare/v0.2.3...v0.2.4) (2026-10-22)
 
 

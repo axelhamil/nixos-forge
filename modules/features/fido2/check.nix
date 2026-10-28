@@ -18,7 +18,6 @@
           ];
         };
         boot.loader.systemd-boot.enable = true;
-        boot.initrd.systemd.enable = true;
         environment.systemPackages = [ pkgs.cryptsetup ];
 
         users.users = lib.genAttrs [ "alice" "bob" ] (_: {

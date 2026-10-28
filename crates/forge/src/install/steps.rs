@@ -720,7 +720,7 @@ mod tests {
             outcome.printed,
             "\nforge install: carol is not a user of example (alice bob).\n"
         );
-        assert!(machine.ran().is_empty());
+        assert_eq!(machine.ran(), Vec::<String>::new());
     }
 
     #[test]
@@ -997,7 +997,7 @@ mod tests {
 
         assert_eq!(outcome.code, 1);
         assert!(outcome.printed.contains("\nReady to install\n  Host:   example\n  Disk:   /dev/vda (16G, QEMU HARDDISK), erased entirely\n  Users:  alice bob\n\n"));
-        assert!(disk.changes().is_empty());
+        assert_eq!(disk.changes(), Vec::<Change>::new());
         assert!(!machine.ran_command("umount -R /mnt"));
         assert!(!machine.erased());
     }
@@ -1038,7 +1038,7 @@ mod tests {
                 .printed
                 .ends_with("forge install: --yes needs --password-file bob=FILE.\n")
         );
-        assert!(disk.changes().is_empty());
+        assert_eq!(disk.changes(), Vec::<Change>::new());
         assert!(!machine.erased());
     }
 
@@ -1126,7 +1126,7 @@ mod tests {
 
         assert_eq!(outcome.code, 130);
         assert!(!outcome.printed.contains("forge install:"));
-        assert!(disk.changes().is_empty());
+        assert_eq!(disk.changes(), Vec::<Change>::new());
     }
 
     #[test]
@@ -1255,7 +1255,7 @@ mod tests {
         let outcome = run(&args, &machine, &with_files(), &mut terminal);
 
         assert_eq!(outcome.code, 0);
-        assert!(terminal.prompts.is_empty());
+        assert_eq!(terminal.prompts, Vec::<String>::new());
         assert!(machine.ran_command("systemctl reboot"));
     }
 }

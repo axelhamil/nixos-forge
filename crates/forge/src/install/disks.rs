@@ -174,8 +174,11 @@ mod tests {
 
     #[test]
     fn output_that_is_not_lsblk_json_gives_no_candidate() {
-        assert!(candidates("", &[]).is_empty());
-        assert!(candidates("{\"blockdevices\": null}", &[]).is_empty());
+        assert_eq!(candidates("", &[]), Vec::<String>::new());
+        assert_eq!(
+            candidates("{\"blockdevices\": null}", &[]),
+            Vec::<String>::new()
+        );
     }
 
     #[test]

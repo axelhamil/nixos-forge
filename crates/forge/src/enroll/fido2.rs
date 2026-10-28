@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(code, 1);
         assert_eq!(out, "");
         assert_eq!(err, format!("{USAGE}\n"));
-        assert!(commands.command_lines().is_empty());
+        assert_eq!(commands.command_lines(), Vec::<String>::new());
     }
 
     #[test]

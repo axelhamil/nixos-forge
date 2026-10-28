@@ -218,7 +218,7 @@ mod tests {
 
         assert_eq!(console.line("Disk to install on, 1 to 2: ").unwrap(), "2");
         assert_eq!(console.line("Type /dev/vda: ").unwrap(), "/dev/vda");
-        assert!(console.output.is_empty());
+        assert_eq!(console.output, Vec::<u8>::new());
     }
 
     #[test]

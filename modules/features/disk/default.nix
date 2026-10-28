@@ -106,6 +106,15 @@
           };
         };
 
+        boot.initrd.systemd.sockets.systemd-pcrextend = {
+          wantedBy = [ "systemd-cryptsetup@cryptroot.service" ];
+          before = [ "systemd-cryptsetup@cryptroot.service" ];
+          unitConfig.ConditionSecurity = [
+            ""
+            "tpm2"
+          ];
+        };
+
         fileSystems."/persist".neededForBoot = true;
         environment.persistence."/persist".enable = true;
         users.mutableUsers = false;

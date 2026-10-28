@@ -121,7 +121,7 @@ fn missing_dotfiles_are_announced_by_apply_only() {
         )
     );
     assert_eq!(stdout(&pruned), "");
-    assert!(home.calls().is_empty());
+    assert_eq!(home.calls(), Vec::<String>::new());
 }
 
 #[test]

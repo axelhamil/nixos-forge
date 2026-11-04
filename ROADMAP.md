@@ -65,7 +65,9 @@ One line per lot; [CHANGELOG.md](CHANGELOG.md) has the details of each release.
 
 In order, each with its guardrail. Every lot starts with a state of the art review (current tools and practices, with sources) and ships to that standard, not the first thing that works. Each Rust lot keeps the NixOS tests unchanged as proof of the same behavior, replaces the tool's shell tests with Rust tests and deletes the `.sh` in the same lot; scripts under about 20 lines stay shell.
 
-None yet: the next lot is picked from Later below, or from what a fork asks for.
+| Lot | Guardrail |
+|---|---|
+| **52. Hotfix lane**: ship a fix to production without shipping what waits on `develop`. A `hotfix/*` branch starts from `main` and its PR merges into `main`. A second release-please run on `main` opens a patch release PR. Merging it creates the tag, adds its own section to the same `CHANGELOG.md` and publishes its GitHub release. `sync-develop` then brings the hotfix, the changelog and the manifest back into `develop`, so the next push to `main` stays a fast-forward. Risk to prove first: release-please walks the history back to the last tag, so after the sync a `feat` made on `develop` before the hotfix tag may read as already published and miss the next changelog. The proof runs in a sandbox repo: a `feat` on `develop`, a hotfix on `main`, the sync, then the release PR. If the risk is real, `last-release-sha` pins the last commit `develop` published | a hotfix on `main` releases its own patch without `develop`; after the sync, the next release of `develop` lists every commit once, without the hotfix |
 
 ## Later
 

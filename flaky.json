@@ -1,5 +1,5 @@
 {
-  "tree": null,
+  "tree": "380c78c725a755962b6adfa69a5bdd95d49626e7",
   "checks": {
     "/nix/store/0549dkjg62iy4v3f8r733rmal8awa91c-vm-test-run-disko-dual-boot-disko.drv": {
       "check": "feature-dual-boot-same-disk",
@@ -7,23 +7,23 @@
       "runs": [
         {
           "passed": true,
-          "seconds": 1237
-        },
-        {
-          "passed": false,
-          "seconds": 154
+          "seconds": 1368
         },
         {
           "passed": true,
-          "seconds": 1223
+          "seconds": 1236
         },
         {
           "passed": true,
-          "seconds": 1219
+          "seconds": 1231
         },
         {
           "passed": true,
-          "seconds": 1215
+          "seconds": 1230
+        },
+        {
+          "passed": true,
+          "seconds": 1240
         }
       ]
     },
@@ -396,24 +396,24 @@
       "system": "x86_64-linux",
       "runs": [
         {
-          "passed": false,
-          "seconds": 173
-        },
-        {
-          "passed": false,
-          "seconds": 155
+          "passed": true,
+          "seconds": 394
         },
         {
           "passed": true,
-          "seconds": 366
-        },
-        {
-          "passed": false,
-          "seconds": 158
+          "seconds": 371
         },
         {
           "passed": true,
-          "seconds": 364
+          "seconds": 373
+        },
+        {
+          "passed": true,
+          "seconds": 371
+        },
+        {
+          "passed": true,
+          "seconds": 373
         }
       ]
     },

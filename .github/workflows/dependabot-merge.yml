@@ -1,0 +1,37 @@
+name: dependabot-merge
+
+on:
+  workflow_run:
+    workflows: [check]
+    types: [completed]
+
+concurrency:
+  group: dependabot-merge
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  merge:
+    if: >-
+      vars.BOT_CLIENT_ID != ''
+      && github.event.workflow_run.event == 'pull_request'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.actor.login == 'dependabot[bot]'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - id: bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+      - env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: gh pr merge "$BRANCH" --repo "$GITHUB_REPOSITORY" --squash --delete-branch --match-head-commit "$SHA"

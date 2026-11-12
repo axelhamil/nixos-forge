@@ -13,7 +13,7 @@ Plan about 15 minutes. Steps 1 and 2 are enough for CI to build and test every p
    - Give it the repository permissions **Contents** and **Pull requests**, read and write, and preferably **Workflows** too ([why](#validated-versions-per-machine)).
    - Generate a private key and install the App on your fork.
    - Set the repository variable `BOT_CLIENT_ID` to its client ID and the secret `BOT_PRIVATE_KEY` to the key.
-   - Until `BOT_CLIENT_ID` is set, the lock PR, `sync-develop` and `promote` are skipped. Each job asks its token for the permissions it uses only ([list](../reference/ci.md#workflow-security)), so granting more to the App widens nothing but `sync-develop` and `sync-upstream`.
+   - Until `BOT_CLIENT_ID` is set, the lock PR, `sync-develop`, `dependabot-merge` and `promote` are skipped. Each job asks its token for the permissions it uses only ([list](../reference/ci.md#workflow-security)), so granting more to the App widens nothing but `sync-develop` and `sync-upstream`.
 4. **Allow auto-merge and merge commits**: Settings, General, "Allow auto-merge" (the lock PR) and "Allow merge commits" (the upstream PRs).
 5. **Ruleset on `main`**: require a pull request and the `ci-ok` status check. Without a required check, auto-merge merges at once.
 6. **Ruleset on `develop`**: block deletions and force pushes, or "Automatically delete head branches" deletes `develop` when a `develop` into `main` PR merges.

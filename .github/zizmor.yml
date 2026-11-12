@@ -4,3 +4,6 @@ rules:
       - release.yml
       - sync-develop.yml
       - sync-upstream.yml
+  dangerous-triggers:
+    ignore:
+      - dependabot-merge.yml

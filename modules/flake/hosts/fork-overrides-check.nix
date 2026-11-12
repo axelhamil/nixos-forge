@@ -12,7 +12,7 @@ let
     "services.btrbk.instances.snapshots.onCalendar" = "daily";
     "services.btrbk.instances.snapshots.settings.snapshot_preserve" = "7d";
     "services.openssh.settings.PermitRootLogin" = "prohibit-password";
-    "services.scx.scheduler" = "scx_rusty";
+    "services.scx-loader.config.default_sched" = "scx_rusty";
     "systemd.timers.auto-upgrade.timerConfig.OnCalendar" = "daily";
     "virtualisation.docker.rootless.daemon.settings.log-driver" = "journald";
     "services.greetd.settings.default_session.command" = "agreety --cmd sway";

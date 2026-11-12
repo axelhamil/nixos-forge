@@ -5,9 +5,9 @@
       networking.networkmanager.enable = true;
       boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
-      services.scx = {
+      services.scx-loader = {
         enable = true;
-        scheduler = lib.mkDefault "scx_lavd";
+        config.default_sched = lib.mkDefault "scx_lavd";
       };
 
       services.power-profiles-daemon.enable = true;

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.6](https://github.com/axelhamil/nixos-forge/compare/v0.2.5...v0.2.6) (2026-11-12)
+
+
+### Bug fixes
+
+* **hardware:** build the raspberry pi kernels against linux 7.3 headers ([#112](https://github.com/axelhamil/nixos-forge/issues/112)) ([5b142be](https://github.com/axelhamil/nixos-forge/commit/5b142bee234fcc1986c5ea06e7bb4bb082a7e336))
+
+
+### Documentation
+
+* **roadmap:** plan a hotfix lane with its own patch release ([#107](https://github.com/axelhamil/nixos-forge/issues/107)) ([2022356](https://github.com/axelhamil/nixos-forge/commit/20223567a0608d9d58314f400ce8e8a4f555f168))
+* **roadmap:** plan triaged issues and prs enforced by ci ([#108](https://github.com/axelhamil/nixos-forge/issues/108)) ([3921d55](https://github.com/axelhamil/nixos-forge/commit/3921d55d9f3118b6f29c5d48190914b3edfbf3e7))
+
 ## [0.2.5](https://github.com/axelhamil/nixos-forge/compare/v0.2.4...v0.2.5) (2026-10-27)
 
 

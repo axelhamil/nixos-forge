@@ -15,7 +15,15 @@ let
 
       _module.args.nixos-raspberrypi = raspberrypi;
 
-      boot.kernelPackages = lib.mkOverride 900 pkgs."linuxPackages_rpi${model}";
+      boot.kernelPackages = lib.mkOverride 900 (
+        pkgs."linuxPackages_rpi${model}".extend (
+          _: prev: {
+            kernel = prev.kernel.override (args: {
+              kernelPatches = args.kernelPatches ++ [ pkgs.kernelPatches.tools_128bit_types ];
+            });
+          }
+        )
+      );
       boot.loader.raspberry-pi.firmwarePackage = lib.mkOverride 900 pkgs.raspberrypifw;
       boot.supportedFilesystems.zfs = false;
 

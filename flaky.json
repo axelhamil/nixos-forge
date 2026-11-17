@@ -1,788 +1,8 @@
 {
-  "tree": "46a10589024291c903992bb78b8be107c2d3ce96",
+  "tree": null,
   "checks": {
-    "/nix/store/0pkxkfprijzvjmy1pjrmprgjqy94c7j3-vm-test-run-base-update.drv": {
-      "check": "base-update",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 32
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        }
-      ]
-    },
-    "/nix/store/0q67018jg6jkcdq7vg9l07h7kxsyd764-vm-test-run-app-delta.drv": {
-      "check": "app-delta",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 32
-        },
-        {
-          "passed": true,
-          "seconds": 17
-        },
-        {
-          "passed": true,
-          "seconds": 17
-        },
-        {
-          "passed": true,
-          "seconds": 17
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        }
-      ]
-    },
-    "/nix/store/16yksamnjsi33dkr765msy3nsiwp5lm2-vm-test-run-base-resolved.drv": {
-      "check": "base-resolved",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 13
-        },
-        {
-          "passed": true,
-          "seconds": 13
-        },
-        {
-          "passed": true,
-          "seconds": 14
-        },
-        {
-          "passed": true,
-          "seconds": 13
-        }
-      ]
-    },
-    "/nix/store/1lnzmhdck41c6fca72lhnvjmv0qsmwma-vm-test-run-base-forge.drv": {
-      "check": "base-forge",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 36
-        },
-        {
-          "passed": true,
-          "seconds": 21
-        },
-        {
-          "passed": true,
-          "seconds": 23
-        },
-        {
-          "passed": true,
-          "seconds": 23
-        },
-        {
-          "passed": true,
-          "seconds": 22
-        }
-      ]
-    },
-    "/nix/store/1zjil1hf1ghgx314rmyfbak5dwz217az-vm-test-run-app-zsh.drv": {
-      "check": "app-zsh",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 45
-        },
-        {
-          "passed": true,
-          "seconds": 30
-        },
-        {
-          "passed": true,
-          "seconds": 28
-        },
-        {
-          "passed": true,
-          "seconds": 27
-        },
-        {
-          "passed": true,
-          "seconds": 30
-        }
-      ]
-    },
-    "/nix/store/27l88gpb9zzp9ncy3r1qcp22sf6cd9c8-vm-test-run-profile-server.drv": {
-      "check": "profile-server",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 36
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 17
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        }
-      ]
-    },
-    "/nix/store/2w8d47g7ibplya21pq7px1rqi943hgj8-vm-test-run-disko-rollback-disko.drv": {
-      "check": "feature-rollback-secure-boot",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 987
-        },
-        {
-          "passed": true,
-          "seconds": 978
-        },
-        {
-          "passed": true,
-          "seconds": 974
-        },
-        {
-          "passed": true,
-          "seconds": 974
-        },
-        {
-          "passed": true,
-          "seconds": 969
-        }
-      ]
-    },
-    "/nix/store/3b8nv9nw7zdx9j32j9n6lfy3gb2hk00y-vm-test-run-disko-dual-boot-disko.drv": {
-      "check": "feature-dual-boot-same-disk",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 1311
-        },
-        {
-          "passed": true,
-          "seconds": 1292
-        },
-        {
-          "passed": true,
-          "seconds": 1300
-        },
-        {
-          "passed": true,
-          "seconds": 1304
-        },
-        {
-          "passed": true,
-          "seconds": 1307
-        }
-      ]
-    },
-    "/nix/store/7i8wfm2z2q7zy5fzikr8cx9v0j8w4n60-vm-test-run-base-journald.drv": {
-      "check": "base-journald",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 25
-        },
-        {
-          "passed": true,
-          "seconds": 13
-        },
-        {
-          "passed": true,
-          "seconds": 14
-        },
-        {
-          "passed": true,
-          "seconds": 14
-        },
-        {
-          "passed": true,
-          "seconds": 15
-        }
-      ]
-    },
-    "/nix/store/8ccnsn9ndjcvcjwgc21kcld9sdd38922-vm-test-run-feature-ssh.drv": {
-      "check": "feature-ssh",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 24
-        },
-        {
-          "passed": true,
-          "seconds": 14
-        },
-        {
-          "passed": true,
-          "seconds": 14
-        },
-        {
-          "passed": true,
-          "seconds": 13
-        },
-        {
-          "passed": true,
-          "seconds": 15
-        }
-      ]
-    },
-    "/nix/store/9647mfbl6lhhndwgnwds0mdxxff2il08-vm-test-run-feature-docker.drv": {
+    "/nix/store/0a1f9drsi3320dx4x3gfc8rpfrw6q6s8-vm-test-run-feature-docker.drv": {
       "check": "feature-docker",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 45
-        },
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 27
-        }
-      ]
-    },
-    "/nix/store/9vk8rlsrbhbj35nl2xzyf7vcrhiqy9yf-vm-test-run-base-nix.drv": {
-      "check": "base-nix",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 34
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 20
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 20
-        }
-      ]
-    },
-    "/nix/store/a75acjl7ddh2lgg11r1604cky12d9cxn-vm-test-run-profile-laptop.drv": {
-      "check": "profile-laptop",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 30
-        },
-        {
-          "passed": true,
-          "seconds": 15
-        },
-        {
-          "passed": true,
-          "seconds": 15
-        },
-        {
-          "passed": true,
-          "seconds": 15
-        },
-        {
-          "passed": true,
-          "seconds": 15
-        }
-      ]
-    },
-    "/nix/store/aizzh5aizqa8yx6r7aiv04ma3ygn5frw-vm-test-run-app-gh.drv": {
-      "check": "app-gh",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 12
-        },
-        {
-          "passed": true,
-          "seconds": 12
-        },
-        {
-          "passed": true,
-          "seconds": 12
-        },
-        {
-          "passed": true,
-          "seconds": 12
-        }
-      ]
-    },
-    "/nix/store/as7ms1ag15sybkw557jv72mhx0inyh2c-vm-test-run-app-hyprland.drv": {
-      "check": "app-hyprland",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 64
-        },
-        {
-          "passed": true,
-          "seconds": 31
-        },
-        {
-          "passed": true,
-          "seconds": 29
-        },
-        {
-          "passed": true,
-          "seconds": 31
-        },
-        {
-          "passed": true,
-          "seconds": 31
-        }
-      ]
-    },
-    "/nix/store/b6c9pjc2y6cr000xdac2v9gl8rf4l4rb--test-run-example-server-installer.drv": {
-      "check": "example-server-installer",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 360
-        },
-        {
-          "passed": true,
-          "seconds": 327
-        },
-        {
-          "passed": true,
-          "seconds": 328
-        },
-        {
-          "passed": true,
-          "seconds": 330
-        },
-        {
-          "passed": true,
-          "seconds": 327
-        }
-      ]
-    },
-    "/nix/store/bgx2lcj6b919g861fzlmbnxxz2jlkfsa-vm-test-run-base-doctor.drv": {
-      "check": "base-doctor",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 40
-        },
-        {
-          "passed": true,
-          "seconds": 24
-        },
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 25
-        },
-        {
-          "passed": true,
-          "seconds": 24
-        }
-      ]
-    },
-    "/nix/store/bzvxx46721f8xr3y90llklaqr2f0g5v8-vm-test-run-app-upgrade-notify.drv": {
-      "check": "app-upgrade-notify",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 58
-        },
-        {
-          "passed": true,
-          "seconds": 44
-        },
-        {
-          "passed": true,
-          "seconds": 44
-        },
-        {
-          "passed": true,
-          "seconds": 42
-        },
-        {
-          "passed": true,
-          "seconds": 44
-        }
-      ]
-    },
-    "/nix/store/cv6kd9d25gm9qzdrass1gmx03gqgcyg4-vm-test-run-disko-rollback-disko.drv": {
-      "check": "feature-rollback",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 518
-        },
-        {
-          "passed": true,
-          "seconds": 497
-        },
-        {
-          "passed": true,
-          "seconds": 503
-        },
-        {
-          "passed": true,
-          "seconds": 497
-        },
-        {
-          "passed": true,
-          "seconds": 495
-        }
-      ]
-    },
-    "/nix/store/dsga6l7l0nga0xcj9xm1q7v4q1icp57q-vm-test-run-disko-dual-boot-disko.drv": {
-      "check": "feature-dual-boot",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 1084
-        },
-        {
-          "passed": true,
-          "seconds": 1061
-        },
-        {
-          "passed": true,
-          "seconds": 1066
-        },
-        {
-          "passed": true,
-          "seconds": 1057
-        },
-        {
-          "passed": true,
-          "seconds": 1064
-        }
-      ]
-    },
-    "/nix/store/fnmry3n7a4rb7nx8ik7k6g5nvp97zl7q-vm-test-run-app-neovim.drv": {
-      "check": "app-neovim",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 33
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        }
-      ]
-    },
-    "/nix/store/g9h4dbbkbnfligm1zp4hy2v0v8w8zyj3-vm-test-run-app-fzf.drv": {
-      "check": "app-fzf",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 33
-        },
-        {
-          "passed": true,
-          "seconds": 22
-        },
-        {
-          "passed": true,
-          "seconds": 21
-        },
-        {
-          "passed": true,
-          "seconds": 22
-        },
-        {
-          "passed": true,
-          "seconds": 23
-        }
-      ]
-    },
-    "/nix/store/h6mgdy0bi51r5kz0bja9pjw6092425fq-vm-test-run-feature-printing.drv": {
-      "check": "feature-printing",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 34
-        },
-        {
-          "passed": true,
-          "seconds": 24
-        },
-        {
-          "passed": true,
-          "seconds": 22
-        },
-        {
-          "passed": true,
-          "seconds": 21
-        },
-        {
-          "passed": true,
-          "seconds": 23
-        }
-      ]
-    },
-    "/nix/store/hcig19zb16mhji3a3b6fn8lxsvxg5p3i-vm-test-run-app-git.drv": {
-      "check": "app-git",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 30
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 16
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        }
-      ]
-    },
-    "/nix/store/hwx0id60cqhvhkcbb656kp1w7naxm5dx-vm-test-run-disko-dual-boot-disko.drv": {
-      "check": "feature-dual-boot-systemd-boot",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 598
-        },
-        {
-          "passed": true,
-          "seconds": 582
-        },
-        {
-          "passed": true,
-          "seconds": 585
-        },
-        {
-          "passed": true,
-          "seconds": 580
-        },
-        {
-          "passed": true,
-          "seconds": 583
-        }
-      ]
-    },
-    "/nix/store/hzkkgz09l4na86949h72knkvafgwdim6-vm-test-run-example-server-boots.drv": {
-      "check": "example-server-boots",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 42
-        },
-        {
-          "passed": true,
-          "seconds": 25
-        },
-        {
-          "passed": true,
-          "seconds": 25
-        },
-        {
-          "passed": true,
-          "seconds": 25
-        },
-        {
-          "passed": true,
-          "seconds": 27
-        }
-      ]
-    },
-    "/nix/store/ih6r77ipd3dvkn4jygmbsyjp4k0bzs0a-vm-test-run-feature-plymouth.drv": {
-      "check": "feature-plymouth",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 80
-        },
-        {
-          "passed": true,
-          "seconds": 55
-        },
-        {
-          "passed": true,
-          "seconds": 54
-        },
-        {
-          "passed": true,
-          "seconds": 56
-        },
-        {
-          "passed": true,
-          "seconds": 54
-        }
-      ]
-    },
-    "/nix/store/jl5838a6qcm0937q6wg0rl6f2487mn28-vm-test-run-app-stow.drv": {
-      "check": "app-stow",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 39
-        },
-        {
-          "passed": true,
-          "seconds": 24
-        },
-        {
-          "passed": true,
-          "seconds": 23
-        },
-        {
-          "passed": true,
-          "seconds": 24
-        },
-        {
-          "passed": true,
-          "seconds": 24
-        }
-      ]
-    },
-    "/nix/store/lh9z3im0bcf1kdvwd4hwg82fikjry62d-vm-test-run-app-nix-index.drv": {
-      "check": "app-nix-index",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 30
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 19
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        }
-      ]
-    },
-    "/nix/store/lr26bcvanznzgrj82ns30nfhx5vsy4k1-vm-test-run-feature-nix-ld.drv": {
-      "check": "feature-nix-ld",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 33
-        },
-        {
-          "passed": true,
-          "seconds": 10
-        },
-        {
-          "passed": true,
-          "seconds": 11
-        },
-        {
-          "passed": true,
-          "seconds": 10
-        },
-        {
-          "passed": true,
-          "seconds": 10
-        }
-      ]
-    },
-    "/nix/store/ly3zy3nlwvpm3gdwrachdh3rn80dfxzd-vm-test-run-specialisations.drv": {
-      "check": "specialisations",
       "system": "x86_64-linux",
       "runs": [
         {
@@ -791,15 +11,197 @@
         },
         {
           "passed": true,
-          "seconds": 31
+          "seconds": 27
         },
         {
           "passed": true,
-          "seconds": 28
+          "seconds": 25
         },
         {
           "passed": true,
-          "seconds": 28
+          "seconds": 26
+        },
+        {
+          "passed": true,
+          "seconds": 25
+        }
+      ]
+    },
+    "/nix/store/0gp3s10kzpndckq6z1ifj8xywvii5606-vm-test-run-profile-laptop.drv": {
+      "check": "profile-laptop",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 25
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        }
+      ]
+    },
+    "/nix/store/11bmcp5h8izamflmchbxabfv3392hbcs-vm-test-run-app-nix-index.drv": {
+      "check": "app-nix-index",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 35
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 17
+        }
+      ]
+    },
+    "/nix/store/13y73as0qq3w65j1sdy8zpszicdpy4g9-vm-test-run-app-git.drv": {
+      "check": "app-git",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 44
+        },
+        {
+          "passed": true,
+          "seconds": 19
+        },
+        {
+          "passed": true,
+          "seconds": 19
+        },
+        {
+          "passed": true,
+          "seconds": 19
+        },
+        {
+          "passed": true,
+          "seconds": 19
+        }
+      ]
+    },
+    "/nix/store/1m5f4m1gqa3rmx090ycafp4lpzzyxmyc-vm-test-run-feature-libvirt.drv": {
+      "check": "feature-libvirt",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 45
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 24
+        }
+      ]
+    },
+    "/nix/store/22lphw45hygfa5yn0xrv1iq5kx4d333b-vm-test-run-base-forge.drv": {
+      "check": "base-forge",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 33
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        },
+        {
+          "passed": true,
+          "seconds": 19
+        }
+      ]
+    },
+    "/nix/store/2im5c2ln8a4j2fgnz9vrx03bw5aqxxh1-vm-test-run-app-upgrade-notify.drv": {
+      "check": "app-upgrade-notify",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 75
+        },
+        {
+          "passed": true,
+          "seconds": 39
+        },
+        {
+          "passed": true,
+          "seconds": 41
+        },
+        {
+          "passed": true,
+          "seconds": 40
+        },
+        {
+          "passed": true,
+          "seconds": 41
+        }
+      ]
+    },
+    "/nix/store/37d423q31hyi7h1yrwjzx1gjwhangj51-vm-test-run-specialisations.drv": {
+      "check": "specialisations",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 51
+        },
+        {
+          "passed": true,
+          "seconds": 30
+        },
+        {
+          "passed": true,
+          "seconds": 32
+        },
+        {
+          "passed": true,
+          "seconds": 29
         },
         {
           "passed": true,
@@ -807,7 +209,371 @@
         }
       ]
     },
-    "/nix/store/nbrqmhc3f8iyg33050kdwsxih9f23n9f-vm-test-run-profile-pi.drv": {
+    "/nix/store/3z0fzwc4fa9ir53mhp2bq0qcwbdsqdwj-vm-test-run-feature-auto-upgrade-signed.drv": {
+      "check": "feature-auto-upgrade-signed",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 38
+        },
+        {
+          "passed": true,
+          "seconds": 25
+        },
+        {
+          "passed": true,
+          "seconds": 23
+        },
+        {
+          "passed": true,
+          "seconds": 26
+        },
+        {
+          "passed": true,
+          "seconds": 25
+        }
+      ]
+    },
+    "/nix/store/4l769bl4m800igmwrgqd3g5d3lzah17v-vm-test-run-app-starship.drv": {
+      "check": "app-starship",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 48
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 21
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        }
+      ]
+    },
+    "/nix/store/4rdh7myqqrr61s4wac0gajhz9062jz4x-vm-test-run-disko-dual-boot-disko.drv": {
+      "check": "feature-dual-boot-systemd-boot",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 572
+        },
+        {
+          "passed": true,
+          "seconds": 546
+        },
+        {
+          "passed": true,
+          "seconds": 549
+        },
+        {
+          "passed": true,
+          "seconds": 544
+        },
+        {
+          "passed": true,
+          "seconds": 541
+        }
+      ]
+    },
+    "/nix/store/5hpy5bv1y78i18sgw7ygw3f31bjan4ad-vm-test-run-feature-printing.drv": {
+      "check": "feature-printing",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 53
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        },
+        {
+          "passed": true,
+          "seconds": 23
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 21
+        }
+      ]
+    },
+    "/nix/store/694ldy1y3i2k0qljgfw0qbf9c7ljs9vp-vm-test-run-app-stow.drv": {
+      "check": "app-stow",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 59
+        },
+        {
+          "passed": true,
+          "seconds": 25
+        },
+        {
+          "passed": true,
+          "seconds": 27
+        },
+        {
+          "passed": true,
+          "seconds": 26
+        },
+        {
+          "passed": true,
+          "seconds": 26
+        }
+      ]
+    },
+    "/nix/store/6bs4k6xq951b70qif5l4c64arz2xvmzh-vm-test-run-base-update.drv": {
+      "check": "base-update",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 51
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 19
+        }
+      ]
+    },
+    "/nix/store/7jy5cg7ar4lnbpygsxs5la9dmag3dvla-vm-test-run-disko-example-disko.drv": {
+      "check": "feature-migration",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 193
+        },
+        {
+          "passed": true,
+          "seconds": 146
+        },
+        {
+          "passed": true,
+          "seconds": 141
+        },
+        {
+          "passed": true,
+          "seconds": 143
+        },
+        {
+          "passed": true,
+          "seconds": 146
+        }
+      ]
+    },
+    "/nix/store/7wrr6c22d5780q09c8185nx1z43bnxxs-vm-test-run-app-hyprland.drv": {
+      "check": "app-hyprland",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 73
+        },
+        {
+          "passed": true,
+          "seconds": 38
+        },
+        {
+          "passed": true,
+          "seconds": 38
+        },
+        {
+          "passed": true,
+          "seconds": 38
+        },
+        {
+          "passed": true,
+          "seconds": 38
+        }
+      ]
+    },
+    "/nix/store/95y8144l6mygyp81ixg40nf2svgisiil-vm-test-run-app-gh.drv": {
+      "check": "app-gh",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 40
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 12
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        }
+      ]
+    },
+    "/nix/store/9qh97gdnx2pn04jpsvwshq6kg5znb61y-vm-test-run-feature-plymouth.drv": {
+      "check": "feature-plymouth",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 97
+        },
+        {
+          "passed": true,
+          "seconds": 55
+        },
+        {
+          "passed": true,
+          "seconds": 58
+        },
+        {
+          "passed": true,
+          "seconds": 55
+        },
+        {
+          "passed": true,
+          "seconds": 56
+        }
+      ]
+    },
+    "/nix/store/9ynqi9n9hsslnajjhwvgxkqm1586gpg4-vm-test-run-app-eza.drv": {
+      "check": "app-eza",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 55
+        },
+        {
+          "passed": true,
+          "seconds": 27
+        },
+        {
+          "passed": true,
+          "seconds": 26
+        },
+        {
+          "passed": true,
+          "seconds": 26
+        },
+        {
+          "passed": true,
+          "seconds": 27
+        }
+      ]
+    },
+    "/nix/store/a5pb2hk87v2ip5jm39p6jdlmzsyqqziz-vm-test-run-app-fzf.drv": {
+      "check": "app-fzf",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 49
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 17
+        },
+        {
+          "passed": true,
+          "seconds": 19
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        }
+      ]
+    },
+    "/nix/store/bvrrzvvka8qm9jabbnvrw2vskxvcpngq-vm-test-run-app-zsh.drv": {
+      "check": "app-zsh",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 52
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 23
+        },
+        {
+          "passed": true,
+          "seconds": 24
+        }
+      ]
+    },
+    "/nix/store/di1mckd7rcfz3hgs36b632xyva3gpcsf-vm-test-run-disko-hibernate-disko.drv": {
+      "check": "feature-hibernate",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": false,
+          "seconds": 186
+        },
+        {
+          "passed": true,
+          "seconds": 357
+        },
+        {
+          "passed": true,
+          "seconds": 360
+        },
+        {
+          "passed": false,
+          "seconds": 157
+        },
+        {
+          "passed": true,
+          "seconds": 367
+        }
+      ]
+    },
+    "/nix/store/f0982jj33i0zpk385n3k73fiyjiazjb3-vm-test-run-profile-pi.drv": {
       "check": "profile-pi",
       "system": "x86_64-linux",
       "runs": [
@@ -817,7 +583,133 @@
         },
         {
           "passed": true,
-          "seconds": 21
+          "seconds": 17
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        }
+      ]
+    },
+    "/nix/store/fvcwpv6lrxp02dnml9p6xxkyyvrsrq5a-vm-test-run-disko-rollback-disko.drv": {
+      "check": "feature-rollback-secure-boot",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 1063
+        },
+        {
+          "passed": true,
+          "seconds": 980
+        },
+        {
+          "passed": true,
+          "seconds": 980
+        },
+        {
+          "passed": true,
+          "seconds": 976
+        },
+        {
+          "passed": true,
+          "seconds": 980
+        }
+      ]
+    },
+    "/nix/store/g8941g0kksmkfzd8ddbdgx4li2xpv0gk-vm-test-run-feature-ssh.drv": {
+      "check": "feature-ssh",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 39
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 14
+        }
+      ]
+    },
+    "/nix/store/hcsv2qbxgdrcjg29zh1lagixaabmmlyr-vm-test-run-disko-dual-boot-disko.drv": {
+      "check": "feature-dual-boot-same-disk",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 1265
+        },
+        {
+          "passed": false,
+          "seconds": 157
+        },
+        {
+          "passed": true,
+          "seconds": 1231
+        },
+        {
+          "passed": true,
+          "seconds": 1229
+        },
+        {
+          "passed": true,
+          "seconds": 1233
+        }
+      ]
+    },
+    "/nix/store/i2pam560d0cjn2sgq49ikd9n75s61lcw-vm-test-run-profile-server.drv": {
+      "check": "profile-server",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 32
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 17
+        },
+        {
+          "passed": true,
+          "seconds": 17
+        }
+      ]
+    },
+    "/nix/store/j2bb5lckp9hnlyq48j3wcqc0kk4cyzpy-vm-test-run-base-doctor.drv": {
+      "check": "base-doctor",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 52
         },
         {
           "passed": true,
@@ -825,133 +717,51 @@
         },
         {
           "passed": true,
-          "seconds": 21
-        },
-        {
-          "passed": true,
-          "seconds": 20
-        }
-      ]
-    },
-    "/nix/store/nk60j009zk349rpi52spgkkkrmybhhgq-vm-test-run-example-boots.drv": {
-      "check": "example-boots",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 87
-        },
-        {
-          "passed": true,
-          "seconds": 28
-        },
-        {
-          "passed": true,
-          "seconds": 28
-        },
-        {
-          "passed": true,
-          "seconds": 27
-        },
-        {
-          "passed": true,
-          "seconds": 29
-        }
-      ]
-    },
-    "/nix/store/p6b7adwrj9ky6m8bzbwjks34pqh5h7zq-vm-test-run-disko-example-server-disko.drv": {
-      "check": "example-server-disk",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 200
-        },
-        {
-          "passed": true,
-          "seconds": 170
-        },
-        {
-          "passed": true,
-          "seconds": 168
-        },
-        {
-          "passed": true,
-          "seconds": 169
-        },
-        {
-          "passed": true,
-          "seconds": 169
-        }
-      ]
-    },
-    "/nix/store/pqz70y132r2rr4sxk1lkh6nv02mdwvhz-vm-test-run-disko-rollback-disko.drv": {
-      "check": "feature-rollback-failed-unit",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 580
-        },
-        {
-          "passed": true,
-          "seconds": 564
-        },
-        {
-          "passed": true,
-          "seconds": 564
-        },
-        {
-          "passed": true,
-          "seconds": 559
-        },
-        {
-          "passed": true,
-          "seconds": 558
-        }
-      ]
-    },
-    "/nix/store/q77gxjs16gdzihpaisb980s01r9rscp4-vm-test-run-profile-desktop.drv": {
-      "check": "profile-desktop",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 35
-        },
-        {
-          "passed": true,
-          "seconds": 20
-        },
-        {
-          "passed": true,
-          "seconds": 21
-        },
-        {
-          "passed": true,
           "seconds": 20
         },
         {
           "passed": true,
           "seconds": 20
+        },
+        {
+          "passed": true,
+          "seconds": 23
         }
       ]
     },
-    "/nix/store/qah3g7r35ivxgiw95410m5dal4fx9y0q-vm-test-run-app-starship.drv": {
-      "check": "app-starship",
+    "/nix/store/j43896yn3ns9y1jlcbj1l2m5fa9npby3-vm-test-run-feature-nix-ld.drv": {
+      "check": "feature-nix-ld",
       "system": "x86_64-linux",
       "runs": [
         {
           "passed": true,
-          "seconds": 31
+          "seconds": 46
         },
         {
           "passed": true,
-          "seconds": 21
+          "seconds": 13
         },
         {
           "passed": true,
-          "seconds": 21
+          "seconds": 14
+        },
+        {
+          "passed": true,
+          "seconds": 14
+        },
+        {
+          "passed": true,
+          "seconds": 14
+        }
+      ]
+    },
+    "/nix/store/l5cskg3gw8lr1d2iv1ir9dqr1rvbdih3-vm-test-run-app-neovim.drv": {
+      "check": "app-neovim",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 46
         },
         {
           "passed": true,
@@ -960,141 +770,71 @@
         {
           "passed": true,
           "seconds": 19
+        },
+        {
+          "passed": true,
+          "seconds": 18
+        },
+        {
+          "passed": true,
+          "seconds": 18
         }
       ]
     },
-    "/nix/store/r2zb7dcdj6a2s4d0fgfw96kmingf3n9b-vm-test-run-app-firefox.drv": {
-      "check": "app-firefox",
+    "/nix/store/lkccs02ii05qij3fcqjq7iy7ad94hlm2-vm-test-run-disko-rollback-disko.drv": {
+      "check": "feature-rollback",
       "system": "x86_64-linux",
       "runs": [
         {
           "passed": true,
-          "seconds": 33
+          "seconds": 521
         },
         {
           "passed": true,
-          "seconds": 13
+          "seconds": 497
         },
         {
           "passed": true,
-          "seconds": 13
+          "seconds": 491
         },
         {
           "passed": true,
-          "seconds": 13
+          "seconds": 492
         },
         {
           "passed": true,
-          "seconds": 13
+          "seconds": 499
         }
       ]
     },
-    "/nix/store/r456psdahiyjj9yvcmd5rf29ipfkpsrn-vm-test-run-disko-example-disko.drv": {
-      "check": "feature-migration",
+    "/nix/store/mpmzdhbamvwmkar2fh8gdlxajc877aai-vm-test-run-app-delta.drv": {
+      "check": "app-delta",
       "system": "x86_64-linux",
       "runs": [
         {
           "passed": true,
-          "seconds": 412
+          "seconds": 46
         },
         {
           "passed": true,
-          "seconds": 125
+          "seconds": 18
         },
         {
           "passed": true,
-          "seconds": 127
+          "seconds": 16
         },
         {
           "passed": true,
-          "seconds": 124
+          "seconds": 19
         },
         {
           "passed": true,
-          "seconds": 121
+          "seconds": 19
         }
       ]
     },
-    "/nix/store/vs0xv9k7c65qak9809jf97sh9iz713km-vm-test-run-app-eza.drv": {
-      "check": "app-eza",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 38
-        },
-        {
-          "passed": true,
-          "seconds": 27
-        },
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 26
-        },
-        {
-          "passed": true,
-          "seconds": 27
-        }
-      ]
-    },
-    "/nix/store/w6d340kjw0ggv42b1h8ddrgqbqwx9dfr-vm-test-run-feature-auto-upgrade.drv": {
-      "check": "feature-auto-upgrade",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 49
-        },
-        {
-          "passed": true,
-          "seconds": 32
-        },
-        {
-          "passed": true,
-          "seconds": 34
-        },
-        {
-          "passed": true,
-          "seconds": 33
-        },
-        {
-          "passed": true,
-          "seconds": 32
-        }
-      ]
-    },
-    "/nix/store/w77h1ax2cv9mabymsz14py2636ss3yc8-vm-test-run-feature-fido2.drv": {
-      "check": "feature-fido2",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 94
-        },
-        {
-          "passed": true,
-          "seconds": 70
-        },
-        {
-          "passed": true,
-          "seconds": 66
-        },
-        {
-          "passed": true,
-          "seconds": 71
-        },
-        {
-          "passed": true,
-          "seconds": 67
-        }
-      ]
-    },
-    "/nix/store/wsdvi0xw8drq8yhbfwnl7jgkdk76l6j2-vm-test-run-feature-libvirt.drv": {
-      "check": "feature-libvirt",
+    "/nix/store/mzgqwc1pwrvsc0v77hl0sbihb3i000sc-vm-test-run-base-nix.drv": {
+      "check": "base-nix",
       "system": "x86_64-linux",
       "runs": [
         {
@@ -1107,98 +847,20 @@
         },
         {
           "passed": true,
-          "seconds": 21
+          "seconds": 20
         },
         {
           "passed": true,
-          "seconds": 23
+          "seconds": 20
         },
         {
           "passed": true,
-          "seconds": 22
+          "seconds": 19
         }
       ]
     },
-    "/nix/store/xlfdswsghf73f62ql0ncwxcwhwjyw1xp-vm-test-run-disko-hibernate-disko.drv": {
-      "check": "feature-hibernate",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 394
-        },
-        {
-          "passed": true,
-          "seconds": 380
-        },
-        {
-          "passed": true,
-          "seconds": 381
-        },
-        {
-          "passed": true,
-          "seconds": 377
-        },
-        {
-          "passed": true,
-          "seconds": 378
-        }
-      ]
-    },
-    "/nix/store/yldfdcccb8ys02mpc6kinvsixn437q65-vm-test-run-disko-example-disko.drv": {
-      "check": "example-disk",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 338
-        },
-        {
-          "passed": true,
-          "seconds": 270
-        },
-        {
-          "passed": true,
-          "seconds": 271
-        },
-        {
-          "passed": true,
-          "seconds": 267
-        },
-        {
-          "passed": true,
-          "seconds": 268
-        }
-      ]
-    },
-    "/nix/store/z5dj1gj0i0zzyrdxq93mvh6m2w0lb7m9-vm-test-run-feature-secrets.drv": {
+    "/nix/store/nbqj7rkp0sxxj5njmxlmh1k0kf1cwdmd-vm-test-run-feature-secrets.drv": {
       "check": "feature-secrets",
-      "system": "x86_64-linux",
-      "runs": [
-        {
-          "passed": true,
-          "seconds": 30
-        },
-        {
-          "passed": true,
-          "seconds": 17
-        },
-        {
-          "passed": true,
-          "seconds": 16
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        },
-        {
-          "passed": true,
-          "seconds": 18
-        }
-      ]
-    },
-    "/nix/store/zznn7pqjhl20kv0c2i0d9mapl7s2m6pj-vm-test-run-feature-auto-upgrade-signed.drv": {
-      "check": "feature-auto-upgrade-signed",
       "system": "x86_64-linux",
       "runs": [
         {
@@ -1207,7 +869,237 @@
         },
         {
           "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 21
+        },
+        {
+          "passed": true,
+          "seconds": 23
+        },
+        {
+          "passed": true,
+          "seconds": 23
+        }
+      ]
+    },
+    "/nix/store/ni0c4l8a6ir2xwpjl3jl29fw9ca3m43y--test-run-example-server-installer.drv": {
+      "check": "example-server-installer",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 304
+        },
+        {
+          "passed": true,
+          "seconds": 253
+        },
+        {
+          "passed": true,
+          "seconds": 249
+        },
+        {
+          "passed": true,
+          "seconds": 248
+        },
+        {
+          "passed": true,
+          "seconds": 253
+        }
+      ]
+    },
+    "/nix/store/nsgy9difsl4a0bncrkxznvi3mq2603aw-vm-test-run-base-resolved.drv": {
+      "check": "base-resolved",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 43
+        },
+        {
+          "passed": true,
+          "seconds": 14
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        }
+      ]
+    },
+    "/nix/store/syb7ycl1ifdwn96znvmj0w2cci9j2j8p-vm-test-run-base-journald.drv": {
+      "check": "base-journald",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 25
+        },
+        {
+          "passed": true,
+          "seconds": 11
+        },
+        {
+          "passed": true,
+          "seconds": 11
+        },
+        {
+          "passed": true,
+          "seconds": 11
+        },
+        {
+          "passed": true,
+          "seconds": 11
+        }
+      ]
+    },
+    "/nix/store/vmva6n00qx8d42pwh9k77jzp8q2h0h1m-vm-test-run-example-boots.drv": {
+      "check": "example-boots",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 95
+        },
+        {
+          "passed": true,
+          "seconds": 29
+        },
+        {
+          "passed": true,
           "seconds": 30
+        },
+        {
+          "passed": true,
+          "seconds": 30
+        },
+        {
+          "passed": true,
+          "seconds": 27
+        }
+      ]
+    },
+    "/nix/store/wg5qkq1dprwayzk9pqwri1q9wll957jc-vm-test-run-example-server-boots.drv": {
+      "check": "example-server-boots",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 50
+        },
+        {
+          "passed": true,
+          "seconds": 22
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        },
+        {
+          "passed": true,
+          "seconds": 20
+        }
+      ]
+    },
+    "/nix/store/xl139y84rd5vk2rk7nhjr8crs2bzqrbq-vm-test-run-app-firefox.drv": {
+      "check": "app-firefox",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 47
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        }
+      ]
+    },
+    "/nix/store/xmjgmg1m3zgm21kj30h91c0hav67crbr-vm-test-run-profile-desktop.drv": {
+      "check": "profile-desktop",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": false,
+          "seconds": 414
+        },
+        {
+          "passed": true,
+          "seconds": 14
+        },
+        {
+          "passed": true,
+          "seconds": 14
+        },
+        {
+          "passed": true,
+          "seconds": 14
+        },
+        {
+          "passed": true,
+          "seconds": 13
+        }
+      ]
+    },
+    "/nix/store/y1rn61z234wys12yf696wp0kyynhzqbi-vm-test-run-disko-rollback-disko.drv": {
+      "check": "feature-rollback-failed-unit",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 518
+        },
+        {
+          "passed": true,
+          "seconds": 499
+        },
+        {
+          "passed": true,
+          "seconds": 487
+        },
+        {
+          "passed": true,
+          "seconds": 484
+        },
+        {
+          "passed": true,
+          "seconds": 488
+        }
+      ]
+    },
+    "/nix/store/ypb5id2ki9iw0ynvjgnjkdw6zb0ap7v1-vm-test-run-feature-auto-upgrade.drv": {
+      "check": "feature-auto-upgrade",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 53
         },
         {
           "passed": true,
@@ -1215,11 +1107,119 @@
         },
         {
           "passed": true,
-          "seconds": 28
+          "seconds": 32
         },
         {
           "passed": true,
-          "seconds": 29
+          "seconds": 32
+        },
+        {
+          "passed": true,
+          "seconds": 33
+        }
+      ]
+    },
+    "/nix/store/yz0w6a0rd214bidjp2i9dcz7pwjx1gli-vm-test-run-disko-dual-boot-disko.drv": {
+      "check": "feature-dual-boot",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 1062
+        },
+        {
+          "passed": true,
+          "seconds": 1039
+        },
+        {
+          "passed": true,
+          "seconds": 1032
+        },
+        {
+          "passed": true,
+          "seconds": 1040
+        },
+        {
+          "passed": true,
+          "seconds": 1040
+        }
+      ]
+    },
+    "/nix/store/zaxvrrjx2ijmd327fx144yb8q25x8mlq-vm-test-run-disko-example-server-disko.drv": {
+      "check": "example-server-disk",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 198
+        },
+        {
+          "passed": true,
+          "seconds": 163
+        },
+        {
+          "passed": true,
+          "seconds": 164
+        },
+        {
+          "passed": true,
+          "seconds": 163
+        },
+        {
+          "passed": false,
+          "seconds": 160
+        }
+      ]
+    },
+    "/nix/store/zj61c6ncfpq9fbym7nyjzjypxgyylwss-vm-test-run-feature-fido2.drv": {
+      "check": "feature-fido2",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 102
+        },
+        {
+          "passed": true,
+          "seconds": 59
+        },
+        {
+          "passed": true,
+          "seconds": 62
+        },
+        {
+          "passed": true,
+          "seconds": 58
+        },
+        {
+          "passed": true,
+          "seconds": 61
+        }
+      ]
+    },
+    "/nix/store/zzsvaphfy3sv5m6yghrm0c1n7qx40qkx-vm-test-run-disko-example-disko.drv": {
+      "check": "example-disk",
+      "system": "x86_64-linux",
+      "runs": [
+        {
+          "passed": true,
+          "seconds": 322
+        },
+        {
+          "passed": true,
+          "seconds": 265
+        },
+        {
+          "passed": true,
+          "seconds": 269
+        },
+        {
+          "passed": false,
+          "seconds": 1500
+        },
+        {
+          "passed": true,
+          "seconds": 264
         }
       ]
     }

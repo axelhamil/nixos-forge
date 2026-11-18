@@ -119,6 +119,46 @@ The checks that only make sense upstream, on its example hosts and its upgrade p
 
 VM tests run on `x86_64-linux` only: they need KVM, and GitHub's arm64 Linux runners do not expose `/dev/kvm` ([actions/runner-images#14062](https://github.com/actions/runner-images/issues/14062)). Under emulation a boot test would not fit the 60 minute job limit. A fork with a self-hosted `aarch64-linux` runner exposing `/dev/kvm` can run them there.
 
+## How the VM tests are built
+
+Checks are generated from the registry and the modules, never listed. `flake.ci.matrix` (`modules/flake/ci/`) lists them; `ci-plan` (`forge-ci plan`, `crates/forge-ci/src/plan.rs`) drops what the binary cache holds and, in a PR, any check that builds a host kernel. `perf-regression` comes from `modules/flake/hosts/perf-check.nix`.
+
+### Revision and helpers
+
+- Every test machine pins `configurationRevision` to `"test"` through `helpers.testRevision`, so a test derivation stays cached from one commit to the next. Only `<host>-toplevel` carries the real revision.
+- A module test is named after its namespace and goes through `helpers.baseCheck` (`base-<tool>`), `helpers.featureCheck` (`feature-<name>`), `helpers.profileCheck` (`profile-<name>`), `helpers.appCheck` (`app-<name>`, with the app's two parts for a `tester` user) or `helpers.vmCheck`, all on `x86_64-linux` only.
+- Time budget: `vmCheck` and its wrappers take a `globalTimeout` (400 seconds by default), a direct `runNixOSTest` sets its own, and a disko `installTest` goes through `helpers.diskTest`. The derivation timeout and the CI job limit sit above it, so the test fails first and names the wait that hung.
+
+### Test machines
+
+No test machine has a network card, so OVMF never tries PXE.
+
+- `helpers.diskTest` runs every disko `installTest` with `helpers.testMachineScript` before its script, and rewrites the line of disko's `create_test_machine` that starts the installed machine so it goes through `machine_command`, which adds `-nic none`. It stops the evaluation when disko changes that line.
+- A test that starts its own machine calls `create_uefi_machine` (plain OVMF, its variables copied once into the state directory) or `create_secure_machine` (OVMF with Secure Boot and a TPM, from `helpers.secureMachineScript`), both built on `machine_command`. It takes the installed disk from disko's `disks(installer, n)` or `disk_drive`.
+- `disks()` sets no `bootindex`: with one, OVMF rewrites its boot order at every boot and deletes the entries of devices without one, such as the dual boot Windows entry. Only the installer test sets `disk_drive(..., boot_first=True)`: without a network card or a `bootindex`, OVMF in the build sandbox fails to load the CD-ROM.
+- `create_secure_machine` adds a `-netdev user` attached to no device. With no network backend at all, QEMU often leaves a swtpm reply waiting for an unrelated event; OVMF then stalls about 2 minutes and boots with its TPM measurements failed, so a TPM2 token enrolled on that boot never unlocks the next one.
+- The `vm-launchers` check fails on any other hand-built QEMU command. A NixOS run script, which boots its kernel directly, is allowed by name in `modules/flake/helpers/vm-launchers-check.nix`.
+
+### Install, hibernate and rollback tests
+
+- `<host>-disk` is disko's install test: format, install, reboot, then `modules/features/disk/wipe-test.py`, `modules/features/disk/snapshots/snapshot-test.py`, `modules/features/base/doctor/disk-test.py`, `modules/features/base/update/disk-test.py` when the host's `flake` checkout is persisted, and the `wipe-home` scripts on a host with `wipe-home`. It runs Secure Boot and TPM2 under OVMF when the host also imports `secure-boot`. The `home-manager-<user>` services fail there, since disko's harness shares the host store over 9p; `<host>-boots` covers them.
+- A host with `hibernate` runs `<host>-disk` with a 1G swap file, since the test disk has 4 GiB. `feature-hibernate` installs a minimal `disk` and `hibernate` machine and copies its store onto the disk with `helpers.storeOnDiskTest`: like nixpkgs' own hibernate test, it does not resume on a store shared with the host.
+- `feature-rollback` (`modules/features/auto-upgrade/rollback-check.nix`) installs a minimal `disk` and `auto-upgrade` machine, `feature-rollback-secure-boot` the same with `secure-boot` after the TPM2 enrollment. Both copy the store onto the disk (nix cannot open the store shared over 9p) and install a second generation whose service required by `boot-complete.target` fails, so `systemd-bless-boot` never blesses it. That generation drops `systemd-boot-check-no-failures` from `boot-complete.target`, and the test checks it never ran, so the health check alone blocks the blessing. The test boots it 3 times (`+2-1`, `+1-2`, `+0-3`) and checks the next boot starts generation 1 again. `feature-rollback-failed-unit` uses a service failing after `multi-user.target`, caught by `systemd-boot-check-no-failures`.
+
+### Dual boot tests
+
+`feature-dual-boot` (`modules/features/dual-boot/check.nix`) installs a `disk`, `secure-boot` and `dual-boot` machine and adds a second disk holding a fake Windows: the UEFI shell, signed with the test keys, as `EFI/Microsoft/Boot/bootmgfw.efi`, whose `startup.nsh` prints Secure Boot and `BootCurrent`. It picks `auto-windows` with a BitLocker magic, without it, and without the `Windows Boot Manager` firmware entry; another entry sits between NixOS and Windows in the boot order, so only `BootNext` reaches Windows.
+
+`feature-dual-boot-same-disk` grows the test disk to 12G and lays out the fake Windows on it. It checks `forge dual-boot install-beside-windows` refuses a 100M ESP without a change, installs beside Windows over an old LUKS header, plugs in and removes a second Windows disk, then runs the same checks. Both tests compare the Windows partitions before and after.
+
+### Checks with a base input
+
+A check that installs the base revision names its flake input in `baseInput` (`modules/flake/hosts/migration-check.nix` uses `migration-base`). `flake.ci.matrix` carries it to `ci-build --base-input`, which overrides it with the PR's base or the commit before a push, and `ci-plan` never skips such a check as cached ([maintenance/ci.md](../maintenance/ci.md)).
+
+### The docs check
+
+`forge check-docs` lives in `crates/forge/src/check_docs/`. It resolves links and anchors offline with pulldown-cmark, with GitHub's heading anchors and the `id` and `name` attributes. It fails on any violation missing from `modules/flake/docs/pending.txt` and on any listed one that no longer fails, so that list only shrinks. The FIDO2 PAM origin is never counted as a name a fork lacks, since a fork keeps it ([fido2.md](../how-to/fido2.md)).
+
 ## Reproducibility
 
 `nix build --rebuild` builds the system derivation of a machine once more and compares the result with the first build, byte for byte. It rebuilds the last derivation only, the one that assembles the system, not every package under it. So it catches what that step adds (timestamps, ordering), not the reproducibility of nixpkgs.

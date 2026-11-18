@@ -76,6 +76,62 @@ The file `modules/hosts/my-laptop/default.nix` sets `configurations.nixos.my-lap
 
 `nix flake show` lists them all.
 
+## Layout of `modules/`
+
+One folder per tool, never a loose `.nix` file at layer level (`flake/helpers/` excepted):
+
+- `flake/`: the wiring, the registry, the checks, the installer, the `init` and `upstream` wrappers, the dev shell, the CI scripts, `rust/` (which builds `crates/`) and `helpers/`.
+- `features/`: `base/` (`nix`, `home-manager`, `impermanence`, `resolved`, `journald`, `doctor`, `update`, `forge`: mechanisms every fork needs, their choices set with `mkDefault`), `profiles/` (`desktop`, `laptop`, `server`, `pi`), `hardware/`, and one folder per feature ([features.md](../reference/features.md)). `disk` has the sub-folders `snapshots/` and `beside-windows/`.
+- `apps/`: everything a user runs, with its config ([apps.md](../reference/apps.md)).
+- `users/` (one folder per person) and `hosts/` (one per machine): they belong to the fork.
+
+Helpers live in `config.helpers`, one file per topic under `modules/flake/helpers/`, read with `inherit (config.helpers) <name>;`. App values go through `helpers.mkDefaults`, so a user overrides them without `mkForce`; lists meant to be extended stay plain.
+
+## Namespaces
+
+`modules/flake/hosts/namespaces.nix` declares one flake-level option per registry field:
+
+- `base`: one module, on every host. Every `features/base/<tool>` adds to it.
+- `profiles.<name>`, `features.<name>`, `hardware.<name>`: NixOS modules. Each is wrapped with the `key` `nixos-forge/<field>/<name>`, so NixOS imports it once however many times it is named. <!-- docs-check: allow nixos-forge -->
+- `apps.<name>`: a `nixos` part and a `homeManager` part, each imported with `_class` set to its part, so a home-manager module put in a `nixos` part stops the evaluation.
+
+Several files may write to the same name, and the module system merges them: `features/disk/snapshots`, a sub-folder of the feature it extends, adds to `disk`; an app's `default.nix` and `home.nix` both define it. A name published by two namespaces stops the evaluation (the `flake-modules` check).
+
+`flake.modules.nixos.<name>` and `flake.modules.homeManager.<name>` are outputs only, for other dendritic flakes to import. `modules/flake/flake-parts/modules.nix` maps them from `base`, the three namespaces and the app parts some file defines (an app with no `nixos` part is absent from `flake.modules.nixos`). Nothing in the flake reads them.
+
+## How names resolve
+
+The registry options live in `modules/flake/hosts/options.nix`. Names are lists, never `enable` booleans, and become imports at the flake-parts level, in the registry's `config.module`. The registry sets `nixpkgs.hostPlatform` from `system`. A host name has 1 to 63 letters, digits, `-` and `_`, and starts and ends with a letter or a digit.
+
+- An app's two parts go through `helpers.appPart` with the `key` `nixos-forge/apps/<name>/<part>`, so an app named by both the host and a person is imported once (the `apps-once` check). <!-- docs-check: allow nixos-forge -->
+- A name of `apps` that is not an app is the nixpkgs attribute path `pkgs.<name>`, with its unfree name allowed: `apps = [ "docker" ]` installs `pkgs.docker`. Tools with nothing to configure (`ripgrep`, `fd`, `jq`) stay nixpkgs names, not apps.
+- An unknown name stops the evaluation naming the field. For `profile`, `features` and `hardware` it lists that namespace alone; for `apps` it lists the configured apps and says any nixpkgs attribute path works; for `users` it lists the people of `modules/users`. The `wrong-namespace` check proves these messages, one of them from a variant.
+- A host's `specialisations.<name>` takes `features`, `apps`, `hardware` and `module`, resolved by the same code (`selection` in `options.nix`) into `specialisation.<name>.configuration`, which also writes the name to `/etc/specialisation`. A variant inherits the host only, never another variant. Lists merge, so a variant adds to the host's and the person's `apps` and cannot remove one. `forge update` (through `nh`) and `auto-upgrade` in `switch` mode read `/etc/specialisation` to stay on the running variant; the `specialisations` check switches a host to a variant and back.
+
+## Apps stand alone
+
+No app imports another app or a feature. An app keeps only what it cannot start or do its core job without: `hyprland` brings uwsm, its portal, a polkit agent, fonts and its binds. Every choice (terminal, launcher, bar, notifications, lock screen, login manager, prompt, editor, pager) is an app or a feature the host or the person lists.
+
+An app fits its neighbours by reading their home-manager options (`config.programs.fuzzel.enable`), never by importing them. Hyprland binds the launcher, clipboard and lock keys only when `fuzzel` and `lock` are listed, and its terminal key runs `xdg-terminal-exec`, whose default `kitty` registers ([desktop.md](../reference/desktop.md)). The `hyprland-alone` check proves it.
+
+## People and accounts
+
+People are the flake-level `users.<name>` of `modules/flake/hosts/users.nix`. `modules/users/<user>/default.nix` sets `fullName`, `email`, `sshKeys`, `apps` (`[ ]` by default, installed on every host that gives the person an account) and `module`, the person's own home-manager config. `module` is wrapped with the `key` `nixos-forge/users/<user>` and `_class = "homeManager"`; several files of the folder may each set part of it. <!-- docs-check: allow nixos-forge -->
+
+A host's `users.<user>` holds per-machine fields only (`admin`, `groups`, `apps` added to the person's) and creates the account: `wheel` when `admin`, the password from `/persist/passwords/<user>` with persistence, `test` in the VM. Its home-manager config imports the host's `apps`, the person's and the host user's, then the person's `module`. zsh is the login shell when one of those lists names `zsh`. A host naming a person without a `modules/users/<user>` folder stops the evaluation with the known people.
+
+## Rust workspace
+
+`crates/` is a Cargo workspace built by `modules/flake/rust/` with [crane](https://github.com/ipetkov/crane) (the `crane` input, which lanzaboote follows) and the Rust toolchain of the locked nixpkgs. `buildDepsOnly` runs once and its `cargoArtifacts` are shared by `packages.forge` and the Rust checks ([ci.md](../reference/ci.md#checks-of-the-rust-code)). The source is filtered to `crates/`, so a docs change rebuilds no Rust.
+
+| Crate | Holds | Reaches |
+|---|---|---|
+| `forge` (`crates/forge`) | the `forge` command and the lib its ports live in | every host, through the base tool `forge`; `packages.forge` is built with `-p forge` |
+| `forge-ci` (`crates/forge-ci`) | the CI scripts `plan`, `build`, `report`, `promote`, `badges`, `flaky`, `flaky-plan`, `flaky-report`, `reproducibility`, on top of the `forge` lib's ports | no host; each `packages.ci-*` wraps `forge-ci <name>` |
+| `forge-apps` (`crates/forge-apps`) | `stow-dotfiles` and `upgrade-notify`, the programs of the `stow` and `upgrade-notify` apps | `packages.forge-apps`, wrapped by each app's module, so only a host listing the app carries it |
+
+`forge` has built-in commands and runs any other `forge <name>` as the first `forge-<name>` found, after checking its contract ([forge.md](../reference/forge.md)). The base tool `forge` wraps it with the `bin` of every package of `forge.commands` in `FORGE_COMMANDS_PATH`, the `bin` of the internal `forge.runtimeInputs` before `PATH`, and the internal `forge.environment` variables. The `doctor` base tool sets `FORGE_DOCTOR_CONFIG` to its system's settings and the `dual-boot` feature `FORGE_DUAL_BOOT_CONFIG`, so a variant's `forge` reads its own. `forge install --beside-windows` runs a `forge` built for the target, `system.build.installBesideWindows`, with `FORGE_BESIDE_WINDOWS_CONFIG`. `base-forge` proves the contract in a VM, `base-doctor` the doctor checks a fork adds.
+
 ## Checks follow the registry
 
 Nobody lists checks. Every host gets `<host>-toplevel` and a boot test, a host with `disk` an install test, and each module with a `check.nix` its own VM test. A new host or module reaches CI without touching a workflow ([reference/ci.md](../reference/ci.md#checks)).

@@ -3,6 +3,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use super::config::BesideWindowsSettings;
+use super::esp::BOOT_MANAGER;
 use crate::system::interrupt::{self, Flag};
 use crate::system::mount::Mounts;
 use crate::system::partitions::{self, Partition};
@@ -12,7 +13,6 @@ const MIB: u64 = 1024 * 1024;
 const GENERATIONS: u64 = 3;
 const MARGIN: u64 = 32 * MIB;
 const STORE_MARGIN: u64 = 1024 * MIB;
-const BOOT_MANAGER: &str = "EFI/Microsoft/Boot/bootmgfw.efi";
 const REUSED_ON_THE_ESP: [&str; 3] = ["EFI/nixos", "EFI/Linux", "loader"];
 const LUKS_TYPE_CODE: &str = "8309";
 const SETTLE_TIMEOUT: Duration = Duration::from_secs(150);

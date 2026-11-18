@@ -1,0 +1,12 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"report\"])"
+---
+exit: 0
+--- stdout
+**CI could not plan this run, so nothing was built.**
+
+Fix what is listed below and push again: CI runs on every push.
+
+Open the full log to see why.
+--- stderr

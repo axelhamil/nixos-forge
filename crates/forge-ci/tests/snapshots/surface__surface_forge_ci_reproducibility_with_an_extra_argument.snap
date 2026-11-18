@@ -1,0 +1,8 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"reproducibility\", \"--bogus\"])"
+---
+exit: 2
+--- stdout
+--- stderr
+usage: reproducibility [<host>...]

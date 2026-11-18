@@ -139,7 +139,7 @@ fn directory(file: &Path) -> String {
     if depth == 0 {
         return "/".to_owned();
     }
-    format!("/{}", names[..depth].join("/"))
+    format!("/{}", names.get(..depth).unwrap_or_default().join("/"))
 }
 
 #[cfg(test)]

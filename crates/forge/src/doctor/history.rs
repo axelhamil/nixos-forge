@@ -25,7 +25,9 @@ pub(super) fn show(context: &Context, out: &mut dyn Write) -> io::Result<()> {
 
 fn table(history: &str) -> String {
     let rows: Vec<_> = history.lines().filter_map(parse_history_line).collect();
-    let shown = &rows[rows.len().saturating_sub(ROWS)..];
+    let shown = rows
+        .get(rows.len().saturating_sub(ROWS)..)
+        .unwrap_or_default();
 
     let mut lines = vec![row("TIME", "OUTCOME", "FROM", "TO", "SOURCE")];
     for run in shown {

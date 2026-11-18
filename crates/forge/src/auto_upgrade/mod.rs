@@ -2,7 +2,7 @@ mod apply;
 mod config;
 mod decision;
 mod signature;
-mod sources;
+pub(crate) mod sources;
 mod state;
 mod trust;
 
@@ -17,17 +17,20 @@ use apply::Failure;
 use decision::{Decision, GitHistory, Revisions};
 use signature::Signers;
 use sources::Found;
-use trust::Checkout;
+use trust::{Checkout, InspectError};
 
 use crate::plugins;
 use crate::system::{
-    Accounts, Clock, Commands, Files, Git, Invocation, Streams, boot_entries, generation_went_back,
+    Accounts, Clock, Commands, Files, Git, Invocation, PatternInvalid, Streams, boot_entries,
+    generation_went_back,
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("git {0} failed")]
     Git(String),
+    #[error(transparent)]
+    Pattern(#[from] PatternInvalid),
     #[error("cannot {action} {}: {source}", path.display())]
     Io {
         action: &'static str,
@@ -147,13 +150,14 @@ fn attempt(run: &mut Run, overrides: &Overrides) -> Result<Outcome, Error> {
             Ok(Checkout::Cleartext) => {
                 return run.finish(Outcome::Refused, &decision::cleartext(checkout));
             }
-            Err(source) => {
+            Err(InspectError::Io(source)) => {
                 return Err(Error::Io {
                     action: "open the checkout",
                     path: checkout.clone(),
                     source,
                 });
             }
+            Err(InspectError::Pattern(error)) => return Err(error.into()),
         }
     }
     candidates.extend(config.sources.iter().filter(|url| !url.is_empty()).cloned());

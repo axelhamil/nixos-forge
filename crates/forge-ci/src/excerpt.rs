@@ -77,19 +77,19 @@ fn clean(line: &str) -> String {
 fn without_escapes(line: &str) -> String {
     let mut clean = String::with_capacity(line.len());
     let mut rest = line;
-    while let Some(start) = rest.find("\u{1b}[") {
-        clean.push_str(&rest[..start]);
-        let after = &rest[start + 2..];
+    while let Some((before, after)) = rest.split_once("\u{1b}[") {
+        clean.push_str(before);
         let parameters = after
             .find(|char: char| !(char.is_ascii_digit() || char == ';' || char == '?'))
             .unwrap_or(after.len());
-        match after[parameters..].chars().next() {
+        let mut terminator = after.get(parameters..).unwrap_or_default().chars();
+        match terminator.next() {
             Some(end) if end.is_ascii_alphabetic() => {
-                rest = &after[parameters + end.len_utf8()..];
+                rest = terminator.as_str();
             }
             _ => {
                 clean.push('\u{1b}');
-                rest = &rest[start + 1..];
+                rest = rest.get(before.len() + 1..).unwrap_or_default();
             }
         }
     }
@@ -104,7 +104,9 @@ fn without_builder_prefix(line: &str) -> &str {
     if name == 0 {
         return line;
     }
-    line[name..].strip_prefix("> ").unwrap_or(line)
+    line.get(name..)
+        .and_then(|rest| rest.strip_prefix("> "))
+        .unwrap_or(line)
 }
 
 fn without_quoted_prefix(line: &str) -> &str {
@@ -112,7 +114,9 @@ fn without_quoted_prefix(line: &str) -> &str {
     if spaces == 0 {
         return line;
     }
-    line[spaces..].strip_prefix("> ").unwrap_or(line)
+    line.trim_start_matches(' ')
+        .strip_prefix("> ")
+        .unwrap_or(line)
 }
 
 #[cfg(test)]

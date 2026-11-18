@@ -69,13 +69,14 @@ fn parse(json: &str) -> Vec<BootEntry> {
 fn generation_number(version: &str) -> Option<u64> {
     const WORD: &str = "Generation ";
     version.match_indices(WORD).find_map(|(start, _)| {
-        let before = version[..start].chars().next_back();
+        let (head, tail) = version.split_at_checked(start)?;
+        let before = head.chars().next_back();
         if before.is_some_and(is_word) {
             return None;
         }
-        let rest = &version[start + WORD.len()..];
+        let rest = tail.strip_prefix(WORD)?;
         let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
-        let after = rest[digits.len()..].chars().next();
+        let after = rest.get(digits.len()..)?.chars().next();
         if after.is_some_and(is_word) {
             return None;
         }

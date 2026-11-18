@@ -1,0 +1,8 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"init\", \"--bogus\"], &[])"
+---
+exit: 2
+--- stdout
+--- stderr
+forge init: unknown option --bogus (see --help)

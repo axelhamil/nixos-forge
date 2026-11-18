@@ -1,3 +1,10 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)]
+
 mod common;
 
 use std::collections::{HashMap, HashSet};
@@ -220,16 +227,21 @@ impl Clock for Fake {
     }
 }
 
+fn is_check(text: &str, check: &str) -> bool {
+    text.get(7..)
+        .is_some_and(|rest| rest.starts_with(&format!("{check} ")))
+}
+
 fn line<'a>(output: &'a str, check: &str) -> &'a str {
     output
         .lines()
-        .find(|line| line.len() > 7 && line[7..].starts_with(&format!("{check} ")))
+        .find(|line| is_check(line, check))
         .unwrap_or_else(|| panic!("no {check} line in\n{output}"))
 }
 
 fn hint<'a>(output: &'a str, check: &str) -> &'a str {
     let mut lines = output.lines();
-    lines.find(|text| text.len() > 7 && text[7..].starts_with(&format!("{check} ")));
+    lines.find(|text| is_check(text, check));
     lines.next().unwrap_or_default().trim()
 }
 

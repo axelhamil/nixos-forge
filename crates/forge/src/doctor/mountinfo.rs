@@ -21,18 +21,18 @@ fn unescape(field: &str) -> String {
     let bytes = field.as_bytes();
     let mut decoded = Vec::with_capacity(bytes.len());
     let mut index = 0;
-    while index < bytes.len() {
+    while let Some(&current) = bytes.get(index) {
         let octal = bytes
             .get(index + 1..index + 4)
             .filter(|digits| {
-                bytes[index] == b'\\' && digits.iter().all(|digit| (b'0'..=b'7').contains(digit))
+                current == b'\\' && digits.iter().all(|digit| (b'0'..=b'7').contains(digit))
             })
             .and_then(|digits| u8::from_str_radix(std::str::from_utf8(digits).ok()?, 8).ok());
         if let Some(byte) = octal {
             decoded.push(byte);
             index += 4;
         } else {
-            decoded.push(bytes[index]);
+            decoded.push(current);
             index += 1;
         }
     }

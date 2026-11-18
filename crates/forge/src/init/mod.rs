@@ -1,9 +1,9 @@
-mod answers;
+pub(crate) mod answers;
 #[cfg(test)]
 mod fake;
 mod key;
 mod options;
-mod render;
+pub(crate) mod render;
 mod steps;
 
 use std::env;
@@ -18,7 +18,9 @@ pub use options::{Flags, ParseError, Parsed, USAGE, parse};
 use crate::system::interrupt::{self, Flag};
 use crate::system::prompt::{Console, Terminal};
 use crate::system::remote::UPSTREAM_REPOSITORY;
-use crate::system::{Answer, Commands, Files, Invocation, Machine, Storage, find_in_path};
+use crate::system::{
+    Answer, Commands, Files, Invocation, Machine, PatternInvalid, Storage, find_in_path,
+};
 
 pub const SUBCOMMAND: &str = "init";
 
@@ -73,6 +75,12 @@ impl Stop {
             Self::Refused(_) => 1,
             Self::Interrupted(signal) => interrupt::exit_code(*signal),
         }
+    }
+}
+
+impl From<PatternInvalid> for Stop {
+    fn from(error: PatternInvalid) -> Self {
+        Self::Refused(error.to_string())
     }
 }
 

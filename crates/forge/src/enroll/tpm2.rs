@@ -4,14 +4,13 @@ use std::path::{Path, PathBuf};
 
 use super::Config;
 use crate::system::efi::{self, SecureBoot};
-use crate::system::interrupt::Flag;
+use crate::system::interrupt::{self, Flag, SIGTERM};
 use crate::system::luks::Header;
 use crate::system::{Answer, Commands, Files, Invocation, Machine};
 
 pub const TEMPORARY_SLOT: u32 = 31;
 
 const TPM2_TOKEN: &str = "systemd-tpm2";
-const STOPPED: u8 = 143;
 
 pub struct Settings<'a> {
     pub device: &'a str,
@@ -119,7 +118,7 @@ pub fn run(settings: &Settings, ports: &Ports, out: &mut dyn Write, err: &mut dy
         };
     }
     if ports.interrupt.raised().is_some() {
-        return STOPPED;
+        return interrupt::exit_code(SIGTERM);
     }
 
     let search = ports.commands.run(
@@ -171,7 +170,7 @@ fn wipe_temporary_slot(commands: &dyn Commands, device: &str) -> Answer {
 
 fn failure(answer: &Answer, interrupt: &Flag) -> u8 {
     if interrupt.raised().is_some() {
-        return STOPPED;
+        return interrupt::exit_code(SIGTERM);
     }
     answer.exit_code()
 }
@@ -214,7 +213,7 @@ fn enroll(
         return 1;
     }
     if ports.interrupt.raised().is_some() {
-        return STOPPED;
+        return interrupt::exit_code(SIGTERM);
     }
 
     let keyring = format!("%user:{}", settings.volume_key_description);
@@ -245,7 +244,7 @@ fn enroll(
     }
     session.temporary_key_added = true;
     if ports.interrupt.raised().is_some() {
-        return STOPPED;
+        return interrupt::exit_code(SIGTERM);
     }
 
     let unlock_key_file = format!("--unlock-key-file={unlock_key}");
@@ -261,7 +260,7 @@ fn enroll(
         return failure(&enrolled, ports.interrupt);
     }
     if ports.interrupt.raised().is_some() {
-        return STOPPED;
+        return interrupt::exit_code(SIGTERM);
     }
 
     let _ = writeln!(

@@ -1,0 +1,8 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"doctor\"], &[(\"FORGE_DOCTOR_CONFIG\", \"{TMP}/missing.json\")])"
+---
+exit: 1
+--- stdout
+--- stderr
+forge doctor: no [TMP]/missing.json, this machine is not a nixos-forge host

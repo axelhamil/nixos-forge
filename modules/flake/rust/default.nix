@@ -18,6 +18,7 @@ in
           (root + "/forge-ci/tests/fixtures")
           (root + "/forge-ci/src/report/causes.tsv")
           (root + "/deny.toml")
+          (root + "/clippy.toml")
         ];
       };
 

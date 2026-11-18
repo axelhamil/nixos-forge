@@ -1,0 +1,8 @@
+---
+source: forge-apps/tests/surface.rs
+expression: "run(env!(\"CARGO_BIN_EXE_stow-dotfiles\"), &[\"--help\"], &[])"
+---
+exit: 2
+--- stdout
+--- stderr
+usage: stow-dotfiles prune|check|apply <dotfiles> <target> <state> [--dotfiles] [package...]

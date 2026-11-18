@@ -1,0 +1,14 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"dual-boot\", \"install-beside-windows\"], &[])"
+---
+exit: 2
+--- stdout
+--- stderr
+Usage: forge dual-boot install-beside-windows DISK SYSTEM
+
+Creates the encrypted NixOS partition in the free space of DISK, which holds
+Windows, and mounts it on /mnt with the Windows ESP on /mnt/boot. The Windows
+partitions and their content are kept; only the GPT name of the ESP changes,
+so the installed system finds it.
+SYSTEM is the system to install: it sets the room needed on the ESP and the disk.

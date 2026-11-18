@@ -1,0 +1,28 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"--help\"], &[])"
+---
+exit: 0
+--- stdout
+The command line of a nixos-forge flake: built-in commands, and the forge-<name> commands a fork adds
+
+Usage: forge <COMMAND>
+
+Commands:
+  check-docs    Check the docs: links and anchors, the docs/README.md index, names a fork lacks, a section per module
+  doctor        Check this machine, one line per check: OK, WARN, FAIL or SKIP when it does not apply; run it with sudo for the checks that need root
+  auto-upgrade  Pull the version CI validated for this machine and apply it, as the auto-upgrade service does
+  update        Pull the host's flake checkout, then run nh os switch with the given arguments
+  enroll        Enroll a TPM2 or a security key to unlock the LUKS disk of this host
+  install       Install this installer's host on a whole disk, or beside Windows, asking for every value not given
+  dual-boot     Keep Windows in the boot menu and the firmware boot order, or make room for NixOS beside it
+  upstream      Show what the starter changed, then merge its latest release into a branch of origin and open its pull request
+  init          Make a fresh fork yours: write its host and person from the examples, then remove them
+  help          Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+
+External commands: none; a forge-<name> program in FORGE_COMMANDS_PATH or PATH runs as `forge <name>`.
+--- stderr

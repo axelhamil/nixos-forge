@@ -6,7 +6,21 @@ use rustix::fs::{FileType, Mode, OFlags, Stat, fstat, open, openat};
 use rustix::io::Errno;
 
 use super::sources::over_https;
-use crate::system::{Commands, Directory, Invocation};
+use crate::system::{Commands, Directory, Invocation, PatternInvalid};
+
+#[derive(Debug, thiserror::Error)]
+pub enum InspectError {
+    #[error(transparent)]
+    Io(#[from] io::Error),
+    #[error(transparent)]
+    Pattern(#[from] PatternInvalid),
+}
+
+impl From<Errno> for InspectError {
+    fn from(error: Errno) -> Self {
+        Self::Io(error.into())
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Checkout {
@@ -21,7 +35,7 @@ pub fn inspect(
     path: &Path,
     directory: &Directory,
     commands: &dyn Commands,
-) -> io::Result<Checkout> {
+) -> Result<Checkout, InspectError> {
     let folder = match open(
         path,
         OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
@@ -64,10 +78,10 @@ pub fn inspect(
         return Ok(Checkout::Untrusted);
     }
 
-    Ok(origin(&config, commands))
+    Ok(origin(&config, commands)?)
 }
 
-fn origin(config: &OwnedFd, commands: &dyn Commands) -> Checkout {
+fn origin(config: &OwnedFd, commands: &dyn Commands) -> Result<Checkout, PatternInvalid> {
     let opened = format!("/proc/{}/fd/{}", std::process::id(), config.as_raw_fd());
     let answer = commands.run(
         &Invocation::new(
@@ -77,14 +91,14 @@ fn origin(config: &OwnedFd, commands: &dyn Commands) -> Checkout {
         .loud(),
     );
     if !answer.success {
-        return Checkout::NoOrigin;
+        return Ok(Checkout::NoOrigin);
     }
 
     let url = answer.line();
     if url.starts_with("http://") || url.starts_with("git://") {
-        return Checkout::Cleartext;
+        return Ok(Checkout::Cleartext);
     }
-    Checkout::Origin(over_https(url))
+    Ok(Checkout::Origin(over_https(url)?))
 }
 
 fn trusted(stat: &Stat, directory: &Directory) -> bool {

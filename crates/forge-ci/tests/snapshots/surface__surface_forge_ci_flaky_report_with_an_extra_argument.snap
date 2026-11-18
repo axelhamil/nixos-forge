@@ -1,0 +1,8 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"flaky-report\", \"results\", \"history\", \"extra\"])"
+---
+exit: 2
+--- stdout
+--- stderr
+usage: MATRIX=<all> PLANNED=<checks> ci-flaky-report <results-dir> <history-out-dir>

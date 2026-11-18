@@ -1,15 +1,13 @@
 use std::time::Duration;
 
-use fancy_regex::Regex;
-
 use super::Error;
 use super::signature::Signers;
-use crate::system::Git;
+use crate::system::{Git, Pattern, PatternInvalid};
 
 const SOURCE_TIMEOUT: Duration = Duration::from_secs(60);
 
-const SSH_URL: &str = r"^ssh://([^@/]+@)?([^/:]+)(:[0-9]+)?/(.+)$";
-const SCP_LIKE: &str = r"^([^@/:]+@)?([^/:]+):(.+)$";
+pub(crate) static SSH_URL: Pattern = Pattern::new(r"^ssh://([^@/]+@)?([^/:]+)(:[0-9]+)?/(.+)$");
+pub(crate) static SCP_LIKE: Pattern = Pattern::new(r"^([^@/:]+@)?([^/:]+):(.+)$");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Found {
@@ -19,23 +17,33 @@ pub enum Found {
     Unreachable,
 }
 
-#[must_use]
-pub fn over_https(url: &str) -> String {
-    if let Some([host, path]) = groups(SSH_URL, url, [2, 4]) {
-        return format!("https://{host}/{path}");
+pub fn over_https(url: &str) -> Result<String, PatternInvalid> {
+    if let Some([host, path]) = groups(&SSH_URL, url, [2, 4])? {
+        return Ok(format!("https://{host}/{path}"));
     }
     if !url.contains("://")
-        && let Some([host, path]) = groups(SCP_LIKE, url, [2, 3])
+        && let Some([host, path]) = groups(&SCP_LIKE, url, [2, 3])?
     {
-        return format!("https://{host}/{}", path.strip_prefix('/').unwrap_or(path));
+        return Ok(format!(
+            "https://{host}/{}",
+            path.strip_prefix('/').unwrap_or(path)
+        ));
     }
-    url.to_owned()
+    Ok(url.to_owned())
 }
 
-fn groups<'a>(pattern: &str, url: &'a str, indexes: [usize; 2]) -> Option<[&'a str; 2]> {
-    let captures = Regex::new(pattern).ok()?.captures(url).ok()??;
+fn groups<'a>(
+    pattern: &Pattern,
+    url: &'a str,
+    [first, second]: [usize; 2],
+) -> Result<Option<[&'a str; 2]>, PatternInvalid> {
+    let Some(captures) = pattern.captures(url)? else {
+        return Ok(None);
+    };
     let group = |index: usize| captures.get(index).map(|found| found.as_str());
-    Some([group(indexes[0])?, group(indexes[1])?])
+    Ok(group(first)
+        .zip(group(second))
+        .map(|(first, second)| [first, second]))
 }
 
 pub fn find(
@@ -144,7 +152,7 @@ mod tests {
         ];
 
         for (url, expected) in cases {
-            assert_eq!(over_https(url), expected, "{url}");
+            assert_eq!(over_https(url).unwrap(), expected, "{url}");
         }
     }
 

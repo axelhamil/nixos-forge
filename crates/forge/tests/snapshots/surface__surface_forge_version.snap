@@ -1,0 +1,8 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"--version\"], &[])"
+---
+exit: 0
+--- stdout
+forge 0.0.0
+--- stderr

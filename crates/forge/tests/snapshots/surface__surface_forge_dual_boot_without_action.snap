@@ -1,0 +1,12 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"dual-boot\"], &[])"
+---
+exit: 2
+--- stdout
+--- stderr
+Usage: forge dual-boot sync
+       forge dual-boot install-beside-windows DISK SYSTEM
+
+  sync                    copy the Windows boot manager of another disk onto this ESP and put NixOS then Windows first in the firmware boot order
+  install-beside-windows  make room for SYSTEM beside Windows on DISK

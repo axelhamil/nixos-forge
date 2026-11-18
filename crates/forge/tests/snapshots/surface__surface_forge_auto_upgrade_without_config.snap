@@ -1,0 +1,8 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"auto-upgrade\"], &[])"
+---
+exit: 1
+--- stdout
+--- stderr
+forge auto-upgrade: FORGE_AUTO_UPGRADE_CONFIG is not set: this host does not import the auto-upgrade feature

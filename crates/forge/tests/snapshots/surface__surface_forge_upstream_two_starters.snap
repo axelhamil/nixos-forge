@@ -1,0 +1,8 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"upstream\", \"a\", \"b\"], &[])"
+---
+exit: 2
+--- stdout
+--- stderr
+forge upstream: one starter only, got a and b

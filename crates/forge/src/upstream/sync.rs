@@ -3,22 +3,27 @@ use std::path::Path;
 use std::time::Duration;
 
 use super::notes::{
-    breaking_lines, changelog_lines, latest_tag, matches, merged_release, notes, pull_request_body,
+    breaking_lines, changelog_lines, latest_tag, merged_release, notes, pull_request_body,
     source_url, starter,
 };
 use super::{Context, Options, Ports};
 use crate::system::remote::repository_of;
-use crate::system::{Answer, Git, Invocation};
+use crate::system::{Answer, Git, Invocation, PatternInvalid};
 
 const BASE: &str = "origin/main";
 const NETWORK_TIMEOUT: Duration = Duration::from_secs(600);
-const YES: &str = r"^[Yy]([Ee][Ss])?$";
 const BOT_NAME: &str = "github-actions[bot]";
 const BOT_EMAIL: &str = "41898282+github-actions[bot]@users.noreply.github.com";
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("{0}")]
 pub struct Failed(String);
+
+impl From<PatternInvalid> for Failed {
+    fn from(error: PatternInvalid) -> Self {
+        Self(error.to_string())
+    }
+}
 
 fn failed(message: impl Into<String>) -> Failed {
     Failed(message.into())
@@ -46,7 +51,7 @@ pub fn sync(options: &Options, context: &Context, ports: &mut Ports) -> Result<(
             starter()
         }
     });
-    let url = source_url(&source);
+    let url = source_url(&source)?;
 
     let tags = network(&git, &["ls-remote", "--tags", &url, "refs/tags/v[0-9]*"]);
     if !tags.success {
@@ -81,7 +86,7 @@ pub fn sync(options: &Options, context: &Context, ports: &mut Ports) -> Result<(
     }
 
     let release = Release {
-        notes: release_notes(&git, &tag),
+        notes: release_notes(&git, &tag)?,
         branch: format!("chore/sync-upstream-{tag}"),
         title: format!("chore: sync with upstream {tag}"),
         url,
@@ -101,10 +106,13 @@ pub fn sync(options: &Options, context: &Context, ports: &mut Ports) -> Result<(
     prepare(&git, &release, context, ports)
 }
 
-fn release_notes(git: &Git, tag: &str) -> String {
+fn release_notes(git: &Git, tag: &str) -> Result<String, PatternInvalid> {
     let log = git.quiet(&["log", "--format=%B", &format!("{BASE}..{tag}")]);
     let diff = git.quiet(&["diff", &format!("{BASE}...{tag}"), "--", "CHANGELOG.md"]);
-    notes(&breaking_lines(&log.stdout), &changelog_lines(&diff.stdout))
+    Ok(notes(
+        &breaking_lines(&log.stdout)?,
+        &changelog_lines(&diff.stdout),
+    ))
 }
 
 fn ready(git: &Git, release: &Release, yes: bool, ports: &mut Ports) -> Result<bool, Failed> {
@@ -144,7 +152,11 @@ fn accepted(branch: &str, ports: &mut Ports) -> bool {
     let _ = write!(ports.err, "Prepare branch {branch}? [y/N] ");
     let _ = ports.err.flush();
     let answer = ports.terminal.line("").unwrap_or_default();
-    matches(YES, &answer)
+    is_yes(&answer)
+}
+
+fn is_yes(answer: &str) -> bool {
+    answer.eq_ignore_ascii_case("y") || answer.eq_ignore_ascii_case("yes")
 }
 
 fn prepare(
@@ -190,7 +202,7 @@ fn prepare(
     if !origin.success {
         return Err(give_up("cannot read the URL of origin".to_owned()));
     }
-    let repository = repository_of(origin.line());
+    let repository = repository_of(origin.line()).map_err(|error| give_up(error.to_string()))?;
 
     if !git
         .attached(&["push", "-q", "-u", "origin", branch])
@@ -260,7 +272,7 @@ fn write_body(git: &Git, release: &Release, ports: &Ports) -> Result<String, Fai
         "--no-decorate",
         &format!("{BASE}..{tag}"),
     ]);
-    let body = pull_request_body(&merged_release(url, tag), &commits.stdout, notes);
+    let body = pull_request_body(&merged_release(url, tag)?, &commits.stdout, notes);
     ports
         .storage
         .write(Path::new(&body_file), body.as_bytes())
@@ -327,4 +339,19 @@ fn network(git: &Git, args: &[&str]) -> Answer {
 
 fn say(out: &mut dyn io::Write, text: &str) {
     let _ = writeln!(out, "{text}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_yes;
+
+    #[test]
+    fn only_y_or_yes_in_any_case_accepts() {
+        for answer in ["y", "Y", "yes", "YES", "yEs"] {
+            assert!(is_yes(answer), "{answer}");
+        }
+        for answer in ["", "n", "no", "ye", "yess", "yes please"] {
+            assert!(!is_yes(answer), "{answer}");
+        }
+    }
 }

@@ -1,0 +1,7 @@
+---
+source: forge-apps/tests/surface.rs
+expression: "run(env!(\"CARGO_BIN_EXE_stow-dotfiles\"),\n&[\"--bogus\", \"dotfiles\", \"target\", \"state\"], &[(\"USER\", \"alice\")])"
+---
+exit: 0
+--- stdout
+--- stderr

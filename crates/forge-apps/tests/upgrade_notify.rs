@@ -1,3 +1,10 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)]
+
 use std::cell::RefCell;
 use std::fs;
 
@@ -114,6 +121,24 @@ fn nothing_is_notified_without_an_upgrade_or_a_readable_state() {
         assert!(desktop.notifications.borrow().is_empty());
         assert_eq!(session.seen(), None);
     }
+}
+
+#[test]
+fn a_missing_state_file_notifies_nothing_and_writes_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths {
+        state: dir.path().join("absent/state.json"),
+        nixos_version: "/fake/nixos-version".to_owned(),
+        seen_directory: dir.path().join("state/upgrade-notify"),
+    };
+    let desktop = desktop("a");
+    let mut err = Vec::new();
+
+    let code = upgrade_notify::run(&desktop, &paths, &mut err);
+
+    assert_eq!((code, String::from_utf8(err).unwrap()), (0, String::new()));
+    assert!(desktop.notifications.borrow().is_empty());
+    assert!(!dir.path().join("state").exists());
 }
 
 #[test]

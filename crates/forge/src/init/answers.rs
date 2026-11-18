@@ -1,11 +1,10 @@
 use std::io;
 use std::path::Path;
 
-use fancy_regex::Regex;
-
 use super::options::Flags;
 use super::{Environment, Ports, Stop};
 use crate::system::interrupt::SIGINT;
+use crate::system::{Pattern, PatternInvalid};
 
 pub const TEMPLATE: &str = "modules/hosts/example/default.nix";
 pub const EXAMPLE_PERSON: &str = "alice";
@@ -13,6 +12,15 @@ pub const PERSON_TEMPLATE: &str = "modules/users/alice/default.nix";
 
 const SYSTEMS: [&str; 2] = ["x86_64-linux", "aarch64-linux"];
 const PROFILES: [&str; 4] = ["desktop", "laptop", "server", "pi"];
+
+pub(crate) static LIST_ITEM: Pattern = Pattern::new(r#"^ *(# )?"([^"]+)"( # (.*))?$"#);
+pub(crate) static LOCALE: Pattern = Pattern::new(r"^[a-z]{2,3}_[A-Z]{2}\.UTF-8$");
+pub(crate) static WORD: Pattern = Pattern::new(r"^[A-Za-z0-9_+./-]+$");
+pub(crate) static HOST_NAME: Pattern =
+    Pattern::new(r"^[A-Za-z0-9]([A-Za-z0-9_-]{0,61}[A-Za-z0-9])?$");
+pub(crate) static LOGIN: Pattern = Pattern::new(r"^[a-z_][a-z0-9_-]{0,31}$");
+pub(crate) static EMAIL: Pattern =
+    Pattern::new(r#"^[^[:space:][:cntrl:]"]+@[^[:space:][:cntrl:]"]+$"#);
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Answers {
@@ -43,54 +51,42 @@ pub fn words(list: &str) -> Vec<String> {
     words
 }
 
-#[must_use]
-pub fn list_block(template: &str, block: &str) -> Vec<(String, String)> {
-    let (Ok(start), Ok(end), Ok(item)) = (
-        Regex::new(&format!(r"^ *{block} = \[$")),
-        Regex::new(r"^ *\];"),
-        Regex::new(r#"^ *(# )?"([^"]+)"( # (.*))?$"#),
-    ) else {
-        return Vec::new();
-    };
-
+pub fn list_block(template: &str, block: &str) -> Result<Vec<(String, String)>, PatternInvalid> {
+    let start = format!("{block} = [");
     let mut entries = Vec::new();
     let mut inside = false;
     for line in template.lines() {
         if !inside {
-            inside = start.is_match(line).unwrap_or(false);
+            inside = line.trim_start_matches(' ') == start;
             continue;
         }
-        if end.is_match(line).unwrap_or(false) {
+        if line.trim_start_matches(' ').starts_with("];") {
             break;
         }
-        if let Ok(Some(captures)) = item.captures(line) {
+        if let Some(captures) = LIST_ITEM.captures(line)? {
             let name = captures.get(2).map_or("", |m| m.as_str());
             let description = captures.get(4).map_or("", |m| m.as_str());
             entries.push((name.to_owned(), description.to_owned()));
         }
     }
-    entries
+    Ok(entries)
 }
 
 #[must_use]
 pub fn detected_time_zone(localtime: &Path) -> String {
     let zone = localtime.to_string_lossy();
-    match zone.rfind("/zoneinfo/") {
-        Some(at) => zone[at + "/zoneinfo/".len()..].to_owned(),
+    match zone.rsplit_once("/zoneinfo/") {
+        Some((_, name)) => name.to_owned(),
         None => "UTC".to_owned(),
     }
 }
 
-#[must_use]
-pub fn detected_locale(language: &str) -> String {
+pub fn detected_locale(language: &str) -> Result<String, PatternInvalid> {
     let language = language.replacen(".utf8", ".UTF-8", 1);
-    let valid = Regex::new(r"^[a-z]{2,3}_[A-Z]{2}\.UTF-8$")
-        .is_ok_and(|pattern| pattern.is_match(&language).unwrap_or(false));
-    if valid {
-        language
-    } else {
-        "en_US.UTF-8".to_owned()
+    if LOCALE.is_match(&language)? {
+        return Ok(language);
     }
+    Ok("en_US.UTF-8".to_owned())
 }
 
 #[must_use]
@@ -150,15 +146,37 @@ enum Need {
     Optional,
 }
 
-fn matches(pattern: &str, value: &str) -> bool {
-    Regex::new(pattern).is_ok_and(|regex| regex.is_match(value).unwrap_or(false))
+enum Invalid {
+    Answer(String),
+    Pattern(PatternInvalid),
 }
 
-fn check_word(value: &str) -> Result<(), String> {
-    if matches(r"^[A-Za-z0-9_+./-]+$", value) {
+impl From<PatternInvalid> for Invalid {
+    fn from(error: PatternInvalid) -> Self {
+        Self::Pattern(error)
+    }
+}
+
+impl From<String> for Invalid {
+    fn from(error: String) -> Self {
+        Self::Answer(error)
+    }
+}
+
+fn check_word(value: &str) -> Result<(), Invalid> {
+    if WORD.is_match(value)? {
         return Ok(());
     }
-    Err("letters, digits and _ + . / - only".to_owned())
+    Err(Invalid::Answer(
+        "letters, digits and _ + . / - only".to_owned(),
+    ))
+}
+
+fn refused(flag: &str, invalid: Invalid) -> Stop {
+    match invalid {
+        Invalid::Answer(error) => Stop::Refused(format!("--{flag}: {error}")),
+        Invalid::Pattern(error) => Stop::from(error),
+    }
 }
 
 pub(super) struct Asker<'s, 'p, 'a> {
@@ -177,65 +195,59 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
         env: &'p Environment,
         template: &'p str,
         yes: bool,
-    ) -> Self {
-        let known_features = list_block(template, "features")
+    ) -> Result<Self, PatternInvalid> {
+        let known_features = list_block(template, "features")?
             .into_iter()
             .map(|(name, _)| name)
             .collect();
-        Self {
+        Ok(Self {
             ports,
             root,
             env,
             template,
             yes,
             known_features,
-        }
+        })
     }
 
     fn exists(&self, relative: &str) -> bool {
         self.ports.storage.exists(&self.root.join(relative))
     }
 
-    fn check(&self, check: Check, value: &str) -> Result<(), String> {
+    fn check(&self, check: Check, value: &str) -> Result<(), Invalid> {
         match check {
             Check::Host => {
-                if !matches(r"^[A-Za-z0-9]([A-Za-z0-9_-]{0,61}[A-Za-z0-9])?$", value) {
-                    return Err("a host name has 1 to 63 letters, digits, - and _, and starts and ends with a letter or digit".to_owned());
+                if !HOST_NAME.is_match(value)? {
+                    return Err(Invalid::Answer("a host name has 1 to 63 letters, digits, - and _, and starts and ends with a letter or digit".to_owned()));
                 }
                 if self.exists(&format!("modules/hosts/{value}")) {
-                    return Err(format!(
+                    return Err(Invalid::Answer(format!(
                         "modules/hosts/{value} already exists: pick another host name, init never overwrites a host"
-                    ));
+                    )));
                 }
                 Ok(())
             }
             Check::System if SYSTEMS.contains(&value) => Ok(()),
-            Check::System => Err(format!("the system is one of: {}", SYSTEMS.join(" "))),
+            Check::System => Err(format!("the system is one of: {}", SYSTEMS.join(" ")).into()),
             Check::Profile if PROFILES.contains(&value) => Ok(()),
-            Check::Profile => Err(format!("the profile is one of: {}", PROFILES.join(" "))),
+            Check::Profile => Err(format!("the profile is one of: {}", PROFILES.join(" ")).into()),
             Check::Login => {
-                if !matches(r"^[a-z_][a-z0-9_-]{0,31}$", value) {
-                    return Err("a login has at most 32 lowercase letters, digits, - and _, and starts with a letter or _".to_owned());
+                if !LOGIN.is_match(value)? {
+                    return Err(Invalid::Answer("a login has at most 32 lowercase letters, digits, - and _, and starts with a letter or _".to_owned()));
                 }
                 if value != EXAMPLE_PERSON && self.exists(&format!("modules/users/{value}")) {
-                    return Err(format!(
+                    return Err(Invalid::Answer(format!(
                         "modules/users/{value} already exists: pick another login, init never overwrites a person"
-                    ));
+                    )));
                 }
                 Ok(())
             }
             Check::Text if !value.is_empty() && !value.chars().any(char::is_control) => Ok(()),
-            Check::Text => Err("a non-empty value on one line".to_owned()),
-            Check::Email
-                if value.is_empty()
-                    || matches(
-                        r#"^[^[:space:][:cntrl:]"]+@[^[:space:][:cntrl:]"]+$"#,
-                        value,
-                    ) =>
-            {
-                Ok(())
-            }
-            Check::Email => Err("an email such as alice@example.org, or nothing".to_owned()),
+            Check::Text => Err("a non-empty value on one line".to_owned().into()),
+            Check::Email if value.is_empty() || EMAIL.is_match(value)? => Ok(()),
+            Check::Email => Err("an email such as alice@example.org, or nothing"
+                .to_owned()
+                .into()),
             Check::Word => check_word(value),
             Check::Features => match words(value)
                 .into_iter()
@@ -244,16 +256,24 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
                 Some(feature) => Err(format!(
                     "unknown feature \"{feature}\"; known: {}",
                     self.known_features.join(" ")
-                )),
+                )
+                .into()),
                 None => Ok(()),
             },
-            Check::Names => match words(value)
-                .into_iter()
-                .find(|item| check_word(item).is_err())
-            {
-                Some(item) => Err(format!("\"{item}\" is not a module or package name")),
-                None => Ok(()),
-            },
+            Check::Names => {
+                for item in words(value) {
+                    match check_word(&item) {
+                        Ok(()) => {}
+                        Err(Invalid::Answer(_)) => {
+                            return Err(
+                                format!("\"{item}\" is not a module or package name").into()
+                            );
+                        }
+                        Err(invalid) => return Err(invalid),
+                    }
+                }
+                Ok(())
+            }
         }
     }
 
@@ -268,7 +288,7 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
     ) -> Result<String, Stop> {
         if let Some(value) = given {
             self.check(check, value)
-                .map_err(|error| Stop::Refused(format!("--{flag}: {error}")))?;
+                .map_err(|invalid| refused(flag, invalid))?;
             return Ok(value.to_owned());
         }
 
@@ -277,7 +297,7 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
                 return Err(Stop::Refused(format!("--{flag} is required with --yes")));
             }
             self.check(check, default)
-                .map_err(|error| Stop::Refused(format!("--{flag}: {error}")))?;
+                .map_err(|invalid| refused(flag, invalid))?;
             return Ok(default.to_owned());
         }
 
@@ -303,7 +323,8 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
             }
             match self.check(check, &reply) {
                 Ok(()) => return Ok(reply),
-                Err(error) => self.ports.warn(&format!("  {error}")),
+                Err(Invalid::Answer(error)) => self.ports.warn(&format!("  {error}")),
+                Err(Invalid::Pattern(error)) => return Err(error.into()),
             }
         }
     }
@@ -372,21 +393,23 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
             return Ok(words(suggested));
         }
         if let Some(title) = title {
-            self.show_list(flag, title, suggested);
+            self.show_list(flag, title, suggested)?;
         }
         self.ask(flag, None, prompt, suggested, check, Need::Optional)
             .map(|value| words(&value))
     }
 
-    fn show_list(&mut self, block: &str, title: &str, suggested: &str) {
+    fn show_list(&mut self, block: &str, title: &str, suggested: &str) -> Result<(), Stop> {
         let chosen = words(suggested);
+        let entries = list_block(self.template, block)?;
         self.ports
             .warn(&format!("{title} (each one is described in {TEMPLATE}):"));
-        for (name, description) in list_block(self.template, block) {
+        for (name, description) in entries {
             let mark = if chosen.contains(&name) { "x" } else { " " };
             self.ports
                 .warn(&format!("  [{mark}] {name:<14} {description}"));
         }
+        Ok(())
     }
 
     fn required(
@@ -453,7 +476,7 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
             "us",
             Check::Word,
         )?;
-        let language = detected_locale(&self.env.language);
+        let language = detected_locale(&self.env.language)?;
         let locale = self.required("locale", &flags.locale, "Locale", &language, Check::Word)?;
 
         let suggested_features = default_features(&profile, &system, &self.known_features);
@@ -516,6 +539,7 @@ mod tests {
     #[test]
     fn default_features_follow_the_order_of_the_example_host() {
         let known: Vec<String> = list_block(crate::init::fake::HOST, "features")
+            .unwrap()
             .into_iter()
             .map(|(name, _)| name)
             .collect();
@@ -538,8 +562,8 @@ mod tests {
             "America/New_York"
         );
         assert_eq!(detected_time_zone(Path::new("/etc/localtime")), "UTC");
-        assert_eq!(detected_locale("fr_FR.utf8"), "fr_FR.UTF-8");
-        assert_eq!(detected_locale("C.UTF-8"), "en_US.UTF-8");
+        assert_eq!(detected_locale("fr_FR.utf8").unwrap(), "fr_FR.UTF-8");
+        assert_eq!(detected_locale("C.UTF-8").unwrap(), "en_US.UTF-8");
     }
 
     #[test]

@@ -1,4 +1,4 @@
-mod notes;
+pub(crate) mod notes;
 mod sync;
 
 use std::env;

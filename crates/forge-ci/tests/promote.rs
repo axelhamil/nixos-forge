@@ -1,3 +1,10 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)]
+
 #[path = "../../forge/tests/common/mod.rs"]
 mod common;
 
@@ -56,7 +63,7 @@ fn planned() -> Vec<Value> {
 }
 
 fn short(sha: &str) -> &str {
-    &sha[..7]
+    sha.get(..7).unwrap()
 }
 
 impl Forge {

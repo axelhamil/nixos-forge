@@ -238,8 +238,11 @@ impl<C: Commands> Stow<'_, C> {
                 package.to_string_lossy()
             );
             for line in report.lines() {
-                if let Some(start) = line.find("existing target") {
-                    let _ = writeln!(err, "{}", &line[start..]);
+                if let Some(conflict) = line
+                    .find("existing target")
+                    .and_then(|start| line.get(start..))
+                {
+                    let _ = writeln!(err, "{conflict}");
                 }
             }
             let _ = writeln!(

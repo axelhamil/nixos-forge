@@ -1,0 +1,9 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"build\"])"
+---
+exit: 2
+--- stdout
+--- stderr
+usage: ci-build <system> <check> <out-dir> [--base-input <input> --base <flake-ref>]
+  BASE_INPUT with BASE_SHA stands for --base-input $BASE_INPUT --base github:$GITHUB_REPOSITORY/$BASE_SHA

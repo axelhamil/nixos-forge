@@ -72,16 +72,17 @@ let
   } [ ];
 in
 {
-  perSystem =
-    { pkgs, system, ... }:
-    lib.mkIf (system == "x86_64-linux" && config.users != { }) {
-      checks.fork-overrides =
-        assert lib.assertMsg (ignored == [ ])
-          "fork-overrides: a plain definition in the host's module does not take effect: ${lib.concatStringsSep ", " ignored}";
-        assert lib.assertMsg (!device.hardware.nvidia.open)
-          "fork-overrides: the nvidia module overrides the open kernel module choice of a nixos-hardware profile";
-        builtins.seq pi.system.build.toplevel.drvPath (
-          pkgs.writeText "fork-overrides" "a fork overrides the shipped policy values with plain definitions, a nixos-hardware profile keeps its NVIDIA choice, and firmware and plymouth evaluate on a Raspberry Pi"
-        );
+  evalChecks = lib.mkIf (config.users != { }) {
+    fork-overrides = {
+      text = "a fork overrides the shipped policy values with plain definitions, a nixos-hardware profile keeps its NVIDIA choice, and firmware and plymouth evaluate on a Raspberry Pi";
+      expect = {
+        "a plain definition in the host's module does not take effect: ${lib.concatStringsSep ", " ignored}" =
+          ignored == [ ];
+        "the nvidia module overrides the open kernel module choice of a nixos-hardware profile" =
+          !device.hardware.nvidia.open;
+        "firmware and plymouth do not evaluate on a Raspberry Pi" =
+          lib.isString pi.system.build.toplevel.drvPath;
+      };
     };
+  };
 }

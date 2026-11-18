@@ -1,8 +1,11 @@
-{ lib, ... }:
+{ lib, config, ... }:
 
+let
+  inherit (config.helpers) scriptCheck;
+in
 {
   perSystem =
-    { pkgs, system, ... }:
+    { pkgs, ... }:
     let
       fakeNix = pkgs.writeShellApplication {
         name = "nix";
@@ -56,12 +59,6 @@
       };
     in
     {
-      checks = lib.optionalAttrs (system == "x86_64-linux") {
-        ci-pin-kernels = pkgs.runCommand "ci-pin-kernels" { } ''
-          cd "$TMPDIR"
-          ${lib.getExe test}
-          touch $out
-        '';
-      };
+      checks = scriptCheck pkgs "ci-pin-kernels" test;
     };
 }

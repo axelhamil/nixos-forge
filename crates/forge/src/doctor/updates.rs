@@ -2,9 +2,10 @@ use std::io;
 use std::path::Path;
 use std::time::Duration;
 
+use forge_kit::Git;
+
 use super::Context;
 use super::report::{Report, Status};
-use crate::system::Git;
 
 const CHECK: &str = "Updates";
 const FETCH_TIMEOUT: Duration = Duration::from_secs(30);

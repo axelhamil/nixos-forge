@@ -7,7 +7,7 @@ use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use forge::system::{Answer, Commands, Invocation};
+use forge_kit::{Answer, Commands, Invocation};
 
 pub const USAGE: &str =
     "usage: stow-dotfiles prune|check|apply <dotfiles> <target> <state> [--dotfiles] [package...]";

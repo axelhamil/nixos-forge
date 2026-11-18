@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-use crate::system::Settings;
+use forge_kit::Settings;
 
 pub const CONFIG_VARIABLE: &str = "FORGE_INSTALL_CONFIG";
 

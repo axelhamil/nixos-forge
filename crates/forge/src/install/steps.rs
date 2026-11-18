@@ -1,10 +1,10 @@
 use std::time::Duration;
 
+use forge_kit::Storage;
+use forge_kit::{Commands, Invocation};
 use zeroize::Zeroizing;
 
 use super::{Config, Options, Ports, Session, Stop, disks, secrets};
-use crate::system::Storage;
-use crate::system::{Commands, Invocation};
 
 const UNMOUNT_TIMEOUT: Duration = Duration::from_secs(600);
 
@@ -342,11 +342,12 @@ mod tests {
     use std::io::{self, Write as _};
     use std::path::{Path, PathBuf};
 
+    use forge_kit::interrupt::Flag;
+    use forge_kit::{Answer, Files, Owner};
+    use forge_kit::{Console, Terminal, Typed};
+
     use super::*;
     use crate::install::Parsed;
-    use crate::system::interrupt::Flag;
-    use crate::system::prompt::{Console, Terminal, Typed};
-    use crate::system::{Answer, Files, Owner};
 
     const HASH: &str = "$y$j9T$salt$hash";
 

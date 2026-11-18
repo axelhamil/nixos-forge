@@ -1,9 +1,10 @@
 use std::io;
 use std::path::Path;
 
+use forge_kit::{boot_entries, generation_went_back};
+
 use super::report::{Report, Status};
 use super::{Context, ROOT_HINT};
-use crate::system::{boot_entries, generation_went_back};
 
 const CHECK: &str = "Boot";
 

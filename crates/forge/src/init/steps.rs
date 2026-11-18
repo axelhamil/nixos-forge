@@ -2,13 +2,14 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use forge_kit::git::remote::{fork_flake, github_repository, is_upstream};
+use forge_kit::{Git, Invocation};
+
 use super::answers::{Answers, Asker, EXAMPLE_PERSON, PERSON_TEMPLATE, TEMPLATE};
 use super::key::{self, DeployKey};
 use super::options::Flags;
 use super::render::{point_readme, render_host, render_person, update_kept_example};
 use super::{Environment, Ports, Stop};
-use crate::system::remote::{fork_flake, github_repository, is_upstream};
-use crate::system::{Git, Invocation};
 
 const FORMAT_TIMEOUT: Duration = Duration::from_secs(600);
 const KEPT_EXAMPLES: [&str; 2] = ["example-server", "example-pi"];
@@ -337,12 +338,13 @@ environment deploy, then run: shred -u {quoted}
 
 #[cfg(test)]
 mod tests {
+    use forge_kit::Answer;
+    use forge_kit::Storage;
+    use forge_kit::Typed;
+    use forge_kit::interrupt::Flag;
+
     use super::*;
     use crate::init::fake::{Machine, environment, run_init, run_init_into};
-    use crate::system::Answer;
-    use crate::system::Storage;
-    use crate::system::interrupt::Flag;
-    use crate::system::prompt::Typed;
 
     const ARGS: [&str; 9] = [
         "--yes",

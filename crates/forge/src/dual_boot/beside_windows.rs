@@ -2,12 +2,12 @@ use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 
+use forge_kit::interrupt::{self, Flag};
+use forge_kit::os::partitions::{self, Partition};
+use forge_kit::{Answer, Commands, Files, Invocation, Mounts, Sizes, Storage};
+
 use super::config::BesideWindowsSettings;
 use super::esp::BOOT_MANAGER;
-use crate::system::interrupt::{self, Flag};
-use crate::system::mount::Mounts;
-use crate::system::partitions::{self, Partition};
-use crate::system::{Answer, Commands, Files, Invocation, Sizes, Storage};
 
 const MIB: u64 = 1024 * 1024;
 const GENERATIONS: u64 = 3;
@@ -377,10 +377,11 @@ mod tests {
 
     use std::time::Duration;
 
+    use forge_kit::interrupt::Flag;
+    use forge_kit::os::mount::ReadOnlyMount;
+    use forge_kit::{Answer, Output, Owner};
+
     use super::*;
-    use crate::system::interrupt::Flag;
-    use crate::system::mount::ReadOnlyMount;
-    use crate::system::{Answer, Output, Owner};
 
     const MIB: u64 = 1024 * 1024;
     const LSBLK: &str = "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL /dev/vdb";

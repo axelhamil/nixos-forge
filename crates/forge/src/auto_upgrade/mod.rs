@@ -11,7 +11,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 pub use config::{CONFIG_VARIABLE, Config, Operation};
-pub use state::{HISTORY_FILE, Outcome, Row, STATE_FILE, State, parse_history_line};
+pub use forge_contracts::auto_upgrade::{HISTORY_FILE, HistoryRow, Outcome, STATE_FILE, State};
 
 use apply::Failure;
 use decision::{Decision, GitHistory, Revisions};
@@ -19,10 +19,9 @@ use signature::Signers;
 use sources::Found;
 use trust::{Checkout, InspectError};
 
-use crate::plugins;
-use crate::system::{
+use forge_kit::{
     Accounts, Clock, Commands, Files, Git, Invocation, PatternInvalid, Streams, boot_entries,
-    generation_went_back,
+    generation_went_back, is_executable,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -84,12 +83,12 @@ impl Run<'_> {
         self.state.outcome = outcome;
         message.clone_into(&mut self.state.message);
         let dir = &self.config.state_dir;
-        self.state.record(dir).map_err(|source| Error::Io {
+        state::record(&self.state, dir).map_err(|source| Error::Io {
             action: "record the state in",
             path: dir.clone(),
             source,
         })?;
-        let _ = self.out.write_all(self.state.summary().as_bytes());
+        let _ = self.out.write_all(state::summary(&self.state).as_bytes());
         Ok(outcome)
     }
 }
@@ -333,7 +332,7 @@ fn keep(git: &Git, name: &str, commit: &str) {
 
 fn revision_of(commands: &dyn Commands, system: &Path) -> String {
     let program = system.join("sw/bin/nixos-version");
-    if !plugins::is_executable(&program) {
+    if !is_executable(&program) {
         return String::new();
     }
     let program = program.display().to_string();
@@ -374,12 +373,12 @@ mod tests {
     use std::cell::RefCell;
     use std::collections::HashMap;
 
+    use forge_kit::{Answer, Directory, Owner, Streamed};
     use jiff::Timestamp;
     use jiff::tz::TimeZone;
     use tempfile::TempDir;
 
     use super::*;
-    use crate::system::{Answer, Directory, Owner, Streamed};
     use decision::WAITING;
 
     const LIST: &str =
@@ -530,27 +529,27 @@ mod tests {
 
     impl Files for Machine {
         fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
-            crate::system::Machine.read(path)
+            forge_kit::Machine.read(path)
         }
 
         fn read_link(&self, path: &Path) -> Option<PathBuf> {
-            crate::system::Machine.read_link(path)
+            forge_kit::Machine.read_link(path)
         }
 
         fn is_dir(&self, path: &Path) -> bool {
-            crate::system::Machine.is_dir(path)
+            forge_kit::Machine.is_dir(path)
         }
 
         fn list(&self, dir: &Path) -> Vec<String> {
-            crate::system::Machine.list(dir)
+            forge_kit::Machine.list(dir)
         }
 
         fn canonicalize(&self, path: &Path) -> PathBuf {
-            crate::system::Machine.canonicalize(path)
+            forge_kit::Machine.canonicalize(path)
         }
 
         fn owner(&self, path: &Path) -> Option<Owner> {
-            crate::system::Machine.owner(path)
+            forge_kit::Machine.owner(path)
         }
     }
 

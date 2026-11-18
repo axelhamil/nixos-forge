@@ -1,11 +1,11 @@
 use std::io;
 
+use forge_contracts::auto_upgrade::{HistoryRow, Outcome, State};
 use jiff::Timestamp;
 
 use super::Context;
 use super::format::duration;
 use super::report::{Report, Status};
-use crate::auto_upgrade::{Outcome, State, parse_history_line};
 
 const CHECK: &str = "Upgrades";
 const STALE_AFTER: i64 = 14 * 86400;
@@ -75,7 +75,7 @@ fn up_to_date_since(context: &Context) -> Option<String> {
     let text = String::from_utf8_lossy(&bytes);
 
     let mut since: Option<String> = None;
-    for row in text.lines().filter_map(parse_history_line) {
+    for row in text.lines().filter_map(HistoryRow::parse) {
         match row.outcome {
             Outcome::Upgraded => since = Some(row.time),
             Outcome::UpToDate if since.as_deref().is_none_or(str::is_empty) => {

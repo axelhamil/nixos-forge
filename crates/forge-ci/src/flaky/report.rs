@@ -6,7 +6,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use forge::system::{Commands, Machine};
+use forge_kit::{Commands, Machine};
 use serde::Deserialize;
 use serde_json::{Number, Value};
 

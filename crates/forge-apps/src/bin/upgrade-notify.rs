@@ -2,8 +2,8 @@ use std::env;
 use std::io;
 use std::process::ExitCode;
 
-use forge::system::Machine;
 use forge_apps::upgrade_notify::{self, Paths};
+use forge_kit::Machine;
 
 fn main() -> ExitCode {
     let home = env::var("HOME").unwrap_or_default();

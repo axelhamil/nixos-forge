@@ -1,8 +1,9 @@
 use std::path::Path;
 
+use forge_contracts::auto_upgrade::Outcome;
+use forge_kit::Git;
+
 use super::sources::Found;
-use super::state::Outcome;
-use crate::system::Git;
 
 pub const WAITING: &str = "CI has not validated a version for this host yet; if this lasts, CI has not promoted it: check that the bot App is set up (docs/how-to/ci.md) and that the host's checks pass";
 

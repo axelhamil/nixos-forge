@@ -1,8 +1,9 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
+use forge_kit::Invocation;
+
 use super::{Environment, Ports, Stop};
-use crate::system::Invocation;
 
 const PRIVATE: u32 = 0o700;
 
@@ -95,11 +96,12 @@ fn read_signer(ports: &Ports, public: &Path) -> Result<String, Stop> {
 mod tests {
     use std::path::PathBuf;
 
+    use forge_kit::Storage;
+    use forge_kit::Typed;
+    use forge_kit::interrupt::Flag;
+
     use super::*;
     use crate::init::fake::{Machine, environment};
-    use crate::system::Storage;
-    use crate::system::interrupt::Flag;
-    use crate::system::prompt::Typed;
 
     fn created(machine: &Machine, env: &Environment) -> Result<DeployKey, KeyFailure> {
         let mut terminal = Typed::new(&[]);

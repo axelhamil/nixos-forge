@@ -5,7 +5,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 
-use forge::system::{Commands, Machine};
+use forge_kit::{Commands, Machine};
 
 use crate::badges_branch::{self, ReadError};
 use crate::model::{

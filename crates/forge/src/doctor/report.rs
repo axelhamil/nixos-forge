@@ -1,21 +1,27 @@
 use std::fmt;
 use std::io::{self, Write};
 
-use serde::Deserialize;
+use forge_contracts::plugin::{CHECK_WIDTH, DoctorStatus};
 
-pub const CHECK_WIDTH: usize = 14;
 const INDENT: &str = "                     ";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
-    #[serde(rename = "OK")]
     Ok,
-    #[serde(rename = "WARN")]
     Warn,
-    #[serde(rename = "FAIL")]
     Fail,
-    #[serde(rename = "SKIP")]
     Skip,
+}
+
+impl From<DoctorStatus> for Status {
+    fn from(status: DoctorStatus) -> Self {
+        match status {
+            DoctorStatus::Ok => Self::Ok,
+            DoctorStatus::Warn => Self::Warn,
+            DoctorStatus::Fail => Self::Fail,
+            DoctorStatus::Skip => Self::Skip,
+        }
+    }
 }
 
 impl Status {

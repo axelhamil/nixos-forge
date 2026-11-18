@@ -1,7 +1,8 @@
 use std::io::{self, Write};
 
+use forge_contracts::auto_upgrade::HistoryRow;
+
 use super::Context;
-use crate::auto_upgrade::parse_history_line;
 
 const ROWS: usize = 10;
 
@@ -24,7 +25,7 @@ pub(super) fn show(context: &Context, out: &mut dyn Write) -> io::Result<()> {
 }
 
 fn table(history: &str) -> String {
-    let rows: Vec<_> = history.lines().filter_map(parse_history_line).collect();
+    let rows: Vec<_> = history.lines().filter_map(HistoryRow::parse).collect();
     let shown = rows
         .get(rows.len().saturating_sub(ROWS)..)
         .unwrap_or_default();

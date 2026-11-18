@@ -1,10 +1,10 @@
 use std::mem;
 use std::path::Path;
 
+use forge_kit::Invocation;
 use zeroize::Zeroizing;
 
 use super::{Session, Stop};
-use crate::system::Invocation;
 
 const PASSWORDS: &str = "/mnt/persist/passwords";
 

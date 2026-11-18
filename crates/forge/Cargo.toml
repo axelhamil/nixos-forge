@@ -9,18 +9,19 @@ publish.workspace = true
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 fancy-regex = "0.19"
+forge-contracts = { path = "../forge-contracts" }
+forge-kit = { path = "../forge-kit" }
 jiff = "0.2"
 pulldown-cmark = { version = "0.13", default-features = false }
-regex = "1"
-rustix = { version = "1", features = ["event", "fs", "process", "termios"] }
+rustix = { version = "1", features = ["fs", "process"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-signal-hook = { version = "0.4", default-features = false }
 thiserror = "2"
 walkdir = "2"
 zeroize = "1"
 
 [dev-dependencies]
+forge-kit = { path = "../forge-kit", features = ["testing"] }
 insta = "1"
 tempfile = "3"
 

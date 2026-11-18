@@ -9,9 +9,9 @@ use std::path::{Path, PathBuf};
 
 pub use config::{BESIDE_WINDOWS_VARIABLE, BesideWindowsSettings, SYNC_VARIABLE, SyncSettings};
 
-use crate::system::interrupt::Flag;
-use crate::system::mount::TempMounts;
-use crate::system::{Machine, config as settings};
+use forge_kit::interrupt::Flag;
+use forge_kit::os::mount::TempMounts;
+use forge_kit::{Machine, load_settings};
 
 pub type ConfigPaths<'a> = &'a dyn Fn(&str) -> Option<PathBuf>;
 
@@ -45,7 +45,7 @@ pub fn run(args: &[OsString], config_paths: ConfigPaths) -> u8 {
             config_paths(BESIDE_WINDOWS_VARIABLE).as_deref(),
         ),
         ["install-beside-windows", ..] => {
-            let esp_label = settings::load::<BesideWindowsSettings>(
+            let esp_label = load_settings::<BesideWindowsSettings>(
                 config_paths(BESIDE_WINDOWS_VARIABLE).as_deref(),
             )
             .ok()
@@ -65,7 +65,7 @@ pub fn run(args: &[OsString], config_paths: ConfigPaths) -> u8 {
 }
 
 fn sync_command(config_path: Option<&Path>) -> u8 {
-    let settings: SyncSettings = match settings::load(config_path) {
+    let settings: SyncSettings = match load_settings(config_path) {
         Ok(settings) => settings,
         Err(error) => {
             eprintln!("forge dual-boot: {error}");
@@ -86,7 +86,7 @@ fn sync_command(config_path: Option<&Path>) -> u8 {
 }
 
 fn beside_windows_command(disk: &str, system: &str, config_path: Option<&Path>) -> u8 {
-    let settings: BesideWindowsSettings = match settings::load(config_path) {
+    let settings: BesideWindowsSettings = match load_settings(config_path) {
         Ok(settings) => settings,
         Err(error) => {
             eprintln!("forge dual-boot: {error}");

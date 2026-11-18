@@ -8,8 +8,8 @@
 use std::cell::RefCell;
 use std::fs;
 
-use forge::system::{Answer, Commands, Invocation};
 use forge_apps::upgrade_notify::{self, Paths};
+use forge_kit::{Answer, Commands, Invocation};
 use tempfile::TempDir;
 
 struct Desktop {

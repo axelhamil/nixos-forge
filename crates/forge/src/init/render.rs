@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
+use forge_kit::{Pattern, PatternInvalid};
+
 use super::answers::{Answers, EXAMPLE_PERSON};
-use crate::system::{Pattern, PatternInvalid};
 
 const KEYWORDS: [&str; 10] = [
     "assert", "else", "if", "in", "inherit", "let", "or", "rec", "then", "with",

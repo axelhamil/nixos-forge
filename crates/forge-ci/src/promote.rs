@@ -4,7 +4,7 @@ use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 
-use forge::system::{Answer, Git, Machine};
+use forge_kit::{Answer, Git, Machine};
 
 use crate::badges_branch::GIT_TIMEOUT;
 use crate::model::{HostChecks, JobStatus, PlannedJob, SkippedJob, Status, env_json, statuses};

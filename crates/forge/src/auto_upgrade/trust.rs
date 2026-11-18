@@ -2,11 +2,11 @@ use std::io;
 use std::os::fd::{AsRawFd, OwnedFd};
 use std::path::Path;
 
+use forge_kit::{Commands, Directory, Invocation, PatternInvalid};
 use rustix::fs::{FileType, Mode, OFlags, Stat, fstat, open, openat};
 use rustix::io::Errno;
 
 use super::sources::over_https;
-use crate::system::{Commands, Directory, Invocation, PatternInvalid};
 
 #[derive(Debug, thiserror::Error)]
 pub enum InspectError {
@@ -123,10 +123,10 @@ mod tests {
     use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
     use std::path::PathBuf;
 
+    use forge_kit::{Answer, Group, User};
     use tempfile::TempDir;
 
     use super::*;
-    use crate::system::{Answer, Group, User};
 
     const OWN_GROUP: &str = "users";
 

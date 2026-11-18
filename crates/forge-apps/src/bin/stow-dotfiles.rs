@@ -3,8 +3,8 @@ use std::ffi::OsString;
 use std::io;
 use std::process::ExitCode;
 
-use forge::system::Machine;
 use forge_apps::stow::{self, Environment};
+use forge_kit::Machine;
 
 fn main() -> ExitCode {
     let args: Vec<OsString> = env::args_os().skip(1).collect();

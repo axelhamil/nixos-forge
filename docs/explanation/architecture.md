@@ -101,12 +101,12 @@ Several files may write to the same name, and the module system merges them: `fe
 
 ## How names resolve
 
-The registry options live in `modules/flake/hosts/options.nix`. Names are lists, never `enable` booleans, and become imports at the flake-parts level, in the registry's `config.module`. The registry sets `nixpkgs.hostPlatform` from `system`. A host name has 1 to 63 letters, digits, `-` and `_`, and starts and ends with a letter or a digit.
+The registry options live in `modules/flake/hosts/options.nix`, which assembles each host from `_resolve.nix` (name resolution), `_account.nix` (accounts) and `_fields.nix` (the fields). Names are lists, never `enable` booleans, and become imports at the flake-parts level, in the registry's `config.module`. The registry sets `nixpkgs.hostPlatform` from `system`. A host name has 1 to 63 letters, digits, `-` and `_`, and starts and ends with a letter or a digit.
 
 - An app's two parts go through `helpers.appPart` with the `key` `nixos-forge/apps/<name>/<part>`, so an app named by both the host and a person is imported once (the `apps-once` check). <!-- docs-check: allow nixos-forge -->
 - A name of `apps` that is not an app is the nixpkgs attribute path `pkgs.<name>`, with its unfree name allowed: `apps = [ "docker" ]` installs `pkgs.docker`. Tools with nothing to configure (`ripgrep`, `fd`, `jq`) stay nixpkgs names, not apps.
 - An unknown name stops the evaluation naming the field. For `profile`, `features` and `hardware` it lists that namespace alone; for `apps` it lists the configured apps and says any nixpkgs attribute path works; for `users` it lists the people of `modules/users`. The `wrong-namespace` check proves these messages, one of them from a variant.
-- A host's `specialisations.<name>` takes `features`, `apps`, `hardware` and `module`, resolved by the same code (`selection` in `options.nix`) into `specialisation.<name>.configuration`, which also writes the name to `/etc/specialisation`. A variant inherits the host only, never another variant. Lists merge, so a variant adds to the host's and the person's `apps` and cannot remove one. `forge update` (through `nh`) and `auto-upgrade` in `switch` mode read `/etc/specialisation` to stay on the running variant; the `specialisations` check switches a host to a variant and back.
+- A host's `specialisations.<name>` takes `features`, `apps`, `hardware` and `module`, resolved by the same code (`selection` in `modules/flake/hosts/_resolve.nix`) into `specialisation.<name>.configuration`, which also writes the name to `/etc/specialisation`. A variant inherits the host only, never another variant. Lists merge, so a variant adds to the host's and the person's `apps` and cannot remove one. `forge update` (through `nh`) and `auto-upgrade` in `switch` mode read `/etc/specialisation` to stay on the running variant; the `specialisations` check switches a host to a variant and back.
 
 ## Apps stand alone
 

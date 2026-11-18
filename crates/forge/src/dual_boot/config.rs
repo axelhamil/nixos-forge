@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-use crate::system::Settings;
+use forge_kit::Settings;
 
 pub const SYNC_VARIABLE: &str = "FORGE_DUAL_BOOT_CONFIG";
 pub const BESIDE_WINDOWS_VARIABLE: &str = "FORGE_BESIDE_WINDOWS_CONFIG";
@@ -36,8 +36,9 @@ mod tests {
     use std::fs;
     use std::path::Path;
 
+    use forge_kit::{ConfigError, load_settings};
+
     use super::*;
-    use crate::system::{ConfigError, config};
 
     #[test]
     fn the_esp_mount_is_read_and_an_unknown_field_is_refused() {
@@ -47,11 +48,11 @@ mod tests {
         fs::write(&good, r#"{"espMount": "/boot"}"#).unwrap();
         fs::write(&bad, r#"{"espMount": "/boot", "disk": "/dev/vda"}"#).unwrap();
 
-        let settings = config::load::<SyncSettings>(Some(&good)).unwrap();
+        let settings = load_settings::<SyncSettings>(Some(&good)).unwrap();
 
         assert_eq!(settings.esp_mount, Path::new("/boot"));
         assert!(matches!(
-            config::load::<SyncSettings>(Some(&bad)),
+            load_settings::<SyncSettings>(Some(&bad)),
             Err(ConfigError::Invalid { .. })
         ));
     }
@@ -66,7 +67,7 @@ mod tests {
         )
         .unwrap();
 
-        let settings = config::load::<BesideWindowsSettings>(Some(&path)).unwrap();
+        let settings = load_settings::<BesideWindowsSettings>(Some(&path)).unwrap();
 
         assert_eq!(settings.format_mount, "/nix/store/disko");
         assert_eq!(

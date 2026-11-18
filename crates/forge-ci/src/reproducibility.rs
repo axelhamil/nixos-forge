@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use forge::system::{Commands, Invocation, Machine, Streams};
+use forge_kit::{Commands, Invocation, Machine, Streams};
 
 use crate::jobs::EVALUATION_TIMEOUT;
 use crate::model::{REPRODUCIBILITY_HEADING, REPRODUCIBILITY_INTRO, Verdict};

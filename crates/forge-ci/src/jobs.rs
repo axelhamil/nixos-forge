@@ -1,7 +1,7 @@
 use std::thread;
 use std::time::Duration;
 
-use forge::system::{Commands, Invocation};
+use forge_kit::{Commands, Invocation};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 
@@ -138,7 +138,7 @@ pub fn find<'a>(
 mod tests {
     use std::cell::RefCell;
 
-    use forge::system::Answer;
+    use forge_kit::Answer;
 
     use super::*;
 

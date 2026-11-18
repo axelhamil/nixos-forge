@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 
 use common::write_executable;
 use forge::doctor::{self, Config, Forks, Host, Mount, Options, Space, System, Totals};
-use forge::system::{Answer, Clock, Commands, Files, Invocation, Output, Owner};
+use forge_kit::{Answer, Clock, Commands, Files, Invocation, Output, Owner};
 use insta::assert_snapshot;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;

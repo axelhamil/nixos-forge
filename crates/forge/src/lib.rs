@@ -6,7 +6,8 @@ pub mod enroll;
 pub mod init;
 pub mod install;
 pub mod plugins;
-pub mod process;
-pub mod system;
 pub mod update;
 pub mod upstream;
+
+#[cfg(test)]
+mod patterns;

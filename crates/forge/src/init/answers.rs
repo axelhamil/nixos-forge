@@ -1,10 +1,11 @@
 use std::io;
 use std::path::Path;
 
+use forge_kit::interrupt::SIGINT;
+use forge_kit::{Pattern, PatternInvalid};
+
 use super::options::Flags;
 use super::{Environment, Ports, Stop};
-use crate::system::interrupt::SIGINT;
-use crate::system::{Pattern, PatternInvalid};
 
 pub const TEMPLATE: &str = "modules/hosts/example/default.nix";
 pub const EXAMPLE_PERSON: &str = "alice";
@@ -526,10 +527,11 @@ impl<'s, 'p, 'a> Asker<'s, 'p, 'a> {
 
 #[cfg(test)]
 mod tests {
+    use forge_kit::Typed;
+    use forge_kit::interrupt::Flag;
+
     use super::*;
     use crate::init::fake::{Machine, environment, run_init};
-    use crate::system::interrupt::Flag;
-    use crate::system::prompt::Typed;
 
     #[test]
     fn lists_split_on_commas_and_spaces_and_keep_the_first_of_each_name() {

@@ -1,9 +1,9 @@
+use forge_kit::Invocation;
+use forge_kit::os::partitions::{self, Partition};
 use serde::Deserialize;
 use serde_json::Value;
 
 use super::{Session, Stop};
-use crate::system::Invocation;
-use crate::system::partitions::{self, Partition};
 
 const LAYOUT_PREFIX: &str = "disk-main-";
 const EXCLUDED_PREFIXES: [&str; 2] = ["/dev/fd", "/dev/zram"];

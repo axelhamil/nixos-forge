@@ -221,14 +221,14 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "fancy-regex",
+ "forge-contracts",
+ "forge-kit",
  "insta",
  "jiff",
  "pulldown-cmark",
- "regex",
  "rustix",
  "serde",
  "serde_json",
- "signal-hook",
  "tempfile",
  "thiserror",
  "walkdir",
@@ -239,7 +239,8 @@ dependencies = [
 name = "forge-apps"
 version = "0.0.0"
 dependencies = [
- "forge",
+ "forge-contracts",
+ "forge-kit",
  "insta",
  "tempfile",
  "thiserror",
@@ -251,13 +252,39 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "fancy-regex",
- "forge",
+ "forge-kit",
  "insta",
  "rustix",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror",
+]
+
+[[package]]
+name = "forge-contracts"
+version = "0.0.0"
+dependencies = [
+ "insta",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "forge-kit"
+version = "0.0.0"
+dependencies = [
+ "jiff",
+ "regex",
+ "rustix",
+ "serde",
+ "serde_json",
+ "signal-hook",
+ "tempfile",
+ "thiserror",
+ "walkdir",
+ "zeroize",
 ]
 
 [[package]]

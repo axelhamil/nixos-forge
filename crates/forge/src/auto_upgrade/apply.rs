@@ -1,8 +1,9 @@
 use std::path::Path;
 use std::time::Duration;
 
+use forge_kit::{Commands, Files, Invocation};
+
 use super::config::{Config, Operation};
-use crate::system::{Commands, Files, Invocation};
 
 const EVAL_TIMEOUT: Duration = Duration::from_mins(30);
 const DIFF_TIMEOUT: Duration = Duration::from_mins(10);
@@ -119,8 +120,9 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
+    use forge_kit::{Answer, Machine};
+
     use super::*;
-    use crate::system::{Answer, Machine};
 
     fn config(operation: Operation, allow_local_build: bool) -> Config {
         Config {

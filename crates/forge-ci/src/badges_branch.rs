@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use forge::system::{Commands, Git, Invocation};
+use forge_kit::{Commands, Git, Invocation};
 
 use crate::results::json_files;
 
@@ -257,7 +257,7 @@ fn copy(badges: &[PathBuf], checkout: &Path) -> Result<(), PublishError> {
 mod tests {
     use std::cell::RefCell;
 
-    use forge::system::{Answer, Invocation};
+    use forge_kit::{Answer, Invocation};
 
     use super::*;
 
@@ -404,7 +404,7 @@ mod tests {
             ],
         );
         let repo = clone.to_str().unwrap();
-        let machine = forge::system::Machine;
+        let machine = forge_kit::Machine;
 
         fs::write(out.join("checks.json"), "{}\n").unwrap();
         fs::write(out.join("reproducibility.json"), "{}\n").unwrap();

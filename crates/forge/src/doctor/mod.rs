@@ -4,11 +4,11 @@ mod config;
 mod fork;
 mod format;
 mod history;
+mod host;
 mod impermanence;
 mod lost_files;
 mod luks;
 mod mountinfo;
-mod real;
 mod report;
 mod secure_boot;
 mod signers;
@@ -26,10 +26,11 @@ use jiff::tz::TimeZone;
 
 pub use config::{CONFIG_FILE, CONFIG_VARIABLE, Config, ConfigError};
 pub use fork::{DOCTOR_FLAG, FORK_TIMEOUT, ROOT_VARIABLE};
+pub use host::HostProbe;
 pub use report::{Status, Totals};
 pub use system::{Forks, Host, Mount, Space, System};
 
-use crate::system::Invocation;
+use forge_kit::Invocation;
 
 pub const ROOT_HINT: &str = "run sudo forge doctor";
 

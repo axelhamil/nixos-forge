@@ -2,11 +2,12 @@ use std::env;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use super::Config;
-use crate::system::efi::{self, SecureBoot};
-use crate::system::interrupt::{self, Flag, SIGTERM};
-use crate::system::luks::Header;
-use crate::system::{Answer, Commands, Files, Invocation, Machine};
+use forge_kit::interrupt::{self, Flag, SIGTERM};
+use forge_kit::os::efi::{self, SecureBoot};
+use forge_kit::os::luks::Header;
+use forge_kit::{Answer, Commands, Files, Invocation, Machine};
+
+use super::{Config, TpmDevice};
 
 pub const TEMPORARY_SLOT: u32 = 31;
 
@@ -85,7 +86,7 @@ pub fn start(config: &Config) -> u8 {
     let ports = Ports {
         commands: &Machine,
         files: &Machine,
-        host: &Machine,
+        host: &TpmDevice,
         interrupt: &interrupt,
     };
     run(
@@ -306,10 +307,9 @@ fn clean_up(
 mod tests {
     use std::cell::RefCell;
 
-    use signal_hook::consts::SIGTERM;
+    use forge_kit::Owner;
 
     use super::*;
-    use crate::system::Owner;
 
     const DEVICE: &str = "/dev/disk/by-partlabel/disk-main-luks";
     const DESCRIPTION: &str = "tpm2-enroll-cryptroot";

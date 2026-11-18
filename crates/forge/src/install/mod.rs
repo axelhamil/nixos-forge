@@ -11,10 +11,10 @@ use zeroize::Zeroizing;
 
 pub use config::{CONFIG_VARIABLE, Config};
 
-use crate::system::interrupt::{self, Flag, SIGINT};
-use crate::system::prompt::{Console, Terminal};
-use crate::system::{
-    Answer, Commands, Files, Invocation, Machine, Storage, config as settings, privilege,
+use forge_kit::interrupt::{self, Flag, SIGINT};
+use forge_kit::os::privilege;
+use forge_kit::{
+    Answer, Commands, Console, Files, Invocation, Machine, Storage, Terminal, load_settings,
 };
 use steps::install;
 
@@ -152,7 +152,7 @@ pub fn run(args: &[OsString], config_path: Option<&Path>) -> u8 {
         return 1;
     }
 
-    let config: Config = match settings::load(config_path) {
+    let config: Config = match load_settings(config_path) {
         Ok(config) => config,
         Err(error) => {
             eprintln!("forge install: {error}");

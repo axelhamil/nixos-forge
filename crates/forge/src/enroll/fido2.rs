@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::system::{Commands, Invocation};
+use forge_kit::{Commands, Invocation};
 
 pub const USAGE: &str =
     "Usage: forge enroll fido2 <LUKS device>, this host has no disk feature to default to";
@@ -37,8 +37,9 @@ pub fn run(
 mod tests {
     use std::cell::RefCell;
 
+    use forge_kit::{Answer, Output};
+
     use super::*;
-    use crate::system::{Answer, Output};
 
     struct Cryptenroll {
         answer: Answer,

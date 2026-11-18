@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::system::Settings;
+use forge_kit::Settings;
 
 pub const CONFIG_VARIABLE: &str = "FORGE_ENROLL_CONFIG";
 
@@ -21,8 +21,9 @@ impl Settings for Config {
 mod tests {
     use std::fs;
 
+    use forge_kit::{ConfigError, load_settings};
+
     use super::*;
-    use crate::system::{ConfigError, config};
 
     #[test]
     fn a_field_the_config_does_not_know_is_refused() {
@@ -34,7 +35,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = config::load::<Config>(Some(&path)).unwrap_err();
+        let error = load_settings::<Config>(Some(&path)).unwrap_err();
 
         assert!(matches!(error, ConfigError::Invalid { .. }));
     }

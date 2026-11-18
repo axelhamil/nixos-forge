@@ -7,7 +7,8 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-forge = { path = "../forge" }
+forge-contracts = { path = "../forge-contracts" }
+forge-kit = { path = "../forge-kit" }
 thiserror = "2"
 
 [dev-dependencies]

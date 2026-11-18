@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
-use crate::system::remote::{GITHUB, UPSTREAM_REPOSITORY, github_repository};
-use crate::system::{Pattern, PatternInvalid};
+use forge_kit::git::remote::{GITHUB, UPSTREAM_REPOSITORY, github_repository};
+use forge_kit::{Pattern, PatternInvalid};
 
 pub(crate) static GITHUB_SHORTHAND: Pattern = Pattern::new(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$");
 pub(crate) static BREAKING_LINE: Pattern =

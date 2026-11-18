@@ -1,0 +1,13 @@
+---
+source: forge-contracts/src/auto_upgrade.rs
+expression: "serde_json::to_string_pretty(&full).unwrap()"
+---
+{
+  "time": "2026-10-23T04:00:00+02:00",
+  "outcome": "upgraded",
+  "from": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "to": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "source": "https://github.com/alice/nixos.git",
+  "message": "deploy/machine is the running commit",
+  "changes": "nixpkgs: 24.11 -> 25.05"
+}

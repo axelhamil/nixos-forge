@@ -7,10 +7,10 @@ use std::process::ExitCode;
 
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use forge::auto_upgrade::{self, Outcome, Overrides, Paths, Ports};
-use forge::doctor::{self, Config, Forks, Options, System};
+use forge::doctor::{self, Config, Forks, HostProbe, Options, System};
 use forge::enroll;
-use forge::system::{Git, Machine, config};
 use forge::{check_docs, dual_boot, init, install, plugins, update, upstream};
+use forge_kit::{Git, Machine, load_settings};
 
 #[derive(Parser)]
 #[command(
@@ -213,7 +213,7 @@ fn doctor_command(dirs: &[PathBuf], all: bool, history: bool) -> ExitCode {
     let system = System {
         commands: &machine,
         files: &machine,
-        host: &machine,
+        host: &HostProbe,
         clock: &machine,
         root: PathBuf::from("/"),
         forks: Forks {
@@ -250,7 +250,7 @@ fn doctor_command(dirs: &[PathBuf], all: bool, history: bool) -> ExitCode {
 
 fn auto_upgrade_command() -> ExitCode {
     let path = env::var_os(auto_upgrade::CONFIG_VARIABLE).map(PathBuf::from);
-    let config: auto_upgrade::Config = match config::load(path.as_deref()) {
+    let config: auto_upgrade::Config = match load_settings(path.as_deref()) {
         Ok(config) => config,
         Err(error) => {
             eprintln!("forge auto-upgrade: {error}");

@@ -2,8 +2,8 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use forge::auto_upgrade::{Outcome, STATE_FILE, State};
-use forge::system::{Commands, Invocation};
+use forge_contracts::auto_upgrade::{Outcome, STATE_FILE, State};
+use forge_kit::{Commands, Invocation};
 
 pub const STATE_DIRECTORY: &str = "/var/lib/auto-upgrade";
 pub const NIXOS_VERSION: &str = "/run/current-system/sw/bin/nixos-version";

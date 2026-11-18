@@ -1,11 +1,12 @@
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+use forge_kit::os::partitions::{self, Partition};
+use forge_kit::os::{efi, firmware};
+use forge_kit::{Commands, Files, Invocation, Mounts, Storage};
+
 use super::config::SyncSettings;
 use super::esp::BOOT_MANAGER;
-use crate::system::mount::Mounts;
-use crate::system::partitions::{self, Partition};
-use crate::system::{Commands, Files, Invocation, Storage, efi, firmware};
 
 const COPY_MARK: &str = "EFI/Microsoft/Boot/copied-by-nixos";
 const LINUX_LABEL: &str = "Linux Boot Manager";
@@ -248,9 +249,10 @@ mod tests {
     use std::io;
     use std::path::PathBuf;
 
+    use forge_kit::os::mount::ReadOnlyMount;
+    use forge_kit::{Answer, Invocation, Owner};
+
     use super::*;
-    use crate::system::mount::ReadOnlyMount;
-    use crate::system::{Answer, Invocation, Owner};
 
     const FINDMNT: &str = "findmnt -nvo SOURCE --mountpoint /boot";
     const LSBLK: &str = "lsblk -J -l -p -o NAME,TYPE,PKNAME,PARTN,PARTTYPE,PARTLABEL";

@@ -4,7 +4,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use forge::system::{Commands, Invocation, Machine, Streams};
+use forge_kit::{Commands, Invocation, Machine, Streams};
 use serde_json::Number;
 
 use crate::model::{FlakyRecord, FlakyRun};

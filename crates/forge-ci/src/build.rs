@@ -5,7 +5,7 @@ use std::io::{self, BufReader};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-use forge::system::{Invocation, Machine, Streams};
+use forge_kit::{Invocation, Machine, Streams};
 use serde::Serialize;
 use serde_json::{Map, Value};
 

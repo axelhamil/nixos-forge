@@ -1,8 +1,9 @@
 use std::io;
 
+use forge_kit::os::efi::{self, SecureBoot};
+
 use super::Context;
 use super::report::{Report, Status};
-use crate::system::efi::{self, SecureBoot};
 
 const CHECK: &str = "Secure Boot";
 

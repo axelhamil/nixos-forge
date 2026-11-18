@@ -3,17 +3,15 @@ use std::env;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Write};
-use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::time::Duration;
 
-use serde::Deserialize;
+use forge_contracts::plugin::DescriptionError;
+pub use forge_contracts::plugin::{CONTRACT, Description};
+use forge_kit::{is_executable, process};
 
-use crate::process;
-
-pub const CONTRACT: u64 = 1;
 pub const CONTRACT_VARIABLE: &str = "FORGE_CONTRACT";
 pub const COMMANDS_PATH_VARIABLE: &str = "FORGE_COMMANDS_PATH";
 pub const DESCRIBE_FLAG: &str = "--forge-describe";
@@ -61,20 +59,6 @@ pub enum PluginError {
 pub struct Plugin {
     pub name: String,
     pub path: PathBuf,
-}
-
-#[derive(Debug, Deserialize)]
-struct Version {
-    contract: u64,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Description {
-    pub contract: u64,
-    pub name: String,
-    pub summary: String,
-    #[serde(default)]
-    pub doctor: bool,
 }
 
 #[must_use]
@@ -180,18 +164,16 @@ pub fn describe(plugin: &Plugin, timeout: Duration) -> Result<Description, Plugi
 }
 
 fn parse_description(path: &Path, stdout: &[u8]) -> Result<Description, PluginError> {
-    let invalid = |source| PluginError::InvalidDescription {
-        path: path.to_path_buf(),
-        source,
-    };
-    let version: Version = serde_json::from_slice(stdout).map_err(invalid)?;
-    if version.contract != CONTRACT {
-        return Err(PluginError::Contract {
+    Description::parse(stdout).map_err(|error| match error {
+        DescriptionError::Invalid(source) => PluginError::InvalidDescription {
             path: path.to_path_buf(),
-            found: version.contract,
-        });
-    }
-    serde_json::from_slice(stdout).map_err(invalid)
+            source,
+        },
+        DescriptionError::Contract { found } => PluginError::Contract {
+            path: path.to_path_buf(),
+            found,
+        },
+    })
 }
 
 #[must_use]
@@ -236,14 +218,9 @@ pub fn overview(dirs: &[PathBuf], builtins: &[String]) -> String {
     format!("External commands:\n{}", lines.join("\n"))
 }
 
-#[must_use]
-pub fn is_executable(path: &Path) -> bool {
-    fs::metadata(path)
-        .is_ok_and(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
-}
-
 #[cfg(test)]
 mod tests {
+    use std::os::unix::fs::PermissionsExt;
     use std::time::Instant;
 
     use super::*;

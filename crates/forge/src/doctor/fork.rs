@@ -2,25 +2,16 @@ use std::io;
 use std::process::Command;
 use std::time::Duration;
 
-use serde::Deserialize;
+use forge_contracts::plugin::{CONTRACT, DoctorLine};
+use forge_kit::process;
 
 use super::Context;
-use super::report::{CHECK_WIDTH, Report, Status};
-use crate::plugins::{self, CONTRACT, CONTRACT_VARIABLE, DESCRIBE_TIMEOUT, Plugin};
-use crate::process;
+use super::report::{Report, Status};
+use crate::plugins::{self, CONTRACT_VARIABLE, DESCRIBE_TIMEOUT, Plugin};
 
 pub const DOCTOR_FLAG: &str = "--forge-doctor";
 pub const ROOT_VARIABLE: &str = "FORGE_DOCTOR_ROOT";
 pub const FORK_TIMEOUT: Duration = Duration::from_secs(30);
-
-#[derive(Debug, Deserialize)]
-struct Line {
-    status: Status,
-    check: String,
-    detail: String,
-    #[serde(default)]
-    hint: String,
-}
 
 pub(super) fn check(context: &Context, report: &mut Report) -> io::Result<()> {
     let forks = &context.system.forks;
@@ -77,9 +68,9 @@ fn run(context: &Context, plugin: &Plugin, report: &mut Report) -> io::Result<()
     let mut reported = 0;
     let mut invalid = None;
     for text in stdout.lines().filter(|text| !text.trim().is_empty()) {
-        match parse(text) {
+        match DoctorLine::parse(text) {
             Ok(line) => {
-                report.hinted(line.status, &line.check, &line.detail, &line.hint)?;
+                report.hinted(line.status.into(), &line.check, &line.detail, &line.hint)?;
                 reported += 1;
             }
             Err(reason) => {
@@ -105,15 +96,4 @@ fn run(context: &Context, plugin: &Plugin, report: &mut Report) -> io::Result<()
         Some(problem) => report.line(Status::Fail, &name, &problem),
         None => Ok(()),
     }
-}
-
-fn parse(text: &str) -> Result<Line, String> {
-    let line: Line = serde_json::from_str(text).map_err(|error| error.to_string())?;
-    if line.check.is_empty() || line.check.chars().count() > CHECK_WIDTH {
-        return Err(format!(
-            "check `{}` must have 1 to {CHECK_WIDTH} characters",
-            line.check
-        ));
-    }
-    Ok(line)
 }

@@ -1,8 +1,9 @@
 use std::time::Duration;
 
+use forge_kit::{Git, Pattern, PatternInvalid};
+
 use super::Error;
 use super::signature::Signers;
-use crate::system::{Git, Pattern, PatternInvalid};
 
 const SOURCE_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -123,8 +124,9 @@ mod tests {
     use std::collections::HashMap;
     use std::path::Path;
 
+    use forge_kit::{Answer, Commands, Invocation};
+
     use super::*;
-    use crate::system::{Answer, Commands, Invocation};
 
     #[test]
     fn ssh_and_scp_like_urls_are_fetched_over_https() {

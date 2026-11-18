@@ -5,8 +5,8 @@ use std::env;
 use std::ffi::OsString;
 use std::io;
 
-use crate::system::prompt::{Console, Terminal};
-use crate::system::{Commands, Machine, Storage, find_in_path};
+use forge_kit::{Commands, Machine, Storage, find_in_path};
+use forge_kit::{Console, Terminal};
 
 pub const SUBCOMMAND: &str = "upstream";
 

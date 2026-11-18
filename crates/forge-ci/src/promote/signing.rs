@@ -5,7 +5,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
-use forge::system::{Commands, Git, Invocation};
+use forge_kit::{Commands, Git, Invocation};
 use tempfile::TempDir;
 
 use super::is_promotion;

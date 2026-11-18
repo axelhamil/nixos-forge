@@ -13,9 +13,9 @@ use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-use forge::system::Machine;
 use forge_ci::badges::flaky_history;
 use forge_ci::model::FlakyHistory;
+use forge_kit::Machine;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 

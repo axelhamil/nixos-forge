@@ -1,7 +1,7 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) persistInEveryHome;
+  inherit (config.helpers) persistInEveryHome testStateVersion;
 in
 {
   features.wipe-home =
@@ -56,7 +56,7 @@ in
             extraConfig = {
               users.users.${tester}.isNormalUser = true;
               home-manager.users.${tester}.home = {
-                stateVersion = "26.05";
+                stateVersion = testStateVersion;
                 persistence."/persist".directories = [ "kept" ];
               };
             };

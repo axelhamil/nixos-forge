@@ -1,13 +1,13 @@
-{
-  lib,
-  inputs,
-  config,
-  ...
-}:
+{ lib, config, ... }:
 
 let
-  inherit (config.helpers) testRevision secureMachineScript diskTest;
-  inherit (config) base features;
+  inherit (config.helpers)
+    testRevision
+    secureMachineScript
+    diskTest
+    layerMachine
+    ;
+  inherit (config) features;
 
   dualBootTest =
     case: secure:
@@ -73,21 +73,16 @@ let
 
   dualBootMachine =
     system: case: secure:
-    inputs.nixpkgs.lib.nixosSystem {
-      modules = [
-        base
+    layerMachine system (
+      [
         features.disk
         features.dual-boot
         (dualBootTest case secure)
         testRevision
-        {
-          nixpkgs.hostPlatform = system;
-          networking.hostName = "dual-boot";
-          system.stateVersion = "26.05";
-        }
+        { networking.hostName = "dual-boot"; }
       ]
-      ++ lib.optional secure features.secure-boot;
-    };
+      ++ lib.optional secure features.secure-boot
+    );
   failingHook =
     system: pkgs:
     let

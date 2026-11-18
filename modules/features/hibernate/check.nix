@@ -1,9 +1,4 @@
-{
-  lib,
-  inputs,
-  config,
-  ...
-}:
+{ lib, config, ... }:
 
 let
   inherit (config.helpers)
@@ -12,8 +7,9 @@ let
     testRevision
     storeOnDiskTest
     diskTest
+    layerMachine
     ;
-  inherit (config) base features;
+  inherit (config) features;
 
   hostConfig = name: config.flake.nixosConfigurations.${name};
 
@@ -36,22 +32,17 @@ let
 
   hibernatingMachine =
     system:
-    inputs.nixpkgs.lib.nixosSystem {
-      modules = [
-        base
-        features.disk
-        features.hibernate
-        testSwap
-        resumeTest
-        testRevision
-        {
-          nixpkgs.hostPlatform = system;
-          networking.hostName = "hibernate";
-          zramSwap.enable = true;
-          system.stateVersion = "26.05";
-        }
-      ];
-    };
+    layerMachine system [
+      features.disk
+      features.hibernate
+      testSwap
+      resumeTest
+      testRevision
+      {
+        networking.hostName = "hibernate";
+        zramSwap.enable = true;
+      }
+    ];
 in
 {
   perSystem =

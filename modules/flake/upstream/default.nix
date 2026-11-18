@@ -1,14 +1,12 @@
+{ config, ... }:
+
 {
   perSystem =
     { pkgs, self', ... }:
     {
-      packages.upstream = pkgs.writeShellApplication {
-        name = "upstream";
-        runtimeInputs = [
-          self'.packages.forge
-          pkgs.git
-        ];
-        text = ''exec forge upstream "$@"'';
+      packages.upstream = config.helpers.forgeCommand pkgs self'.packages.forge "upstream" {
+        command = "upstream";
+        runtimeInputs = [ pkgs.git ];
       };
     };
 }

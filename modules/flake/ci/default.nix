@@ -91,124 +91,94 @@ in
   perSystem =
     { pkgs, self', ... }:
     {
-      packages.closure-diff = pkgs.writeShellApplication {
-        name = "closure-diff";
-        runtimeInputs = [
-          pkgs.git
-          pkgs.nvd
-        ];
-        text = builtins.readFile ./closure-diff.sh;
-      };
+      packages =
+        lib.mapAttrs (config.helpers.forgeCommand pkgs self'.packages.forge-ci) {
+          ci-plan = {
+            command = "plan";
+            runtimeInputs = [
+              pkgs.nix
+              pkgs.nix-eval-jobs
+            ];
+          };
+          ci-build = {
+            command = "build";
+            runtimeInputs = [ pkgs.nix ];
+          };
+          ci-report.command = "report";
+          ci-badges = {
+            command = "badges";
+            runtimeInputs = [ pkgs.git ];
+          };
+          ci-flaky = {
+            command = "flaky";
+            runtimeInputs = [ pkgs.nix ];
+          };
+          ci-flaky-plan = {
+            command = "flaky-plan";
+            runtimeInputs = [
+              pkgs.nix
+              pkgs.nix-eval-jobs
+              pkgs.git
+            ];
+          };
+          ci-flaky-report = {
+            command = "flaky-report";
+            runtimeInputs = [ pkgs.git ];
+          };
+          reproducibility = {
+            command = "reproducibility";
+            runtimeInputs = [
+              pkgs.nix
+              pkgs.diffoscopeMinimal
+            ];
+          };
+          ci-promote = {
+            command = "promote";
+            runtimeInputs = [
+              pkgs.git
+              pkgs.openssh
+            ];
+          };
+        }
+        // {
+          closure-diff = pkgs.writeShellApplication {
+            name = "closure-diff";
+            runtimeInputs = [
+              pkgs.git
+              pkgs.nvd
+            ];
+            text = builtins.readFile ./closure-diff.sh;
+          };
 
-      packages.ci-plan = pkgs.writeShellApplication {
-        name = "ci-plan";
-        runtimeInputs = [
-          self'.packages.forge-ci
-          pkgs.nix
-          pkgs.nix-eval-jobs
-        ];
-        text = ''exec forge-ci plan "$@"'';
-      };
+          ci-boot-time = pkgs.writeShellApplication {
+            name = "ci-boot-time";
+            runtimeInputs = [
+              pkgs.nix
+              pkgs.jq
+              pkgs.coreutils
+            ];
+            text = builtins.readFile ./ci-boot-time.sh;
+          };
 
-      packages.ci-build = pkgs.writeShellApplication {
-        name = "ci-build";
-        runtimeInputs = [
-          self'.packages.forge-ci
-          pkgs.nix
-        ];
-        text = ''exec forge-ci build "$@"'';
-      };
+          ci-mirror = pkgs.writeShellApplication {
+            name = "ci-mirror";
+            runtimeInputs = [
+              pkgs.git
+              pkgs.coreutils
+            ];
+            text = builtins.readFile ./ci-mirror.sh;
+          };
 
-      packages.ci-report = pkgs.writeShellApplication {
-        name = "ci-report";
-        runtimeInputs = [ config.flake.packages.${pkgs.stdenv.hostPlatform.system}.forge-ci ];
-        text = ''exec forge-ci report "$@"'';
-      };
+          ci-pin-kernels = import ./_ci-pin-kernels.nix {
+            inherit pkgs;
+            inherit (pkgs) nix cachix;
+          };
 
-      packages.ci-badges = import ./_ci-badges.nix {
-        inherit pkgs;
-        inherit (self'.packages) forge-ci;
-      };
-
-      packages.ci-flaky = pkgs.writeShellApplication {
-        name = "ci-flaky";
-        runtimeInputs = [
-          self'.packages.forge-ci
-          pkgs.nix
-        ];
-        text = ''exec forge-ci flaky "$@"'';
-      };
-
-      packages.ci-flaky-plan = pkgs.writeShellApplication {
-        name = "ci-flaky-plan";
-        runtimeInputs = [
-          self'.packages.forge-ci
-          pkgs.nix
-          pkgs.nix-eval-jobs
-          pkgs.git
-        ];
-        text = ''exec forge-ci flaky-plan "$@"'';
-      };
-
-      packages.ci-flaky-report = pkgs.writeShellApplication {
-        name = "ci-flaky-report";
-        runtimeInputs = [
-          self'.packages.forge-ci
-          pkgs.git
-        ];
-        text = ''exec forge-ci flaky-report "$@"'';
-      };
-
-      packages.ci-boot-time = pkgs.writeShellApplication {
-        name = "ci-boot-time";
-        runtimeInputs = [
-          pkgs.nix
-          pkgs.jq
-          pkgs.coreutils
-        ];
-        text = builtins.readFile ./ci-boot-time.sh;
-      };
-
-      packages.reproducibility = pkgs.writeShellApplication {
-        name = "reproducibility";
-        runtimeInputs = [
-          self'.packages.forge-ci
-          pkgs.nix
-          pkgs.diffoscopeMinimal
-        ];
-        text = ''exec forge-ci reproducibility "$@"'';
-      };
-
-      packages.ci-promote = pkgs.writeShellApplication {
-        name = "ci-promote";
-        runtimeInputs = [
-          self'.packages.forge-ci
-          pkgs.git
-          pkgs.openssh
-        ];
-        text = ''
-          exec forge-ci promote "$@"
-        '';
-      };
-
-      packages.ci-mirror = pkgs.writeShellApplication {
-        name = "ci-mirror";
-        runtimeInputs = [
-          pkgs.git
-          pkgs.coreutils
-        ];
-        text = builtins.readFile ./ci-mirror.sh;
-      };
-
-      packages.ci-pin-kernels = import ./_ci-pin-kernels.nix {
-        inherit pkgs;
-        inherit (pkgs) nix cachix;
-      };
-
-      packages.sync-develop = pkgs.writeShellApplication {
-        name = "sync-develop";
-        runtimeInputs = [ pkgs.git ];
-        text = builtins.readFile ./sync-develop.sh;
-      };
+          sync-develop = pkgs.writeShellApplication {
+            name = "sync-develop";
+            runtimeInputs = [ pkgs.git ];
+            text = builtins.readFile ./sync-develop.sh;
+          };
+        };
     };
 }

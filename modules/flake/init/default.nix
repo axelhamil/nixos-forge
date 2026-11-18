@@ -1,6 +1,13 @@
-{ lib, self, ... }:
+{
+  lib,
+  self,
+  config,
+  ...
+}:
 
 let
+  inherit (config.helpers) forgeCommand;
+
   lock = lib.importJSON (self + "/flake.lock");
 
   sourceInfo =
@@ -63,14 +70,12 @@ in
       ...
     }:
     {
-      packages.init = pkgs.writeShellApplication {
-        name = "init";
+      packages.init = forgeCommand pkgs config.packages.forge "init" {
+        command = "init";
         runtimeInputs = [
-          config.packages.forge
           pkgs.git
           pkgs.openssh
         ];
-        text = ''exec forge init "$@"'';
       };
 
       checks = lib.optionalAttrs (system == "x86_64-linux" && builtins.pathExists ../../hosts/example) {

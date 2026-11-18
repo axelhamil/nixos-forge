@@ -1,28 +1,19 @@
-{
-  lib,
-  inputs,
-  config,
-  ...
-}:
+{ lib, config, ... }:
 
 let
-  inherit (config) base features;
+  inherit (config) features;
+  inherit (config.helpers) layerMachine;
 
   outcome =
     mirrors:
     let
-      machine = inputs.nixpkgs.lib.nixosSystem {
-        modules = [
-          base
-          features.auto-upgrade
-          {
-            nixpkgs.hostPlatform = "x86_64-linux";
-            system.stateVersion = "26.05";
-            update.flake = "github:alice/nixos";
-            update.mirrors = mirrors;
-          }
-        ];
-      };
+      machine = layerMachine "x86_64-linux" [
+        features.auto-upgrade
+        {
+          update.flake = "github:alice/nixos";
+          update.mirrors = mirrors;
+        }
+      ];
       aboutMirrors = lib.hasPrefix "update.mirrors";
     in
     {

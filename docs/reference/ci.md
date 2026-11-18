@@ -126,12 +126,14 @@ Checks are generated from the registry and the modules, never listed. `flake.ci.
 ### Revision and helpers
 
 - Every test machine pins `configurationRevision` to `"test"` through `helpers.testRevision`, so a test derivation stays cached from one commit to the next. Only `<host>-toplevel` carries the real revision.
-- A module test is named after its namespace and goes through `helpers.baseCheck` (`base-<tool>`), `helpers.featureCheck` (`feature-<name>`), `helpers.profileCheck` (`profile-<name>`), `helpers.appCheck` (`app-<name>`, with the app's two parts for a `tester` user) or `helpers.vmCheck`, all on `x86_64-linux` only.
+- Every test machine sets its state version to `helpers.testStateVersion`.
+- A module test is named after its namespace and goes through `helpers.baseCheck` (`base-<tool>`), `helpers.featureCheck` (`feature-<name>`), `helpers.profileCheck` (`profile-<name>`), `helpers.appCheck` (`app-<name>`, with the app's two parts for a `tester` user) or `helpers.vmCheck`, all on `x86_64-linux` only. The first four are `helpers.moduleCheck "<layer>"`, which builds the node of each layer (`modules/flake/helpers/vm-check.nix`).
+- A test system is never a hand-built `nixosSystem`. `helpers.registryHost <name> [ <fields> ]` evaluates registry fields into a host and `helpers.registryMachine <host> [ <modules> ]` mounts it as `nixosConfigurations` does (`apps-once`, `fork-overrides`, `facter`, `specialisations`); `helpers.layerMachine <system> [ <modules> ]` builds `base` plus the listed layers without any registry, for the install tests that need a minimal closure (`feature-rollback`, `feature-hibernate`, `feature-dual-boot`, `feature-migration-without-disk`).
 - Time budget: `vmCheck` and its wrappers take a `globalTimeout` (400 seconds by default), a direct `runNixOSTest` sets its own, and a disko `installTest` goes through `helpers.diskTest`. The derivation timeout and the CI job limit sit above it, so the test fails first and names the wait that hung.
 
 ### Test machines
 
-No test machine has a network card, so OVMF never tries PXE.
+No test machine has a network card, so OVMF never tries PXE. The script generators live in `modules/flake/helpers/test-machine.nix`, their Python and shell in `modules/flake/helpers/test-machine/`.
 
 - `helpers.diskTest` runs every disko `installTest` with `helpers.testMachineScript` before its script, and rewrites the line of disko's `create_test_machine` that starts the installed machine so it goes through `machine_command`, which adds `-nic none`. It stops the evaluation when disko changes that line.
 - A test that starts its own machine calls `create_uefi_machine` (plain OVMF, its variables copied once into the state directory) or `create_secure_machine` (OVMF with Secure Boot and a TPM, from `helpers.secureMachineScript`), both built on `machine_command`. It takes the installed disk from disko's `disks(installer, n)` or `disk_drive`.

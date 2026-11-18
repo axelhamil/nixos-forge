@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/axelhamil/nixos-forge/compare/v0.2.6...v0.2.7) (2026-11-18)
+
+
+### Documentation
+
+* keep agents.md to the rules and move check detail to the docs ([#115](https://github.com/axelhamil/nixos-forge/issues/115)) ([c653747](https://github.com/axelhamil/nixos-forge/commit/c653747eec7cceaaa018b74e3c20d5f9b09f86f7))
+
 ## [0.2.6](https://github.com/axelhamil/nixos-forge/compare/v0.2.5...v0.2.6) (2026-11-16)
 
 

@@ -110,6 +110,7 @@ in
 
 - `{ lib, ... }: { helpers.<name> = ...; }`, read with `inherit (config.helpers) <name>;`. One file per topic.
 - A check that needs a whole system reuses `registryHost` and `registryMachine` (from registry fields) or `layerMachine` (`base` plus layers), and `testStateVersion`; never a hand-built `nixosSystem`.
+- A check decided at evaluation is `evalChecks.<name> = { text = "..."; expect."<failure message>" = <condition>; };`, never a `perSystem` with `assert` and `writeText`.
 
 ## `forge` command: `crates/forge/`
 
@@ -136,7 +137,7 @@ in
 }
 ```
 
-- Run with `nix run .#<tool>`. Test: `check.nix` plus `<tool>-test.sh`, as `modules/flake/ci/mirror-check.nix` and `mirror-test.sh`. A script past about 20 lines, or one sharing data with another, goes into the `forge-ci` crate (`crates/forge-ci`) instead: a module, Rust tests in `crates/forge-ci/tests/`, and one entry in the `forgeCommand` set of `modules/flake/ci/default.nix`: `<package> = { command = "<name>"; runtimeInputs = [ ... ]; };`, which writes `exec forge-ci <name> "$@"`.
+- Run with `nix run .#<tool>`. Test: `check.nix` plus `<tool>-test.sh`, as `modules/flake/ci/mirror-check.nix` and `mirror-test.sh`, run by `checks = scriptCheck pkgs "<tool>" test;`. A script past about 20 lines, or one sharing data with another, goes into the `forge-ci` crate (`crates/forge-ci`) instead: a module, Rust tests in `crates/forge-ci/tests/`, and one entry in the `forgeCommand` set of `modules/flake/ci/default.nix`: `<package> = { command = "<name>"; runtimeInputs = [ ... ]; };`, which writes `exec forge-ci <name> "$@"`.
 - A workflow only calls `- run: nix run .#<tool>`; never a multi-line script in YAML. Text for people is static, written by the script itself. Document it in `docs/reference/ci.md` (a check or a script) or `docs/how-to/ci.md` (a setting a fork must make).
 
 ## Flake input: `flake.nix`

@@ -50,29 +50,25 @@ let
   );
 in
 {
-  perSystem =
-    { pkgs, system, ... }:
-    lib.mkIf (system == "x86_64-linux" && config.users != { }) {
-      checks.hyprland-alone =
-        assert lib.assertMsg (strayBinds alone == [ ])
-          "hyprland-alone: hyprland alone binds a key to a program it lacks: ${toString (strayBinds alone)}";
-        assert lib.assertMsg (strayBinds silent == [ ] && !lib.hasInfix "wpctl" (bindsOf silent))
-          "hyprland-alone: hyprland without PipeWire binds a key to a program it lacks: ${toString (strayBinds silent)}";
-        assert lib.assertMsg (
-          !lib.hasInfix "kitty" (bindsOf alone) && lib.hasInfix "xdg-terminal-exec" (bindsOf alone)
-        ) "hyprland-alone: the terminal key does not go through xdg-terminal-exec";
-        assert lib.assertMsg (homeOf alone).xdg.terminal-exec.enable
-          "hyprland-alone: xdg-terminal-exec is not installed";
-        assert lib.assertMsg (hasTerminalWarning alone)
-          "hyprland-alone: hyprland alone does not warn that Super+Return opens nothing";
-        assert lib.assertMsg (missingBinds == [ ])
-          "hyprland-alone: with fuzzel, lock and audio, hyprland lacks the binds for ${toString missingBinds}";
-        assert lib.assertMsg (
-          !hasTerminalWarning desktop
-        ) "hyprland-alone: with kitty, hyprland still warns that no terminal is registered";
-        assert lib.assertMsg (lib.hasInfix "kitty.desktop"
-          (homeOf desktop).xdg.configFile."xdg-terminals.list".text
-        ) "hyprland-alone: kitty is not the default terminal of xdg-terminal-exec";
-        pkgs.writeText "hyprland-alone" "hyprland works alone, warns without a terminal and binds only the apps and audio it has";
+  evalChecks = lib.mkIf (config.users != { }) {
+    hyprland-alone = {
+      text = "hyprland works alone, warns without a terminal and binds only the apps and audio it has";
+      expect = {
+        "hyprland alone binds a key to a program it lacks: ${toString (strayBinds alone)}" =
+          strayBinds alone == [ ];
+        "hyprland without PipeWire binds a key to a program it lacks: ${toString (strayBinds silent)}" =
+          strayBinds silent == [ ] && !lib.hasInfix "wpctl" (bindsOf silent);
+        "the terminal key does not go through xdg-terminal-exec" =
+          !lib.hasInfix "kitty" (bindsOf alone) && lib.hasInfix "xdg-terminal-exec" (bindsOf alone);
+        "xdg-terminal-exec is not installed" = (homeOf alone).xdg.terminal-exec.enable;
+        "hyprland alone does not warn that Super+Return opens nothing" = hasTerminalWarning alone;
+        "with fuzzel, lock and audio, hyprland lacks the binds for ${toString missingBinds}" =
+          missingBinds == [ ];
+        "with kitty, hyprland still warns that no terminal is registered" = !hasTerminalWarning desktop;
+        "kitty is not the default terminal of xdg-terminal-exec" =
+          lib.hasInfix "kitty.desktop"
+            (homeOf desktop).xdg.configFile."xdg-terminals.list".text;
+      };
     };
+  };
 }

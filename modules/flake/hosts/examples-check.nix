@@ -90,14 +90,14 @@ let
     ) examplePeople;
 in
 {
-  perSystem =
-    { pkgs, system, ... }:
-    lib.mkIf (system == "x86_64-linux" && exampleHosts != [ ]) {
-      checks.example-hosts =
-        assert lib.assertMsg (report == [ ]) (
-          "every example host names every field, profile, feature, hardware module and app, and the example person every field, enabled or commented out:\n"
-          + lib.concatStringsSep "\n" report
-        );
-        pkgs.writeText "example-hosts" (lib.concatLines (exampleHosts ++ examplePeople));
+  evalChecks = lib.mkIf (exampleHosts != [ ]) {
+    example-hosts = {
+      text = lib.concatLines (exampleHosts ++ examplePeople);
+      expect.${
+        "every example host names every field, profile, feature, hardware module and app, and the example person every field, enabled or commented out:\n"
+        + lib.concatStringsSep "\n" report
+      } =
+        report == [ ];
     };
+  };
 }

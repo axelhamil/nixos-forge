@@ -83,24 +83,20 @@ let
 
   withoutDisk = layerMachine "x86_64-linux" [ ];
   withDisk = layerMachine "x86_64-linux" [ config.features.disk ];
+
+  generated = lib.mapAttrs (_: check: check.drvPath) (
+    migrationChecks withoutDisk withDisk // migrationChecks withDisk withoutDisk
+  );
 in
 {
   perSystem =
-    { pkgs, system, ... }:
+    { system, ... }:
     lib.mkIf (system == "x86_64-linux") {
-      checks =
-        lib.optionalAttrs (
-          config.flake.nixosConfigurations ? ${host} && baseFlake.nixosConfigurations ? ${host}
-        ) (migrationChecks config.flake.nixosConfigurations.${host} baseFlake.nixosConfigurations.${host})
-        // {
-          feature-migration-without-disk =
-            let
-              generated = lib.mapAttrs (_: check: check.drvPath) (
-                migrationChecks withoutDisk withDisk // migrationChecks withDisk withoutDisk
-              );
-            in
-            assert generated == { };
-            pkgs.writeText "feature-migration-without-disk" "";
-        };
+      checks = lib.optionalAttrs (
+        config.flake.nixosConfigurations ? ${host} && baseFlake.nixosConfigurations ? ${host}
+      ) (migrationChecks config.flake.nixosConfigurations.${host} baseFlake.nixosConfigurations.${host});
     };
+
+  evalChecks.feature-migration-without-disk.expect."a migration check was generated from a system without disk" =
+    generated == { };
 }

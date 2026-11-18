@@ -32,11 +32,5 @@ in
     homeManager = appParts "homeManager";
   };
 
-  perSystem =
-    { pkgs, system, ... }:
-    lib.mkIf (system == "x86_64-linux") {
-      checks.flake-modules = pkgs.writeText "flake-modules" (
-        lib.concatLines (lib.attrNames config.flake.modules.nixos)
-      );
-    };
+  evalChecks.flake-modules.text = lib.concatLines (lib.attrNames config.flake.modules.nixos);
 }

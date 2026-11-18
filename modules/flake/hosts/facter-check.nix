@@ -1,31 +1,18 @@
 {
   lib,
   inputs,
-  options,
+  config,
   ...
 }:
 
 let
-  hostType = options.configurations.nixos.type.nestedTypes.elemType;
+  inherit (config.helpers) registryHost registryMachine;
 
-  host =
-    (lib.evalModules {
-      modules = hostType.getSubModules ++ [
-        {
-          _module.args.name = "facter-fixture";
-          stateVersion = "26.05";
-          facter = "${inputs.nixpkgs}/nixos/tests/facter/facter.json";
-        }
-      ];
-    }).config;
+  host = registryHost "facter-fixture" [
+    { facter = "${inputs.nixpkgs}/nixos/tests/facter/facter.json"; }
+  ];
 
-  nixos =
-    (inputs.nixpkgs.lib.nixosSystem {
-      modules = [
-        host.module
-        { nixpkgs.hostPlatform = host.system; }
-      ];
-    }).config;
+  nixos = (registryMachine host [ ]).config;
 in
 {
   perSystem =

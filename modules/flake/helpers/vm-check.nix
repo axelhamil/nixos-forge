@@ -1,25 +1,52 @@
 { lib, config, ... }:
 
 let
-  inherit (config.helpers) appPart;
+  inherit (config.helpers) appPart testStateVersion;
   inherit (config)
     base
     profiles
     features
     ;
 
-  machineCheck =
-    name: modules:
+  appNode =
+    app: machine:
+    { lib, ... }:
     {
-      machine ? { },
-      ...
-    }@check:
-    config.helpers.vmCheck name (
-      removeAttrs check [ "machine" ]
-      // {
-        nodes.machine.imports = [ base ] ++ modules ++ [ machine ];
-      }
-    );
+      imports = [
+        base
+        (appPart app "nixos")
+        machine
+      ];
+      users.users.tester.isNormalUser = true;
+      home-manager.users.tester = {
+        imports = [ (appPart app "homeManager") ];
+        home.stateVersion = testStateVersion;
+      };
+      virtualisation.memorySize = lib.mkDefault 2048;
+    };
+
+  layerNode =
+    layer: name: machine:
+    {
+      base.imports = [
+        base
+        machine
+      ];
+      feature.imports = [
+        base
+        features.${name}
+        machine
+      ];
+      profile.imports = [
+        base
+        profiles.${name}
+        { virtualisation.cores = 2; }
+        machine
+      ];
+      app = appNode name machine;
+    }
+    .${layer}
+      or (throw "helpers.moduleCheck: layer is one of base, feature, profile, app, not ${layer}");
 in
 {
   helpers.testRevision = {
@@ -46,47 +73,27 @@ in
         qemu = lib.optionalAttrs (qemu != null) { package = qemu pkgs; };
         defaults = {
           imports = [ config.helpers.testRevision ];
-          system.stateVersion = "26.05";
+          system.stateVersion = testStateVersion;
         };
         testScript = lib.concatMapStrings builtins.readFile testScripts;
       };
     };
 
-  helpers.baseCheck = tool: machineCheck "base-${tool}" [ ];
-
-  helpers.featureCheck = feature: machineCheck "feature-${feature}" [ features.${feature} ];
-
-  helpers.profileCheck =
-    profile:
-    machineCheck "profile-${profile}" [
-      profiles.${profile}
-      { virtualisation.cores = 2; }
-    ];
-
-  helpers.appCheck =
-    app:
+  helpers.moduleCheck =
+    layer: name:
     {
       machine ? { },
       ...
     }@check:
-    config.helpers.vmCheck "app-${app}" (
-      removeAttrs check [ "machine" ]
-      // {
-        nodes.machine =
-          { lib, ... }:
-          {
-            imports = [
-              base
-              (appPart app "nixos")
-              machine
-            ];
-            users.users.tester.isNormalUser = true;
-            home-manager.users.tester = {
-              imports = [ (appPart app "homeManager") ];
-              home.stateVersion = "26.05";
-            };
-            virtualisation.memorySize = lib.mkDefault 2048;
-          };
-      }
+    config.helpers.vmCheck "${layer}-${name}" (
+      removeAttrs check [ "machine" ] // { nodes.machine = layerNode layer name machine; }
     );
+
+  helpers.baseCheck = config.helpers.moduleCheck "base";
+
+  helpers.featureCheck = config.helpers.moduleCheck "feature";
+
+  helpers.profileCheck = config.helpers.moduleCheck "profile";
+
+  helpers.appCheck = config.helpers.moduleCheck "app";
 }

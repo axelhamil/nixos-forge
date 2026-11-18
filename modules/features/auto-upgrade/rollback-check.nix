@@ -1,17 +1,13 @@
-{
-  lib,
-  inputs,
-  config,
-  ...
-}:
+{ lib, config, ... }:
 
 let
   inherit (config.helpers)
     testRevision
     storeOnDiskTest
     diskTest
+    layerMachine
     ;
-  inherit (config) base features;
+  inherit (config) features;
 
   failures = {
     boot-check = {
@@ -82,9 +78,8 @@ let
 
   upgradingMachine =
     system: failure: extraModules:
-    inputs.nixpkgs.lib.nixosSystem {
-      modules = [
-        base
+    layerMachine system (
+      [
         features.disk
         features.auto-upgrade
         (rollbackTest failure)
@@ -96,15 +91,13 @@ let
           }
         )
         {
-          nixpkgs.hostPlatform = system;
           networking.hostName = "rollback";
           update.flake = "github:alice/nixos";
           update.mirrors = [ "file:///srv/mirror.git" ];
-          system.stateVersion = "26.05";
         }
       ]
-      ++ extraModules;
-    };
+      ++ extraModules
+    );
 in
 {
   perSystem =

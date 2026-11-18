@@ -1,6 +1,18 @@
 { lib, ... }:
 
 {
+  helpers.forgeCommand =
+    pkgs: package: name:
+    {
+      command,
+      runtimeInputs ? [ ],
+    }:
+    pkgs.writeShellApplication {
+      inherit name;
+      runtimeInputs = [ package ] ++ runtimeInputs;
+      text = ''exec ${package.meta.mainProgram} ${command} "$@"'';
+    };
+
   helpers.wrapForge =
     pkgs: forge:
     {

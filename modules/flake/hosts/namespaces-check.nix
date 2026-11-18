@@ -67,9 +67,15 @@ let
           ${./users.nix}
           ${../helpers/default.nix}
           ${../helpers/apps.nix}
+          ${../helpers/registry-host.nix}
+          ${../helpers/test-state-version.nix}
           {
             configurations.nixos = ${
-              json (lib.mapAttrs (_: wrong: wrong.host // { stateVersion = "26.05"; }) wrongHosts)
+              json (
+                lib.mapAttrs (
+                  _: wrong: wrong.host // { stateVersion = config.helpers.testStateVersion; }
+                ) wrongHosts
+              )
             };
           }
         ];

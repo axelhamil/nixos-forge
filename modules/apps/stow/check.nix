@@ -1,7 +1,7 @@
 { config, ... }:
 
 let
-  inherit (config.helpers) appPart;
+  inherit (config.helpers) appPart testStateVersion;
 in
 {
   perSystem = config.helpers.appCheck "stow" {
@@ -26,7 +26,7 @@ in
             "neovim"
             "stow"
           ];
-          home.stateVersion = "26.05";
+          home.stateVersion = testStateVersion;
         });
         specialisation.fewer.configuration.home-manager.users.tester.stow.packages = [ "zsh" ];
       };

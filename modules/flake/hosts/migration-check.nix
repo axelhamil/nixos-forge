@@ -1,12 +1,12 @@
-{
-  lib,
-  inputs,
-  config,
-  ...
-}:
+{ lib, config, ... }:
 
 let
-  inherit (config.helpers) testRevision baseFlake diskTest;
+  inherit (config.helpers)
+    testRevision
+    baseFlake
+    diskTest
+    layerMachine
+    ;
 
   host = "example";
 
@@ -81,21 +81,8 @@ let
         };
     };
 
-  machine =
-    modules:
-    inputs.nixpkgs.lib.nixosSystem {
-      modules = [
-        config.base
-        {
-          nixpkgs.hostPlatform = "x86_64-linux";
-          system.stateVersion = "26.05";
-        }
-      ]
-      ++ modules;
-    };
-
-  withoutDisk = machine [ ];
-  withDisk = machine [ config.features.disk ];
+  withoutDisk = layerMachine "x86_64-linux" [ ];
+  withDisk = layerMachine "x86_64-linux" [ config.features.disk ];
 in
 {
   perSystem =

@@ -1,13 +1,7 @@
-{
-  lib,
-  inputs,
-  config,
-  options,
-  ...
-}:
+{ lib, config, ... }:
 
 let
-  hostType = options.configurations.nixos.type.nestedTypes.elemType;
+  inherit (config.helpers) registryHost registryMachine;
 in
 {
   helpers.appPart = name: part: {
@@ -18,29 +12,17 @@ in
 
   helpers.appMachine =
     name: hostFields: personApps:
-    let
-      host = lib.evalModules {
-        modules = hostType.getSubModules ++ [
-          {
-            _module.args.name = name;
-            stateVersion = "26.05";
-            users.${lib.head (lib.attrNames config.users)}.apps = personApps;
-            module = {
-              fileSystems."/" = lib.mkDefault {
-                device = "/dev/disk/by-label/${name}";
-                fsType = "ext4";
-              };
-              boot.loader.grub.enable = false;
-            };
-          }
-          hostFields
-        ];
-      };
-    in
-    (inputs.nixpkgs.lib.nixosSystem {
-      modules = [
-        host.config.module
-        { nixpkgs.hostPlatform = host.config.system; }
-      ];
-    }).config;
+    (registryMachine (registryHost name [
+      {
+        users.${lib.head (lib.attrNames config.users)}.apps = personApps;
+        module = {
+          fileSystems."/" = lib.mkDefault {
+            device = "/dev/disk/by-label/${name}";
+            fsType = "ext4";
+          };
+          boot.loader.grub.enable = false;
+        };
+      }
+      hostFields
+    ]) [ ]).config;
 }

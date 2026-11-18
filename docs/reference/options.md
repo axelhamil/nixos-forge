@@ -99,7 +99,7 @@ list of string
 
 
 
-Where the machine updates from: a git checkout on the machine, which ` forge update ` pulls then switches to, or a flake reference such as ` github:<owner>/<repo> `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\.
+Where the machine updates from: a git checkout on the machine, which ` forge update ` pulls then switches to, or a flake reference such as ` github:<owner>/<repo> `\. The ` auto-upgrade ` feature pulls the ` deploy/<host> ` branch of that fork (of the checkout’s ` origin ` remote)\. A checkout is kept across boots on a wiped ` / `, and in a wiped home\.
 
 
 
@@ -304,7 +304,7 @@ SSH public keys that sign the deploy commits CI promotes (the secret ` DEPLOY_SI
 
 
 *Type:*
-list of string
+list of SSH public key (an ssh-\*, ecdsa-\* or sk-\* type, the base64 key, an optional comment)
 
 
 

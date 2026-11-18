@@ -67,7 +67,7 @@ in
 
 - `{ profiles.<name> = { ... }; }`, one role per host (`profile = "<name>";`).
 - Test: `config.helpers.profileCheck "<name>" { testScripts = [ ./test.py ]; }`, giving `profile-<name>`.
-- Name it in the comment of the `profile` field of every example host, in the `profile` description of `modules/flake/hosts/options.nix`, then run `nix run .#options-doc`.
+- Name it in the comment of the `profile` field of every example host, in the `profile` description of `modules/flake/hosts/_fields.nix`, then run `nix run .#options-doc`.
 
 ## Base tool: `modules/features/base/<tool>/`
 
@@ -100,11 +100,12 @@ in
 - `{ users.<name> = { fullName = ""; email = null; sshKeys = [ ]; apps = [ ]; module = { }; }; }`. `module` is the person's home-manager config; several files of the folder may each set part of it.
 - A host gets the account with `users.<name> = { admin = true; groups = [ ]; apps = [ ]; };`.
 
-## Registry field: `modules/flake/hosts/options.nix` or `users.nix`
+## Registry field: `modules/flake/hosts/_fields.nix` or `users.nix`
 
 - Plain values only, names as lists, never `enable` booleans; turn them into imports at the flake-parts level, never inside a NixOS module.
 - Add a line for the field in all three example hosts (or in `modules/users/alice`), run `nix run .#options-doc`, and keep `forge init` (`crates/forge/src/init/`) able to rewrite the host by its lines.
-- A field that names modules resolves inside `selection` in `options.nix`, so a host's `specialisations` take it too; its unknown-name message names the field path (`specialisations.<variant>.<field>` for a variant) and gets a case in `modules/flake/hosts/namespaces-check.nix`.
+- A field relayed to a forge NixOS option reuses that option's declaration from `helpers`, as `flake`, `mirrors` and `signers` take `helpers.updateOptions`.
+- A field that names modules resolves inside `selection` in `_resolve.nix`, so a host's `specialisations` take it too; its unknown-name message names the field path (`specialisations.<variant>.<field>` for a variant) and gets a case in `modules/flake/hosts/namespaces-check.nix`.
 
 ## Helper: `modules/flake/helpers/<topic>.nix`
 

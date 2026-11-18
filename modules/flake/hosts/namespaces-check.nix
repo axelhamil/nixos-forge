@@ -42,6 +42,16 @@ let
     };
   };
 
+  registrySource = lib.fileset.toSource {
+    root = ./.;
+    fileset = lib.fileset.unions [
+      ./options.nix
+      ./_resolve.nix
+      ./_account.nix
+      ./_fields.nix
+    ];
+  };
+
   json = value: "builtins.fromJSON ${lib.strings.escapeNixString (builtins.toJSON value)}";
 
   registry =
@@ -62,11 +72,12 @@ let
           )
         };
         modules = [
-          ${./options.nix}
+          ${registrySource}/options.nix
           ${./namespaces.nix}
           ${./users.nix}
           ${../helpers/default.nix}
           ${../helpers/apps.nix}
+          ${../helpers/update-options.nix}
           ${../helpers/registry-host.nix}
           ${../helpers/test-state-version.nix}
           {

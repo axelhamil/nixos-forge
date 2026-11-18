@@ -1,0 +1,29 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"init\", \"--help\"], &[])"
+---
+exit: 0
+--- stdout
+Usage: nix run .#init -- [options]
+
+Writes modules/hosts/<host>/default.nix from the commented example host and
+modules/users/<login>/default.nix from the example person, removes the examples and stages
+the result. Asks for every answer not given as an option.
+
+  --host NAME            host name: 1 to 63 letters, digits, - and _, starting and ending with a letter or digit
+  --system SYSTEM        x86_64-linux (default) or aarch64-linux
+  --profile PROFILE      desktop, laptop, server or pi
+  --login LOGIN          your login name, and the name of your person in modules/users
+  --full-name NAME       your full name
+  --email EMAIL          your email, used by git; empty for none
+  --time-zone ZONE       such as Europe/Paris (default: this machine's)
+  --keyboard LAYOUT      such as fr (default: us)
+  --locale LOCALE        such as fr_FR.UTF-8 (default: en_US.UTF-8)
+  --features LIST        features to turn on, comma or space separated (default: picked for the profile)
+  --hardware LIST        hardware modules or nixos-hardware profiles (default: firmware audio bluetooth for desktop and laptop, raspberry-pi-5 for pi, else none)
+  --apps LIST            apps for every user: starter apps or nixpkgs packages (default: picked for the profile)
+  --keep-server          keep the example-server host
+  --keep-pi              keep the example-pi host
+  --yes                  ask nothing: use the defaults, fail on a missing answer
+  -h, --help             show this help
+--- stderr

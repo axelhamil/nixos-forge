@@ -1,0 +1,9 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"flaky-plan\"])"
+---
+exit: 1
+--- stdout
+--- stderr
+ci-badges: the badges branch of origin could not be fetched; a private repository needs a checkout that keeps its credentials
+flaky-history: without the record, every VM check would be measured again; fix the fetch instead

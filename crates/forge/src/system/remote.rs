@@ -1,28 +1,29 @@
-use fancy_regex::Regex;
+use super::{Pattern, PatternInvalid};
 
 pub const UPSTREAM_REPOSITORY: &str = "axelhamil/nixos-forge";
 pub const GITHUB: &str = "https://github.com/";
 
-const GITHUB_URL: &str =
-    r"^(https://github\.com/|ssh://git@github\.com/|git@github\.com:)([^/]+/[^/]+)$";
+pub(crate) static GITHUB_URL: Pattern =
+    Pattern::new(r"^(https://github\.com/|ssh://git@github\.com/|git@github\.com:)([^/]+/[^/]+)$");
 
-const PLAIN_HTTPS: &str = r"^https://[^?#]+$";
+pub(crate) static PLAIN_HTTPS: Pattern = Pattern::new(r"^https://[^?#]+$");
 
 fn trimmed(url: &str) -> &str {
     let url = url.strip_suffix('/').unwrap_or(url);
     url.strip_suffix(".git").unwrap_or(url)
 }
 
-#[must_use]
-pub fn github_repository(url: &str) -> Option<String> {
-    let captures = Regex::new(GITHUB_URL).ok()?.captures(trimmed(url)).ok()??;
-    Some(captures.get(2)?.as_str().to_owned())
+pub fn github_repository(url: &str) -> Result<Option<String>, PatternInvalid> {
+    let repository = GITHUB_URL
+        .captures(trimmed(url))?
+        .and_then(|captures| captures.get(2))
+        .map(|repository| repository.as_str().to_owned());
+    Ok(repository)
 }
 
-#[must_use]
-pub fn repository_of(origin: &str) -> String {
-    if let Some(repository) = github_repository(origin) {
-        return repository;
+pub fn repository_of(origin: &str) -> Result<String, PatternInvalid> {
+    if let Some(repository) = github_repository(origin)? {
+        return Ok(repository);
     }
     let trimmed = trimmed(origin);
     let after_last = |text: &str| -> String {
@@ -34,26 +35,23 @@ pub fn repository_of(origin: &str) -> String {
     let rest = trimmed
         .rsplit_once(['/', ':'])
         .map_or(trimmed, |(rest, _)| rest);
-    format!("{}/{name}", after_last(rest))
+    Ok(format!("{}/{name}", after_last(rest)))
 }
 
-#[must_use]
-pub fn fork_flake(origin: Option<&str>, upstream: &str) -> String {
+pub fn fork_flake(origin: Option<&str>, upstream: &str) -> Result<String, PatternInvalid> {
     let Some(origin) = origin else {
-        return String::new();
+        return Ok(String::new());
     };
-    if let Some(repository) = github_repository(origin) {
+    if let Some(repository) = github_repository(origin)? {
         if is_upstream(&repository, upstream) {
-            return String::new();
+            return Ok(String::new());
         }
-        return format!("github:{repository}");
+        return Ok(format!("github:{repository}"));
     }
-    let plain_https =
-        Regex::new(PLAIN_HTTPS).is_ok_and(|pattern| pattern.is_match(origin).unwrap_or(false));
-    if plain_https {
-        return format!("git+{origin}");
+    if PLAIN_HTTPS.is_match(origin)? {
+        return Ok(format!("git+{origin}"));
     }
-    String::new()
+    Ok(String::new())
 }
 
 #[must_use]
@@ -75,7 +73,7 @@ mod tests {
             "git@github.com:bob/my-nixos.git",
         ] {
             assert_eq!(
-                github_repository(url).as_deref(),
+                github_repository(url).unwrap().as_deref(),
                 Some("bob/my-nixos"),
                 "{url}"
             );
@@ -89,20 +87,26 @@ mod tests {
             "https://github.com/bob/nixos/tree/main",
             "/srv/git/nixos",
         ] {
-            assert_eq!(github_repository(url), None, "{url}");
+            assert_eq!(github_repository(url).unwrap(), None, "{url}");
         }
     }
 
     #[test]
     fn the_repository_of_origin_is_its_last_two_segments() {
-        assert_eq!(repository_of("git@github.com:bob/nixos.git"), "bob/nixos");
-        assert_eq!(repository_of("https://github.com/bob/nixos/"), "bob/nixos");
         assert_eq!(
-            repository_of("file:///tmp/run/synced-origin.git"),
+            repository_of("git@github.com:bob/nixos.git").unwrap(),
+            "bob/nixos"
+        );
+        assert_eq!(
+            repository_of("https://github.com/bob/nixos/").unwrap(),
+            "bob/nixos"
+        );
+        assert_eq!(
+            repository_of("file:///tmp/run/synced-origin.git").unwrap(),
             "run/synced-origin"
         );
         assert_eq!(
-            repository_of("git@git.example.org:team/nixos.git"),
+            repository_of("git@git.example.org:team/nixos.git").unwrap(),
             "team/nixos"
         );
     }

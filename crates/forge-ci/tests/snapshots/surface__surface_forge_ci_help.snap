@@ -1,0 +1,25 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"--help\"])"
+---
+exit: 0
+--- stdout
+The CI of a nixos-forge flake: each subcommand is one step of its workflows
+
+Usage: forge-ci <COMMAND>
+
+Commands:
+  plan             Plan the CI run: the checks to build, the ones skipped and why, as GITHUB_OUTPUT lines
+  build            Build one check and write its result, excerpt and evidence
+  report           Write the report of a CI run from its results, for the run summary or a comment
+  promote          Move the deploy branch of every host whose checks passed
+  badges           Write, publish or read the badges of the badges branch
+  reproducibility  Build every system twice and compare the builds
+  flaky            Run one VM check several times and record each run
+  flaky-plan       Plan the VM checks whose flakiness this tree has not measured yet
+  flaky-report     Write the flaky report and the history of the runs
+  help             Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+--- stderr

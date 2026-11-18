@@ -72,7 +72,7 @@ fn answer(invocation: &Invocation) -> Answer {
             };
             match process::run_capped(
                 &mut command,
-                invocation.input.as_deref(),
+                invocation.input.as_deref().map(Vec::as_slice),
                 timeout,
                 limit,
                 stderr,
@@ -117,7 +117,7 @@ impl Streams for Machine {
                 Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
                 Err(error) => return Err(error),
             };
-            let chunk = &buffer[..read];
+            let chunk = buffer.get(..read).unwrap_or_default();
             if shown {
                 let _ = stdout.write_all(chunk).and_then(|()| stdout.flush());
             }

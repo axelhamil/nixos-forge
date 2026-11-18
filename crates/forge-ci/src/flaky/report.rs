@@ -78,7 +78,9 @@ fn median(runs: &[FlakyRun]) -> String {
     });
     let middle = seconds.len() / 2;
     if seconds.len() % 2 == 1 {
-        return seconds[middle].to_string();
+        return seconds
+            .get(middle)
+            .map_or_else(|| "null".to_owned(), ToString::to_string);
     }
 
     let (Some(low), Some(high)) = (seconds.get(middle.wrapping_sub(1)), seconds.get(middle)) else {

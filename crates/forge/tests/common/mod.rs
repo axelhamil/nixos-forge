@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::unwrap_used, clippy::panic)]
 
 use std::env;
 use std::fs;
@@ -28,4 +28,31 @@ pub fn sandboxed(program: &Path, dir: &Path, bin: &Path, home: &Path) -> Command
         .env("HOME", home)
         .env("GIT_CONFIG_NOSYSTEM", "1");
     command
+}
+
+pub fn surface(program: &str, args: &[&str], envs: &[(&str, &str)]) -> String {
+    let dir = tempfile::tempdir().unwrap();
+    let tmp = dir.path().display().to_string();
+    let bin = dir.path().join("bin");
+    fs::create_dir(&bin).unwrap();
+    let mut command = Command::new(program);
+    command
+        .args(args)
+        .current_dir(dir.path())
+        .env_clear()
+        .env("PATH", &bin);
+    for (name, value) in envs {
+        command.env(name, value.replace("{TMP}", &tmp));
+    }
+    let output = command.output().unwrap();
+    let code = output
+        .status
+        .code()
+        .map_or_else(|| "signal".to_owned(), |code| code.to_string());
+    format!(
+        "exit: {code}\n--- stdout\n{}--- stderr\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    )
+    .replace(&tmp, "[TMP]")
 }

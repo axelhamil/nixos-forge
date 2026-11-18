@@ -1,0 +1,8 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"flaky-plan\", \"extra\"])"
+---
+exit: 2
+--- stdout
+--- stderr
+usage: ci-flaky-plan

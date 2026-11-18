@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use zeroize::Zeroizing;
+
 use super::{Config, Options, Ports, Session, Stop, disks, secrets};
 use crate::system::Storage;
 use crate::system::{Commands, Invocation};
@@ -22,7 +24,7 @@ pub fn install(config: &Config, options: &Options, ports: &mut Ports) -> u8 {
 struct Plan {
     disk: String,
     target: String,
-    passphrase: Vec<u8>,
+    passphrase: Zeroizing<Vec<u8>>,
     hashes: Vec<(String, String)>,
 }
 
@@ -434,7 +436,7 @@ mod tests {
             let line = invocation.command_line();
             self.log.borrow_mut().push(line.clone());
             if let Some(input) = &invocation.input {
-                self.stdin.borrow_mut().push(input.clone());
+                self.stdin.borrow_mut().push(input.to_vec());
             }
             if let Some((command, flag, signal)) = &self.interrupt_on
                 && *command == line

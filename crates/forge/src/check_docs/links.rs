@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
@@ -86,12 +87,14 @@ impl Resolver<'_> {
     }
 
     fn anchors_of(&mut self, path: &str) -> Result<&BTreeSet<String>, CheckDocsError> {
-        if !self.anchors.contains_key(path) {
-            let text = read(&self.root.join(path))?;
-            let anchors = self.markdown.anchors(&text);
-            self.anchors.insert(path.to_owned(), anchors);
-        }
-        Ok(&self.anchors[path])
+        let anchors = match self.anchors.entry(path.to_owned()) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => {
+                let text = read(&self.root.join(path))?;
+                entry.insert(self.markdown.anchors(&text))
+            }
+        };
+        Ok(anchors)
     }
 }
 

@@ -92,7 +92,7 @@ fn prepare(
         person: read(ports, PERSON_TEMPLATE, "example person")?,
     };
 
-    let answers = Asker::new(ports, &root, env, &templates.host, flags.yes).collect(flags)?;
+    let answers = Asker::new(ports, &root, env, &templates.host, flags.yes)?.collect(flags)?;
     ports.checkpoint()?;
     Ok((root, answers, templates))
 }
@@ -165,8 +165,8 @@ impl Fork<'_> {
 
     fn write(&self, ports: &mut Ports, templates: &Templates) -> Result<(), Stop> {
         let (target, person) = (self.target(), self.person());
-        let host = render_host(&templates.host, self.answers, &self.key.signer);
-        let you = render_person(&templates.person, self.answers);
+        let host = render_host(&templates.host, self.answers, &self.key.signer)?;
+        let you = render_person(&templates.person, self.answers)?;
         self.install(ports, &target, &host)?;
         self.install(ports, &person, &you)?;
         self.format(ports, &[&target, &person])?;
@@ -174,13 +174,15 @@ impl Fork<'_> {
 
         let removed = self.remove_examples(ports)?;
         let origin = origin(ports)?;
-        let kept_flake = fork_flake(origin.as_deref(), &self.env.upstream);
+        let kept_flake = fork_flake(origin.as_deref(), &self.env.upstream)?;
         self.update_kept_examples(ports, &removed, &kept_flake)?;
         self.point_readme(ports)?;
 
         let repository = origin
             .as_deref()
-            .and_then(github_repository)
+            .map(github_repository)
+            .transpose()?
+            .flatten()
             .filter(|repository| !is_upstream(repository, &self.env.upstream));
         let steps = self.next_steps(repository.as_deref());
         ports
@@ -278,7 +280,7 @@ impl Fork<'_> {
                 continue;
             };
             let updated =
-                update_kept_example(&text, &self.answers.login, kept_flake, &self.key.signer);
+                update_kept_example(&text, &self.answers.login, kept_flake, &self.key.signer)?;
             self.rewrite(ports, &file, &updated)?;
             git(ports, &["add", "--", &file])?;
         }

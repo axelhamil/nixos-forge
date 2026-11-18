@@ -40,13 +40,13 @@ pub fn percent_decode(text: &str) -> String {
     let bytes = text.as_bytes();
     let mut decoded = Vec::with_capacity(bytes.len());
     let mut index = 0;
-    while index < bytes.len() {
+    while let Some(&current) = bytes.get(index) {
         if let Some(byte) = escaped_byte(bytes, index) {
             decoded.push(byte);
             index += 3;
             continue;
         }
-        decoded.push(bytes[index]);
+        decoded.push(current);
         index += 1;
     }
     String::from_utf8(decoded).unwrap_or_else(|_| text.to_owned())

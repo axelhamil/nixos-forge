@@ -1,0 +1,8 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"update\"], &[])"
+---
+exit: 1
+--- stdout
+--- stderr
+forge update: FORGE_UPDATE_FLAKE is not set: give this host a `flake` field to update from

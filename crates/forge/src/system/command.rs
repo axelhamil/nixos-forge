@@ -4,6 +4,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use zeroize::Zeroizing;
+
 use super::Owner;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -24,7 +26,7 @@ pub struct Invocation {
     pub timeout: Option<Duration>,
     pub run_as: Option<Owner>,
     pub output: Output,
-    pub input: Option<Vec<u8>>,
+    pub input: Option<Zeroizing<Vec<u8>>>,
     pub output_limit: Option<u64>,
     pub stdout_file: Option<PathBuf>,
 }
@@ -66,7 +68,7 @@ impl Invocation {
 
     #[must_use]
     pub fn input(mut self, bytes: &[u8]) -> Self {
-        self.input = Some(bytes.to_vec());
+        self.input = Some(Zeroizing::new(bytes.to_vec()));
         self
     }
 

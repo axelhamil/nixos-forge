@@ -2,11 +2,11 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use super::config::SyncSettings;
+use super::esp::BOOT_MANAGER;
 use crate::system::mount::Mounts;
 use crate::system::partitions::{self, Partition};
 use crate::system::{Commands, Files, Invocation, Storage, efi, firmware};
 
-const BOOT_MANAGER: &str = "EFI/Microsoft/Boot/bootmgfw.efi";
 const COPY_MARK: &str = "EFI/Microsoft/Boot/copied-by-nixos";
 const LINUX_LABEL: &str = "Linux Boot Manager";
 const LINUX_LOADER: &str = "\\EFI\\systemd\\systemd-bootx64.efi";

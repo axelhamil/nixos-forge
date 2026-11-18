@@ -300,7 +300,8 @@ pub fn jq_number(value: f64) -> String {
         return format!("{sign}{digits}{}", "0".repeat(point - digits.len()));
     }
 
-    format!("{sign}{}.{}", &digits[..point], &digits[point..])
+    let (whole, fraction) = digits.split_at_checked(point).unwrap_or((&digits, ""));
+    format!("{sign}{whole}.{fraction}")
 }
 
 #[must_use]

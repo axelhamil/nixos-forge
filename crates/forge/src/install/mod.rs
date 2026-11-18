@@ -7,6 +7,8 @@ use std::ffi::OsString;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+use zeroize::Zeroizing;
+
 pub use config::{CONFIG_VARIABLE, Config};
 
 use crate::system::interrupt::{self, Flag, SIGINT};
@@ -232,12 +234,12 @@ impl Session<'_, '_> {
         self.answered(answer)
     }
 
-    pub fn secret(&mut self, prompt: &str) -> Result<String, Stop> {
+    pub fn secret(&mut self, prompt: &str) -> Result<Zeroizing<String>, Stop> {
         let answer = self.ports.terminal.secret(prompt);
         self.answered(answer)
     }
 
-    fn answered(&self, answer: io::Result<String>) -> Result<String, Stop> {
+    fn answered<T>(&self, answer: io::Result<T>) -> Result<T, Stop> {
         self.checkpoint()?;
         answer.map_err(|error| match error.kind() {
             io::ErrorKind::Interrupted => Stop::Interrupted(SIGINT),

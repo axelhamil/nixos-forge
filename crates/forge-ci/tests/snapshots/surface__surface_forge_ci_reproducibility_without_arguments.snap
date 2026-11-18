@@ -1,0 +1,8 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"reproducibility\"])"
+---
+exit: 1
+--- stdout
+--- stderr
+cannot run nix: No such file or directory (os error 2)reproducibility: nix eval --impure --json .#ci.hosts --apply hosts: hosts.${builtins.currentSystem} failed

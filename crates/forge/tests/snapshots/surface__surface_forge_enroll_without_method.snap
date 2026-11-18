@@ -1,0 +1,18 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"enroll\"], &[])"
+---
+exit: 2
+--- stdout
+--- stderr
+Enroll a TPM2 or a security key to unlock the LUKS disk of this host
+
+Usage: forge enroll <COMMAND>
+
+Commands:
+  tpm2   Enroll the TPM2 bound to Secure Boot, as the tpm2-enroll service does at boot
+  fido2  Enroll a FIDO2 security key, the passphrase stays as a fallback
+  help   Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help

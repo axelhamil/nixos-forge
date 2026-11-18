@@ -62,12 +62,14 @@ fn lines_of(file: &Path) -> Vec<String> {
 
 fn tail(log: &Path, lines: usize) -> String {
     let all = lines_of(log);
-    all[all.len().saturating_sub(lines)..].concat()
+    all.get(all.len().saturating_sub(lines)..)
+        .unwrap_or_default()
+        .concat()
 }
 
 fn head(file: &Path, lines: usize) -> String {
     let all = lines_of(file);
-    all[..all.len().min(lines)].concat()
+    all.get(..all.len().min(lines)).unwrap_or_default().concat()
 }
 
 fn remove(path: &Path) {

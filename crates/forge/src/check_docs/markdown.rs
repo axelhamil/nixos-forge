@@ -58,7 +58,8 @@ impl Markdown {
             let Some(value) = captures.get(2).or_else(|| captures.get(3)) else {
                 continue;
             };
-            let line = first_line + html[..value.start()].matches('\n').count();
+            let before = html.get(..value.start()).unwrap_or_default();
+            let line = first_line + before.matches('\n').count();
             let srcset = captures
                 .get(1)
                 .is_some_and(|attribute| attribute.as_str().eq_ignore_ascii_case("srcset"));
@@ -142,5 +143,6 @@ fn slugify(heading: &str) -> String {
 }
 
 fn line_at(text: &str, offset: usize) -> usize {
-    text[..offset.min(text.len())].matches('\n').count() + 1
+    let before = text.get(..offset.min(text.len())).unwrap_or_default();
+    before.matches('\n').count() + 1
 }

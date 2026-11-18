@@ -1,14 +1,22 @@
+use std::mem;
 use std::path::Path;
+
+use zeroize::Zeroizing;
 
 use super::{Session, Stop};
 use crate::system::Invocation;
 
 const PASSWORDS: &str = "/mnt/persist/passwords";
 
-pub fn read_file(session: &Session, path: &Path, holding: &str) -> Result<Vec<u8>, Stop> {
-    let Ok(mut content) = session.ports.files.read(path) else {
+pub fn read_file(
+    session: &Session,
+    path: &Path,
+    holding: &str,
+) -> Result<Zeroizing<Vec<u8>>, Stop> {
+    let Ok(content) = session.ports.files.read(path) else {
         return Err(Stop::Refused(format!("cannot read {}.", path.display())));
     };
+    let mut content = Zeroizing::new(content);
     while content.last() == Some(&b'\n') {
         content.pop();
     }
@@ -21,16 +29,16 @@ pub fn read_file(session: &Session, path: &Path, holding: &str) -> Result<Vec<u8
     Ok(content)
 }
 
-pub fn ask_twice(session: &mut Session, prompt: &str) -> Result<Vec<u8>, Stop> {
+pub fn ask_twice(session: &mut Session, prompt: &str) -> Result<Zeroizing<Vec<u8>>, Stop> {
     loop {
-        let first = session.secret(prompt)?;
+        let mut first = session.secret(prompt)?;
         let second = session.secret("Same again")?;
         if first.is_empty() {
             session.print("It cannot be empty.\n");
         } else if first != second {
             session.print("They differ, try again.\n");
         } else {
-            return Ok(first.into_bytes());
+            return Ok(Zeroizing::new(mem::take(&mut *first).into_bytes()));
         }
     }
 }

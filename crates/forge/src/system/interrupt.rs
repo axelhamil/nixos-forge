@@ -2,8 +2,8 @@ use std::io;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-pub use signal_hook::consts::SIGINT;
-use signal_hook::consts::{SIGHUP, SIGTERM};
+use signal_hook::consts::SIGHUP;
+pub use signal_hook::consts::{SIGINT, SIGTERM};
 
 #[derive(Debug, Clone, Default)]
 pub struct Flag {

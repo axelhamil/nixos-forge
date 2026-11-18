@@ -1,12 +1,17 @@
 use std::collections::HashSet;
 
-use fancy_regex::Regex;
-
 use super::answers::{Answers, EXAMPLE_PERSON};
+use crate::system::{Pattern, PatternInvalid};
 
 const KEYWORDS: [&str; 10] = [
     "assert", "else", "if", "in", "inherit", "let", "or", "rec", "then", "with",
 ];
+
+pub(crate) static BARE_ATTRIBUTE: Pattern = Pattern::new(r"^[A-Za-z_][A-Za-z0-9_-]*$");
+pub(crate) static SIGNERS: Pattern = Pattern::new(r#"^    # signers = \[ "[^"]*" \];(.*)$"#);
+pub(crate) static BLOCK_START: Pattern = Pattern::new(r"^( *)(features|hardware|apps) = \[$");
+pub(crate) static BLOCK_ITEM: Pattern = Pattern::new(r#"^( *)(# )?"([^"]+)"(.*)$"#);
+pub(crate) static FLAKE: Pattern = Pattern::new(r#"^    (# )?flake = "github:"#);
 
 #[must_use]
 pub fn nix_string(text: &str) -> String {
@@ -15,15 +20,11 @@ pub fn nix_string(text: &str) -> String {
         .replace("${", "\\${")
 }
 
-#[must_use]
-pub fn nix_attribute(name: &str) -> String {
-    let bare = Regex::new(r"^[A-Za-z_][A-Za-z0-9_-]*$")
-        .is_ok_and(|pattern| pattern.is_match(name).unwrap_or(false));
-    if bare && !KEYWORDS.contains(&name) {
-        name.to_owned()
-    } else {
-        format!("\"{name}\"")
+pub fn nix_attribute(name: &str) -> Result<String, PatternInvalid> {
+    if BARE_ATTRIBUTE.is_match(name)? && !KEYWORDS.contains(&name) {
+        return Ok(name.to_owned());
     }
+    Ok(format!("\"{name}\""))
 }
 
 fn set_string(line: &str, value: &str) -> String {
@@ -31,7 +32,10 @@ fn set_string(line: &str, value: &str) -> String {
         return line.to_owned();
     };
     let (head, rest) = line.split_at(start + 1);
-    let tail = rest.find('"').map_or(rest, |end| &rest[end..]);
+    let tail = rest
+        .find('"')
+        .and_then(|end| rest.get(end..))
+        .unwrap_or(rest);
     format!("{head}{value}{tail}")
 }
 
@@ -48,33 +52,32 @@ fn joined(lines: impl IntoIterator<Item = String>) -> String {
     })
 }
 
-fn regex(pattern: &str) -> Option<Regex> {
-    Regex::new(pattern).ok()
-}
-
-fn captures<'t>(pattern: Option<&Regex>, line: &'t str) -> Option<Vec<&'t str>> {
-    let captures = pattern?.captures(line).ok()??;
-    Some(
+fn captures<'t>(pattern: &Pattern, line: &'t str) -> Result<Option<Vec<&'t str>>, PatternInvalid> {
+    let groups = pattern.captures(line)?.map(|captures| {
         captures
             .iter()
             .map(|group| group.map_or("", |group| group.as_str()))
-            .collect(),
-    )
+            .collect()
+    });
+    Ok(groups)
 }
 
-fn trust_signer(lines: Vec<String>, signer: &str) -> Vec<String> {
-    let signers = regex(r#"^    # signers = \[ "[^"]*" \];(.*)$"#);
+fn group<'t>(groups: &[&'t str], index: usize) -> &'t str {
+    groups.get(index).copied().unwrap_or_default()
+}
+
+fn trust_signer(lines: Vec<String>, signer: &str) -> Result<Vec<String>, PatternInvalid> {
     let mut trusted = Vec::with_capacity(lines.len() + 2);
     for line in lines {
-        let Some(groups) = captures(signers.as_ref(), &line) else {
+        let Some(groups) = captures(&SIGNERS, &line)? else {
             trusted.push(line);
             continue;
         };
         trusted.push("    signers = [".to_owned());
         trusted.push(format!("      \"{signer}\""));
-        trusted.push(format!("    ];{}", groups[1]));
+        trusted.push(format!("    ];{}", group(&groups, 1)));
     }
-    trusted
+    Ok(trusted)
 }
 
 fn chosen<'a>(answers: &'a Answers, block: &str) -> &'a [String] {
@@ -85,40 +88,40 @@ fn chosen<'a>(answers: &'a Answers, block: &str) -> &'a [String] {
     }
 }
 
-#[must_use]
-pub fn render_host(template: &str, answers: &Answers, signer: &str) -> String {
-    let block_start = regex(r"^( *)(features|hardware|apps) = \[$");
-    let item = regex(r#"^( *)(# )?"([^"]+)"(.*)$"#);
-    let block_end = regex(r"^ *\];");
-    let host_attribute = nix_attribute(&answers.host);
-    let login_attribute = nix_attribute(&answers.login);
+pub fn render_host(
+    template: &str,
+    answers: &Answers,
+    signer: &str,
+) -> Result<String, PatternInvalid> {
+    let host_attribute = nix_attribute(&answers.host)?;
+    let login_attribute = nix_attribute(&answers.login)?;
 
     let mut rendered = Vec::new();
     let mut block: Option<&[String]> = None;
     let mut seen: HashSet<&str> = HashSet::new();
     let mut indent = "";
     for line in lines(template) {
-        if let Some(groups) = captures(block_start.as_ref(), line) {
-            block = Some(chosen(answers, groups[2]));
+        if let Some(groups) = captures(&BLOCK_START, line)? {
+            block = Some(chosen(answers, group(&groups, 2)));
             seen.clear();
             rendered.push(line.to_owned());
             continue;
         }
 
         if let Some(wanted) = block {
-            if let Some(groups) = captures(item.as_ref(), line) {
-                indent = groups[1];
-                let name = groups[3];
+            if let Some(groups) = captures(&BLOCK_ITEM, line)? {
+                indent = group(&groups, 1);
+                let name = group(&groups, 3);
                 seen.insert(name);
                 let mark = if wanted.iter().any(|want| want == name) {
                     ""
                 } else {
                     "# "
                 };
-                rendered.push(format!("{indent}{mark}\"{name}\"{}", groups[4]));
+                rendered.push(format!("{indent}{mark}\"{name}\"{}", group(&groups, 4)));
                 continue;
             }
-            if captures(block_end.as_ref(), line).is_some() {
+            if line.trim_start_matches(' ').starts_with("];") {
                 for name in wanted.iter().filter(|name| !seen.contains(name.as_str())) {
                     rendered.push(format!("{indent}\"{name}\""));
                 }
@@ -130,7 +133,7 @@ pub fn render_host(template: &str, answers: &Answers, signer: &str) -> String {
 
         rendered.push(host_line(line, answers, &host_attribute, &login_attribute));
     }
-    joined(trust_signer(rendered, signer))
+    Ok(joined(trust_signer(rendered, signer)?))
 }
 
 fn host_line(line: &str, answers: &Answers, host_attribute: &str, login_attribute: &str) -> String {
@@ -168,10 +171,9 @@ fn rename_person(line: &str, login: &str, login_attribute: &str) -> String {
         .join(&format!("users.{login_attribute}"))
 }
 
-#[must_use]
-pub fn render_person(template: &str, answers: &Answers) -> String {
+pub fn render_person(template: &str, answers: &Answers) -> Result<String, PatternInvalid> {
     let login = &answers.login;
-    let login_attribute = nix_attribute(login);
+    let login_attribute = nix_attribute(login)?;
     let rendered = lines(template).map(|line| {
         if line == format!("  users.{EXAMPLE_PERSON} = {{") {
             return format!("  users.{login_attribute} = {{");
@@ -189,33 +191,36 @@ pub fn render_person(template: &str, answers: &Answers) -> String {
         }
         rename_person(line, login, &login_attribute)
     });
-    joined(rendered)
+    Ok(joined(rendered))
 }
 
-#[must_use]
-pub fn update_kept_example(text: &str, login: &str, fork_flake: &str, signer: &str) -> String {
-    let flake = regex(r#"^    (# )?flake = "github:"#);
-    let renamed = format!("    users.{} = {{", nix_attribute(login));
+pub fn update_kept_example(
+    text: &str,
+    login: &str,
+    fork_flake: &str,
+    signer: &str,
+) -> Result<String, PatternInvalid> {
+    let renamed = format!("    users.{} = {{", nix_attribute(login)?);
     let updated = lines(text)
         .map(|line| {
             if login != EXAMPLE_PERSON && line == format!("    users.{EXAMPLE_PERSON} = {{") {
-                return renamed.clone();
+                return Ok(renamed.clone());
             }
-            if captures(flake.as_ref(), line).is_some() {
+            if FLAKE.is_match(line)? {
                 if !fork_flake.is_empty() {
-                    return set_string(line, fork_flake);
+                    return Ok(set_string(line, fork_flake));
                 }
                 let field = line.trim_start_matches(' ');
                 let field = field.strip_prefix("# ").unwrap_or(field);
-                return format!("    # {field}");
+                return Ok(format!("    # {field}"));
             }
             if fork_flake.is_empty() && line.starts_with("      \"auto-upgrade\" #") {
-                return line.replacen("\"auto-upgrade\"", "# \"auto-upgrade\"", 1);
+                return Ok(line.replacen("\"auto-upgrade\"", "# \"auto-upgrade\"", 1));
             }
-            line.to_owned()
+            Ok(line.to_owned())
         })
-        .collect();
-    joined(trust_signer(updated, signer))
+        .collect::<Result<_, PatternInvalid>>()?;
+    Ok(joined(trust_signer(updated, signer)?))
 }
 
 #[must_use]
@@ -266,12 +271,12 @@ mod tests {
 
     #[test]
     fn a_laptop_host_turns_on_what_was_picked_and_appends_what_the_example_lacks() {
-        insta::assert_snapshot!(render_host(HOST, &laptop(), SIGNER));
+        insta::assert_snapshot!(render_host(HOST, &laptop(), SIGNER).unwrap());
     }
 
     #[test]
     fn a_person_gets_an_escaped_full_name_and_loses_every_alice() {
-        insta::assert_snapshot!(render_person(PERSON, &laptop()));
+        insta::assert_snapshot!(render_person(PERSON, &laptop()).unwrap());
     }
 
     #[test]
@@ -289,8 +294,8 @@ mod tests {
 
         insta::assert_snapshot!(format!(
             "{}\n{}",
-            render_host(HOST, &answers, SIGNER),
-            render_person(PERSON, &answers)
+            render_host(HOST, &answers, SIGNER).unwrap(),
+            render_person(PERSON, &answers).unwrap()
         ));
     }
 
@@ -304,8 +309,8 @@ mod tests {
 
         insta::assert_snapshot!(format!(
             "{}\n{}\n{}",
-            render_host(HOST, &answers, SIGNER),
-            render_person(PERSON, &answers),
+            render_host(HOST, &answers, SIGNER).unwrap(),
+            render_person(PERSON, &answers).unwrap(),
             point_readme(README, "rec", "in")
         ));
     }
@@ -314,13 +319,14 @@ mod tests {
     fn a_kept_example_follows_the_fork_or_drops_auto_upgrade_without_one() {
         insta::assert_snapshot!(format!(
             "{}\n{}",
-            update_kept_example(PI, "bob", "github:bob/my-nixos", SIGNER),
+            update_kept_example(PI, "bob", "github:bob/my-nixos", SIGNER).unwrap(),
             update_kept_example(
                 include_str!("../../tests/fixtures/init/modules/hosts/example-server/default.nix"),
                 "alice",
                 "",
                 SIGNER
             )
+            .unwrap()
         ));
     }
 
@@ -331,7 +337,7 @@ mod tests {
             ..laptop()
         };
 
-        let person = render_person(PERSON, &answers);
+        let person = render_person(PERSON, &answers).unwrap();
 
         assert!(
             person.contains("an account with `users.alicex`"),
@@ -347,9 +353,9 @@ mod tests {
 
     #[test]
     fn attributes_are_bare_unless_a_keyword_or_not_an_identifier() {
-        assert_eq!(nix_attribute("my-box"), "my-box");
-        assert_eq!(nix_attribute("_x"), "_x");
-        assert_eq!(nix_attribute("in"), "\"in\"");
-        assert_eq!(nix_attribute("1box"), "\"1box\"");
+        assert_eq!(nix_attribute("my-box").unwrap(), "my-box");
+        assert_eq!(nix_attribute("_x").unwrap(), "_x");
+        assert_eq!(nix_attribute("in").unwrap(), "\"in\"");
+        assert_eq!(nix_attribute("1box").unwrap(), "\"1box\"");
     }
 }

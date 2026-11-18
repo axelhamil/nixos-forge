@@ -1,0 +1,11 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"badges\"])"
+---
+exit: 2
+--- stdout
+--- stderr
+usage: ci-badges checks <out-dir>
+       ci-badges reproducibility <summary.md> <out-dir>
+       ci-badges publish <dir>
+       ci-badges read <file>

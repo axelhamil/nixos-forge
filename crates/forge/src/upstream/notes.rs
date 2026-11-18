@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
 
-use fancy_regex::Regex;
-
 use crate::system::remote::{GITHUB, UPSTREAM_REPOSITORY, github_repository};
+use crate::system::{Pattern, PatternInvalid};
 
-const GITHUB_SHORTHAND: &str = r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$";
-const BREAKING_LINE: &str = r"^(BREAKING[ -]CHANGE:|[a-z]+(\([^)]*\))?!:)";
+pub(crate) static GITHUB_SHORTHAND: Pattern = Pattern::new(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$");
+pub(crate) static BREAKING_LINE: Pattern =
+    Pattern::new(r"^(BREAKING[ -]CHANGE:|[a-z]+(\([^)]*\))?!:)");
 const TAGS_PREFIX: &str = "refs/tags/";
 const PEELED_SUFFIX: &str = "^{}";
 
@@ -14,21 +14,17 @@ pub fn starter() -> String {
     format!("{GITHUB}{UPSTREAM_REPOSITORY}.git")
 }
 
-pub(super) fn matches(pattern: &str, text: &str) -> bool {
-    Regex::new(pattern).is_ok_and(|regex| regex.is_match(text).unwrap_or(false))
-}
-
-#[must_use]
-pub fn source_url(source: &str) -> String {
-    if matches(GITHUB_SHORTHAND, source) {
-        return format!("{GITHUB}{source}.git");
+pub fn source_url(source: &str) -> Result<String, PatternInvalid> {
+    if GITHUB_SHORTHAND.is_match(source)? {
+        return Ok(format!("{GITHUB}{source}.git"));
     }
-    source.to_owned()
+    Ok(source.to_owned())
 }
 
-#[must_use]
-pub fn releases_page(url: &str) -> Option<String> {
-    github_repository(url).map(|repository| format!("{GITHUB}{repository}/releases/tag"))
+pub fn releases_page(url: &str) -> Result<Option<String>, PatternInvalid> {
+    let page =
+        github_repository(url)?.map(|repository| format!("{GITHUB}{repository}/releases/tag"));
+    Ok(page)
 }
 
 #[must_use]
@@ -61,16 +57,17 @@ fn version_order(left: &str, right: &str) -> Ordering {
 
 fn chunks(text: &str) -> Vec<&str> {
     let mut chunks = Vec::new();
-    let mut start = 0;
-    let bytes = text.as_bytes();
-    for index in 1..bytes.len() {
-        if bytes[index].is_ascii_digit() != bytes[index - 1].is_ascii_digit() {
-            chunks.push(&text[start..index]);
-            start = index;
-        }
-    }
-    if start < text.len() {
-        chunks.push(&text[start..]);
+    let mut rest = text;
+    while let Some(first) = rest.chars().next() {
+        let digit = first.is_ascii_digit();
+        let end = rest
+            .find(|character: char| character.is_ascii_digit() != digit)
+            .unwrap_or(rest.len());
+        let Some((chunk, tail)) = rest.split_at_checked(end) else {
+            break;
+        };
+        chunks.push(chunk);
+        rest = tail;
     }
     chunks
 }
@@ -84,15 +81,14 @@ fn chunk_order(left: &str, right: &str) -> Ordering {
     left.len().cmp(&right.len()).then_with(|| left.cmp(right))
 }
 
-#[must_use]
-pub fn breaking_lines(log: &str) -> String {
-    let Ok(breaking) = Regex::new(BREAKING_LINE) else {
-        return String::new();
-    };
-    log.lines()
-        .filter(|line| breaking.is_match(line).unwrap_or(false))
-        .collect::<Vec<_>>()
-        .join("\n")
+pub fn breaking_lines(log: &str) -> Result<String, PatternInvalid> {
+    let mut breaking = Vec::new();
+    for line in log.lines() {
+        if BREAKING_LINE.is_match(line)? {
+            breaking.push(line);
+        }
+    }
+    Ok(breaking.join("\n"))
 }
 
 #[must_use]
@@ -137,12 +133,12 @@ Upstream commits merged:
     )
 }
 
-#[must_use]
-pub fn merged_release(url: &str, tag: &str) -> String {
-    match releases_page(url) {
+pub fn merged_release(url: &str, tag: &str) -> Result<String, PatternInvalid> {
+    let merged = match releases_page(url)? {
         Some(releases) => format!("[{tag}]({releases}/{tag})"),
         None => url.to_owned(),
-    }
+    };
+    Ok(merged)
 }
 
 #[cfg(test)]
@@ -152,21 +148,26 @@ mod tests {
     #[test]
     fn an_owner_and_repo_means_a_github_repository_and_anything_else_is_kept_as_written() {
         assert_eq!(
-            source_url("bob/my-nixos"),
+            source_url("bob/my-nixos").unwrap(),
             "https://github.com/bob/my-nixos.git"
         );
-        assert_eq!(source_url("file:///srv/starter"), "file:///srv/starter");
-        assert_eq!(source_url("/srv/git/starter"), "/srv/git/starter");
+        assert_eq!(
+            source_url("file:///srv/starter").unwrap(),
+            "file:///srv/starter"
+        );
+        assert_eq!(source_url("/srv/git/starter").unwrap(), "/srv/git/starter");
         assert_eq!(starter(), "https://github.com/axelhamil/nixos-forge.git");
     }
 
     #[test]
     fn only_a_github_starter_has_a_releases_page() {
         assert_eq!(
-            releases_page("https://github.com/bob/forge.git").as_deref(),
+            releases_page("https://github.com/bob/forge.git")
+                .unwrap()
+                .as_deref(),
             Some("https://github.com/bob/forge/releases/tag")
         );
-        assert_eq!(releases_page("file:///srv/starter"), None);
+        assert_eq!(releases_page("file:///srv/starter").unwrap(), None);
     }
 
     #[test]
@@ -200,7 +201,7 @@ Feat!: capital
 ";
 
         assert_eq!(
-            breaking_lines(log),
+            breaking_lines(log).unwrap(),
             "feat!: rename x\nfix(disk)!: drop the old label\nBREAKING CHANGE: x is y now\nBREAKING-CHANGE: also"
         );
     }
@@ -237,11 +238,11 @@ diff --git a/CHANGELOG.md b/CHANGELOG.md
     #[test]
     fn the_merged_release_links_its_github_page_or_names_the_starter() {
         assert_eq!(
-            merged_release("https://github.com/bob/forge.git", "v0.2.0"),
+            merged_release("https://github.com/bob/forge.git", "v0.2.0").unwrap(),
             "[v0.2.0](https://github.com/bob/forge/releases/tag/v0.2.0)"
         );
         assert_eq!(
-            merged_release("file:///srv/starter", "v0.2.0"),
+            merged_release("file:///srv/starter", "v0.2.0").unwrap(),
             "file:///srv/starter"
         );
     }

@@ -1,15 +1,17 @@
 use std::io::{self, Write};
+use std::mem;
 use std::os::fd::{AsFd, BorrowedFd};
 
 use rustix::event::{PollFd, PollFlags, Timespec, poll};
 use rustix::io::Errno;
 use rustix::termios::{LocalModes, OptionalActions, Termios, isatty, tcgetattr, tcsetattr};
+use zeroize::{Zeroize, Zeroizing};
 
 use super::interrupt::Flag;
 
 pub trait Terminal {
     fn line(&mut self, prompt: &str) -> io::Result<String>;
-    fn secret(&mut self, prompt: &str) -> io::Result<String>;
+    fn secret(&mut self, prompt: &str) -> io::Result<Zeroizing<String>>;
     fn is_interactive(&self) -> bool;
 }
 
@@ -39,10 +41,11 @@ impl<I: AsFd, O: Write> Console<I, O> {
 impl<I: AsFd, O: Write> Terminal for Console<I, O> {
     fn line(&mut self, prompt: &str) -> io::Result<String> {
         self.ask(prompt)?;
-        self.read_line()
+        let mut line = self.read_line()?;
+        Ok(mem::take(&mut *line))
     }
 
-    fn secret(&mut self, prompt: &str) -> io::Result<String> {
+    fn secret(&mut self, prompt: &str) -> io::Result<Zeroizing<String>> {
         self.ask(&format!("{prompt}: "))?;
         let answer = {
             let _echo_off = self
@@ -60,6 +63,8 @@ impl<I: AsFd, O: Write> Terminal for Console<I, O> {
     }
 }
 
+const LINE_CAPACITY: usize = 256;
+
 const POLL_INTERVAL: Timespec = Timespec {
     tv_sec: 0,
     tv_nsec: 100_000_000,
@@ -74,22 +79,31 @@ impl<I: AsFd, O: Write> Console<I, O> {
         self.output.flush()
     }
 
-    fn read_line(&self) -> io::Result<String> {
-        let mut line = Vec::new();
+    fn read_line(&self) -> io::Result<Zeroizing<String>> {
+        let mut line = Zeroizing::new(Vec::with_capacity(LINE_CAPACITY));
         loop {
             self.wait_for_input()?;
-            let mut byte = [0];
-            match rustix::io::read(self.input.as_fd(), &mut byte) {
+            let mut byte = Zeroizing::new([0]);
+            match rustix::io::read(self.input.as_fd(), &mut *byte) {
                 Ok(0) => return Err(io::ErrorKind::UnexpectedEof.into()),
-                Ok(_) if byte[0] == b'\n' => break,
-                Ok(_) => line.push(byte[0]),
+                Ok(_) if *byte == *b"\n" => break,
+                Ok(_) => push_without_copy(&mut line, byte.as_slice()),
                 Err(Errno::INTR) => {}
                 Err(error) => return Err(error.into()),
             }
         }
-        let line = String::from_utf8(line)
-            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
-        Ok(line.trim_matches([' ', '\t']).to_owned())
+        let mut text = match String::from_utf8(mem::take(&mut *line)) {
+            Ok(text) => Zeroizing::new(text),
+            Err(error) => {
+                let utf8 = error.utf8_error();
+                error.into_bytes().zeroize();
+                return Err(io::Error::new(io::ErrorKind::InvalidData, utf8));
+            }
+        };
+        let (start, end) = trimmed_range(&text);
+        text.truncate(end);
+        text.drain(..start);
+        Ok(text)
     }
 
     fn wait_for_input(&self) -> io::Result<()> {
@@ -112,6 +126,23 @@ impl<I: AsFd, O: Write> Console<I, O> {
             }
         }
     }
+}
+
+fn push_without_copy(line: &mut Zeroizing<Vec<u8>>, bytes: &[u8]) {
+    if line.len() + bytes.len() > line.capacity() {
+        let mut grown = Zeroizing::new(Vec::with_capacity(
+            (line.capacity() * 2).max(line.len() + bytes.len()),
+        ));
+        grown.extend_from_slice(line);
+        *line = grown;
+    }
+    line.extend_from_slice(bytes);
+}
+
+fn trimmed_range(text: &str) -> (usize, usize) {
+    let kept = text.trim_end_matches([' ', '\t']);
+    let end = kept.len();
+    (end - kept.trim_start_matches([' ', '\t']).len(), end)
 }
 
 struct EchoOff<'fd> {
@@ -170,8 +201,8 @@ impl Terminal for Typed {
             .unwrap_or_else(|| Err(io::ErrorKind::UnexpectedEof.into()))
     }
 
-    fn secret(&mut self, prompt: &str) -> io::Result<String> {
-        self.line(prompt)
+    fn secret(&mut self, prompt: &str) -> io::Result<Zeroizing<String>> {
+        self.line(prompt).map(Zeroizing::new)
     }
 
     fn is_interactive(&self) -> bool {
@@ -200,8 +231,11 @@ mod tests {
     fn a_secret_off_a_terminal_is_read_like_a_line_and_ends_its_line_like_read_s() {
         let mut console = console(" hunter2\t\nhunter2\n");
 
-        assert_eq!(console.secret("Disk passphrase").unwrap(), "hunter2");
-        assert_eq!(console.secret("Same again").unwrap(), "hunter2");
+        assert_eq!(
+            console.secret("Disk passphrase").unwrap().as_str(),
+            "hunter2"
+        );
+        assert_eq!(console.secret("Same again").unwrap().as_str(), "hunter2");
         assert_eq!(console.output, b"\n\n");
     }
 

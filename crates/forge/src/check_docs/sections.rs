@@ -71,12 +71,12 @@ fn is_heading(line: &str) -> bool {
         .chars()
         .take_while(|character| *character == '#')
         .count();
-    (1..=6).contains(&hashes) && line[hashes..].starts_with(' ')
+    (1..=6).contains(&hashes) && line.trim_start_matches('#').starts_with(' ')
 }
 
 fn first_cell(row: &str) -> Option<&str> {
     let rest = row.strip_prefix('|')?;
-    rest.find('|').map(|end| &rest[..end])
+    rest.split_once('|').map(|(cell, _)| cell)
 }
 
 fn modules_of(tree: &Tree, dir: &str) -> Vec<String> {

@@ -1,0 +1,12 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"doctor\", \"--all\", \"--history\"], &[])"
+---
+exit: 2
+--- stdout
+--- stderr
+error: the argument '--all' cannot be used with '--history'
+
+Usage: forge doctor --all
+
+For more information, try '--help'.

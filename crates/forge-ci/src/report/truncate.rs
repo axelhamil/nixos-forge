@@ -17,7 +17,7 @@ impl<'a> Blocks<'a> {
 
         let backticks = line.len() - line.trim_start_matches('`').len();
         if backticks >= 3 {
-            self.fence = Some(&line[..backticks]);
+            self.fence = line.get(..backticks);
         } else if line.starts_with("<details") {
             self.details += 1;
         } else if line.starts_with("</details>") {

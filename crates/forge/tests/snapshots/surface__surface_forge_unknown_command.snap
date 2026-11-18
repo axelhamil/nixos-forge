@@ -1,0 +1,8 @@
+---
+source: forge/tests/surface.rs
+expression: "forge(&[\"nothere\"], &[])"
+---
+exit: 1
+--- stdout
+--- stderr
+forge: unknown command `nothere`: it is no built-in, and no forge-nothere is in FORGE_COMMANDS_PATH or PATH

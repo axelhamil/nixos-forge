@@ -35,7 +35,10 @@ pub fn iec(bytes: u64) -> String {
         power += 1;
     }
 
-    let unit = IEC_UNITS[power.saturating_sub(1)];
+    let unit = IEC_UNITS
+        .get(power.saturating_sub(1))
+        .copied()
+        .unwrap_or_default();
     if value < 10.0 {
         return format!("{value:.1}{unit}");
     }

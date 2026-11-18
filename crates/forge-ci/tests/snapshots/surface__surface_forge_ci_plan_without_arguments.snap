@@ -1,0 +1,8 @@
+---
+source: forge-ci/tests/surface.rs
+expression: "forge_ci(&[\"plan\"])"
+---
+exit: 2
+--- stdout
+--- stderr
+usage: ci-plan <event>

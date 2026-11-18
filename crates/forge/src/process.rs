@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 
 use rustix::io::Errno;
 use rustix::process::{Pid, Signal, WaitId, WaitIdOptions, kill_process_group, waitid};
+use zeroize::Zeroizing;
 
 use crate::system::interrupt::{self, Flag};
 
@@ -138,7 +139,7 @@ fn write_input(stdin: Option<ChildStdin>, input: Option<&[u8]>) {
     let (Some(mut stdin), Some(input)) = (stdin, input) else {
         return;
     };
-    let input = input.to_vec();
+    let input = Zeroizing::new(input.to_vec());
     thread::spawn(move || {
         let _ = stdin.write_all(&input);
     });
@@ -191,13 +192,11 @@ fn show_up_to_limit(pipe: Option<impl Pipe>, limit: u64) -> io::Result<Output> {
             Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
             Err(error) => return Err(error),
         };
-        let chunk = &buffer[..read];
+        let chunk = buffer.get(..read).unwrap_or_default();
         let _ = shown.write_all(chunk);
         let room = limit.saturating_sub(output.bytes.len());
         output.overflowed |= chunk.len() > room;
-        output
-            .bytes
-            .extend_from_slice(&chunk[..chunk.len().min(room)]);
+        output.bytes.extend(chunk.iter().take(room));
     }
 }
 
